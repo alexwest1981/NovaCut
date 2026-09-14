@@ -287,6 +287,12 @@ class NovaCutTimeline {
     setupEvents() {
         const { viewport, playheadHandle, timeRuler } = this;
 
+        // Sync vertical scroll with track headers
+        viewport.addEventListener('scroll', () => {
+            const headers = document.getElementById('trackHeadersScrollable');
+            if (headers) headers.scrollTop = viewport.scrollTop;
+        });
+
         // Ruler click / scrub
         timeRuler.addEventListener('mousedown', (e) => {
             const rect = timeRuler.getBoundingClientRect();

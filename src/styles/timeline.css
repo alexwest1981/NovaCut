@@ -89,16 +89,32 @@
     display: flex;
     flex-direction: column;
     z-index: 40;
+    overflow: hidden;
 }
 
 .track-headers-spacer {
-    height: 26px; /* Height of ruler */
+    height: 26px;
+    min-height: 26px;
+    max-height: 26px;
+    box-sizing: border-box;
     border-bottom: 1px solid var(--border-color);
     background: var(--timeline-ruler-bg);
+    flex-shrink: 0;
+}
+
+.track-headers-scrollable {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .track-header {
     height: 48px;
+    min-height: 48px;
+    max-height: 48px;
+    box-sizing: border-box;
+    flex-shrink: 0;
     border-bottom: 1px solid var(--border-color);
     padding: 0 12px;
     display: flex;
@@ -150,12 +166,16 @@
 /* Ruler */
 .time-ruler {
     height: 26px;
+    min-height: 26px;
+    max-height: 26px;
+    box-sizing: border-box;
     background: var(--timeline-ruler-bg);
     border-bottom: 1px solid var(--border-color);
     position: sticky;
     top: 0;
     z-index: 30;
     cursor: pointer;
+    flex-shrink: 0;
 }
 
 #rulerCanvas {
@@ -167,13 +187,17 @@
 /* Track Lanes */
 .track-lane {
     height: 48px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    min-height: 48px;
+    max-height: 48px;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border-color);
     position: relative;
-    background: rgba(255, 255, 255, 0.01);
+    background: rgba(255, 255, 255, 0.015);
 }
 
 .track-lane:nth-child(even) {
-    background: rgba(255, 255, 255, 0.02);
+    background: rgba(255, 255, 255, 0.03);
 }
 
 /* Clips on Timeline */
