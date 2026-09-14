@@ -218,6 +218,20 @@ class NovaCutTimeline {
         if (window.inspector) {
             window.inspector.update(clip);
         }
+        if (this.engine) {
+            this.engine.render();
+        }
+    }
+
+    deselectAll() {
+        this.selectedClipId = null;
+        document.querySelectorAll('.timeline-clip').forEach(el => el.classList.remove('selected'));
+        if (window.inspector) {
+            window.inspector.update(null);
+        }
+        if (this.engine) {
+            this.engine.render();
+        }
     }
 
     splitSelectedClip() {
@@ -307,7 +321,12 @@ class NovaCutTimeline {
         // Timeline Clip interaction (move / trim / select)
         this.canvasContainer.addEventListener('mousedown', (e) => {
             const clipEl = e.target.closest('.timeline-clip');
-            if (!clipEl) return;
+            if (!clipEl) {
+                if (!e.target.closest('.trim-handle') && !e.target.closest('.playhead-line')) {
+                    this.deselectAll();
+                }
+                return;
+            }
 
             const clipId = clipEl.id.replace('dom-', '');
             const clip = this.clips.find(c => c.id === clipId);

@@ -273,10 +273,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const textPresets = [
-        { name: 'Neon Cyber', text: 'NEON DREAMS', color: '#00f0ff', outlineColor: '#ff007f', outlineWidth: 6, font: 'Impact' },
-        { name: 'Cinematic Minimal', text: 'A FILM BY ALEX', color: '#ffffff', font: 'Georgia, serif', fontSize: 48 },
-        { name: 'Bold Banner', text: 'TRENDING NOW', color: '#000000', bgColor: '#f59e0b', font: 'Impact' },
-        { name: 'Subtitles / Captions', text: 'Här är en snygg undertext...', color: '#ffffff', bgColor: 'rgba(0,0,0,0.7)', fontSize: 42 }
+        { name: 'Neon Cyber', text: 'NEON DREAMS', color: '#00f0ff', outlineColor: '#ff007f', outlineWidth: 6, font: 'Impact', posY: -80 },
+        { name: 'Cinematic Minimal', text: 'A FILM BY ALEX', color: '#ffffff', font: 'Georgia, serif', fontSize: 48, posY: 0 },
+        { name: 'Bold Banner', text: 'TRENDING NOW', color: '#000000', bgColor: '#f59e0b', font: 'Impact', posY: -320 },
+        { name: 'Subtitles / Captions', text: 'Här är en snygg undertext...', color: '#ffffff', bgColor: 'rgba(0,0,0,0.7)', fontSize: 42, posY: 380 }
     ];
 
     const textPresetsGrid = document.getElementById('textPresetsGrid');
@@ -305,7 +305,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     color: preset.color,
                     bgColor: preset.bgColor || null,
                     outlineColor: preset.outlineColor || null,
-                    outlineWidth: preset.outlineWidth || 4
+                    outlineWidth: preset.outlineWidth || 4,
+                    posX: preset.posX || 0,
+                    posY: preset.posY || 0
                 });
             });
             textPresetsGrid.appendChild(btn);

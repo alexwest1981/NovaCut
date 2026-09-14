@@ -637,3 +637,79 @@ body {
     gap: 10px;
     background: var(--bg-surface-elevated);
 }
+
+/* Text & Clip Positioning Controls */
+.quick-pos-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.btn-pos-preset {
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    border-radius: 5px;
+    padding: 7px 0;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-pos-preset:hover {
+    background: var(--bg-surface-hover);
+    color: var(--text-primary);
+    border-color: var(--accent);
+}
+
+.btn-align-group {
+    display: flex;
+    border-radius: 6px;
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.btn-align-item {
+    flex: 1;
+    padding: 5px 8px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 11px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s ease;
+}
+
+.btn-align-item:hover {
+    color: var(--text-primary);
+}
+
+.btn-align-item.active {
+    background: var(--accent);
+    color: #0b0c10;
+    font-weight: 700;
+}
+
+.btn-reset-pos {
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    border-radius: 4px;
+    font-size: 10px;
+    padding: 2px 7px;
+    cursor: pointer;
+    line-height: 1;
+    transition: all 0.15s ease;
+}
+
+.btn-reset-pos:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+

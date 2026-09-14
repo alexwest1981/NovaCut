@@ -24,6 +24,7 @@ class NovaCutEngine {
 
         // Setup resize handling
         this.updateCanvasDimensions();
+        this.initCanvasInteractions();
     }
 
     setAspectRatio(ratio) {
@@ -192,6 +193,17 @@ class NovaCutEngine {
             this.renderTextClip(clip, width, height);
         });
 
+        // 6. Interactive Selection Gizmo & Snap Guidelines
+        if (window.timeline && window.timeline.selectedClipId) {
+            const selClip = window.timeline.clips.find(c => c.id === window.timeline.selectedClipId);
+            if (selClip && (selClip.trackId === 'text' || selClip.trackId === 'overlay' || selClip.trackId === 'video')) {
+                const isActive = activeClips.some(c => c.id === selClip.id);
+                if (isActive) {
+                    this.renderSelectionGizmo(selClip, width, height);
+                }
+            }
+        }
+
         ctx.restore();
 
         // 6. Handle Audio Playback Sync
@@ -320,33 +332,353 @@ class NovaCutEngine {
         ctx.textAlign = clip.align || 'center';
         ctx.textBaseline = 'middle';
 
+        const text = clip.text || 'NovaCut';
+        const lines = text.split('\n');
+        const lineHeight = fontSize * 1.2;
+        const totalHeight = lines.length * lineHeight;
+        const startY = y - (totalHeight / 2) + (lineHeight / 2);
+
         // Background box if defined
         if (clip.bgColor) {
-            const metrics = ctx.measureText(clip.text || 'NovaCut');
-            const padX = 20;
-            const padY = 12;
-            const boxW = metrics.width + padX * 2;
-            const boxH = fontSize + padY * 2;
+            let maxW = 0;
+            lines.forEach(line => {
+                const w = ctx.measureText(line).width;
+                if (w > maxW) maxW = w;
+            });
+            const padX = 24;
+            const padY = 14;
+            const boxW = maxW + padX * 2;
+            const boxH = totalHeight + padY * 2;
+
+            let boxX = x - boxW / 2;
+            if (clip.align === 'left') boxX = x - padX;
+            else if (clip.align === 'right') boxX = x - maxW - padX;
+
             ctx.fillStyle = clip.bgColor;
             ctx.beginPath();
-            ctx.roundRect(x - boxW / 2, y - boxH / 2, boxW, boxH, 8);
+            ctx.roundRect(boxX, y - boxH / 2, boxW, boxH, 8);
             ctx.fill();
         }
 
-        // Text Outline / Shadow
-        if (clip.outlineColor) {
-            ctx.strokeStyle = clip.outlineColor;
-            ctx.lineWidth = clip.outlineWidth || 6;
-            ctx.strokeText(clip.text || 'NovaCut', x, y);
-        } else {
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-            ctx.shadowBlur = 12;
-            ctx.shadowOffsetX = 2;
-            ctx.shadowOffsetY = 4;
+        // Render each line of text
+        lines.forEach((line, index) => {
+            const lineY = startY + index * lineHeight;
+
+            // Text Outline / Shadow
+            if (clip.outlineColor) {
+                ctx.strokeStyle = clip.outlineColor;
+                ctx.lineWidth = clip.outlineWidth || 6;
+                ctx.strokeText(line, x, lineY);
+            } else {
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+                ctx.shadowBlur = 12;
+                ctx.shadowOffsetX = 2;
+                ctx.shadowOffsetY = 4;
+            }
+
+            ctx.fillStyle = clip.color || '#ffffff';
+            ctx.fillText(line, x, lineY);
+        });
+
+        ctx.restore();
+    }
+
+    getTextBounds(clip, width, height) {
+        const { ctx } = this;
+        const x = (clip.posX || 0) + width / 2;
+        const y = (clip.posY || 0) + height / 2;
+        const fontSize = clip.fontSize || 64;
+        const fontFamily = clip.fontFamily || 'sans-serif';
+        const fontWeight = clip.bold ? 'bold ' : '600 ';
+        const fontStyle = clip.italic ? 'italic ' : '';
+
+        ctx.save();
+        ctx.font = `${fontStyle}${fontWeight}${fontSize}px ${fontFamily}`;
+        const text = clip.text || 'NovaCut';
+        const lines = text.split('\n');
+        let maxW = 0;
+        lines.forEach(line => {
+            const w = ctx.measureText(line).width;
+            if (w > maxW) maxW = w;
+        });
+        const lineHeight = fontSize * 1.2;
+        const totalHeight = lines.length * lineHeight;
+        const padX = 24;
+        const padY = 16;
+        const boxW = Math.max(50, maxW) + padX * 2;
+        const boxH = Math.max(40, totalHeight) + padY * 2;
+        ctx.restore();
+
+        let left = x - boxW / 2;
+        if (clip.align === 'left') {
+            left = x - padX;
+        } else if (clip.align === 'right') {
+            left = x - maxW - padX;
+        }
+        const top = y - boxH / 2;
+
+        return {
+            left,
+            top,
+            width: boxW,
+            height: boxH,
+            right: left + boxW,
+            bottom: top + boxH,
+            centerX: left + boxW / 2,
+            centerY: top + boxH / 2
+        };
+    }
+
+    getClipBounds(clip) {
+        if (!clip) return null;
+        if (clip.trackId === 'text') {
+            return this.getTextBounds(clip, this.canvas.width, this.canvas.height);
+        }
+        if (clip.trackId === 'overlay' || clip.trackId === 'video' || clip.trackId === 'image') {
+            const x = (clip.posX || 0) + this.canvas.width / 2;
+            const y = (clip.posY || 0) + this.canvas.height / 2;
+            const scale = clip.scale || 1.0;
+            const mediaEl = this.mediaElements.get(clip.mediaId);
+            const w = (mediaEl?.videoWidth || mediaEl?.naturalWidth || 600) * scale;
+            const h = (mediaEl?.videoHeight || mediaEl?.naturalHeight || 400) * scale;
+            return {
+                left: x - w / 2,
+                top: y - h / 2,
+                width: w,
+                height: h,
+                right: x + w / 2,
+                bottom: y + h / 2,
+                centerX: x,
+                centerY: y
+            };
+        }
+        return null;
+    }
+
+    getCanvasCoordinates(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return { x: 0, y: 0 };
+        const scaleX = this.canvas.width / rect.width;
+        const scaleY = this.canvas.height / rect.height;
+        return {
+            x: (e.clientX - rect.left) * scaleX,
+            y: (e.clientY - rect.top) * scaleY
+        };
+    }
+
+    initCanvasInteractions() {
+        this.isDraggingClip = false;
+        this.dragTarget = null;
+        this.dragStartPos = { x: 0, y: 0 };
+        this.dragClipStart = { posX: 0, posY: 0 };
+        this.snappedX = false;
+        this.snappedY = false;
+
+        this.canvas.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return;
+            const pt = this.getCanvasCoordinates(e);
+
+            if (!window.timeline) return;
+            const activeClips = window.timeline.getActiveClipsAt(this.currentTime);
+
+            // 1. Check currently selected clip first
+            if (window.timeline.selectedClipId) {
+                const sel = window.timeline.clips.find(c => c.id === window.timeline.selectedClipId);
+                if (sel && activeClips.some(c => c.id === sel.id)) {
+                    const b = this.getClipBounds(sel);
+                    if (b && pt.x >= b.left && pt.x <= b.right && pt.y >= b.top && pt.y <= b.bottom) {
+                        this.startDraggingClip(sel, pt);
+                        return;
+                    }
+                }
+            }
+
+            // 2. Check active text clips (topmost first)
+            const textClips = activeClips.filter(c => c.trackId === 'text').slice().reverse();
+            for (const clip of textClips) {
+                const b = this.getTextBounds(clip, this.canvas.width, this.canvas.height);
+                if (pt.x >= b.left && pt.x <= b.right && pt.y >= b.top && pt.y <= b.bottom) {
+                    window.timeline.selectClip(clip.id);
+                    this.startDraggingClip(clip, pt);
+                    return;
+                }
+            }
+
+            // 3. Check active overlay clips
+            const overlayClips = activeClips.filter(c => c.trackId === 'overlay').slice().reverse();
+            for (const clip of overlayClips) {
+                const b = this.getClipBounds(clip);
+                if (b && pt.x >= b.left && pt.x <= b.right && pt.y >= b.top && pt.y <= b.bottom) {
+                    window.timeline.selectClip(clip.id);
+                    this.startDraggingClip(clip, pt);
+                    return;
+                }
+            }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (this.isDraggingClip && this.dragTarget) {
+                const pt = this.getCanvasCoordinates(e);
+                const dx = pt.x - this.dragStartPos.x;
+                const dy = pt.y - this.dragStartPos.y;
+
+                let targetX = this.dragClipStart.posX + dx;
+                let targetY = this.dragClipStart.posY + dy;
+
+                // Smart magnetic snapping
+                const snapThreshold = 22;
+                this.snappedX = false;
+                this.snappedY = false;
+
+                if (Math.abs(targetX) < snapThreshold) {
+                    targetX = 0;
+                    this.snappedX = true;
+                }
+                if (Math.abs(targetY) < snapThreshold) {
+                    targetY = 0;
+                    this.snappedY = true;
+                }
+                if (Math.abs(targetY - 380) < snapThreshold) {
+                    targetY = 380;
+                    this.snappedY = true;
+                }
+
+                this.dragTarget.posX = Math.round(targetX);
+                this.dragTarget.posY = Math.round(targetY);
+
+                if (window.inspector && typeof window.inspector.updatePositionInputs === 'function') {
+                    window.inspector.updatePositionInputs(this.dragTarget.posX, this.dragTarget.posY);
+                }
+
+                this.render();
+                return;
+            }
+
+            // Hover state cursor changes
+            const rect = this.canvas.getBoundingClientRect();
+            if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+                const pt = this.getCanvasCoordinates(e);
+                if (window.timeline) {
+                    const activeClips = window.timeline.getActiveClipsAt(this.currentTime);
+                    const isHovering = activeClips.some(c => {
+                        if (c.trackId === 'text' || (window.timeline.selectedClipId === c.id && c.trackId === 'overlay')) {
+                            const b = this.getClipBounds(c);
+                            return b && pt.x >= b.left && pt.x <= b.right && pt.y >= b.top && pt.y <= b.bottom;
+                        }
+                        return false;
+                    });
+                    this.canvas.style.cursor = isHovering ? 'move' : 'default';
+                }
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (this.isDraggingClip) {
+                this.isDraggingClip = false;
+                this.dragTarget = null;
+                this.snappedX = false;
+                this.snappedY = false;
+                this.canvas.style.cursor = 'default';
+                this.render();
+            }
+        });
+    }
+
+    startDraggingClip(clip, pt) {
+        this.isDraggingClip = true;
+        this.dragTarget = clip;
+        this.dragStartPos = { x: pt.x, y: pt.y };
+        this.dragClipStart = {
+            posX: clip.posX || 0,
+            posY: clip.posY || 0
+        };
+        this.canvas.style.cursor = 'grabbing';
+        this.render();
+    }
+
+    renderSelectionGizmo(clip, width, height) {
+        const { ctx } = this;
+        if (!clip) return;
+
+        const bounds = this.getClipBounds(clip);
+        if (!bounds) return;
+
+        ctx.save();
+
+        // 1. Center Snapping Guidelines
+        if (this.snappedX) {
+            ctx.strokeStyle = '#00f0ff';
+            ctx.lineWidth = 2.5;
+            ctx.setLineDash([8, 6]);
+            ctx.beginPath();
+            ctx.moveTo(width / 2, 0);
+            ctx.lineTo(width / 2, height);
+            ctx.stroke();
+        }
+        if (this.snappedY) {
+            ctx.strokeStyle = '#00f0ff';
+            ctx.lineWidth = 2.5;
+            ctx.setLineDash([8, 6]);
+            ctx.beginPath();
+            ctx.moveTo(0, height / 2);
+            ctx.lineTo(width, height / 2);
+            ctx.stroke();
         }
 
-        ctx.fillStyle = clip.color || '#ffffff';
-        ctx.fillText(clip.text || 'NovaCut', x, y);
+        // 2. Bounding Box Outline
+        ctx.setLineDash([6, 4]);
+        ctx.strokeStyle = '#00d482';
+        ctx.lineWidth = 2.5;
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+        ctx.shadowBlur = 6;
+
+        ctx.beginPath();
+        ctx.roundRect(bounds.left, bounds.top, bounds.width, bounds.height, 8);
+        ctx.stroke();
+
+        // 3. Four Corner Handles
+        ctx.setLineDash([]);
+        const handleRadius = 7;
+        const corners = [
+            { x: bounds.left, y: bounds.top },
+            { x: bounds.right, y: bounds.top },
+            { x: bounds.left, y: bounds.bottom },
+            { x: bounds.right, y: bounds.bottom }
+        ];
+
+        corners.forEach(c => {
+            ctx.fillStyle = '#ffffff';
+            ctx.strokeStyle = '#00d482';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.arc(c.x, c.y, handleRadius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+        });
+
+        // 4. Floating Position Pill (shows exact X, Y)
+        const posX = clip.posX || 0;
+        const posY = clip.posY || 0;
+        const pillText = `X: ${posX > 0 ? '+' : ''}${posX}  Y: ${posY > 0 ? '+' : ''}${posY}`;
+        ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        const pillMetrics = ctx.measureText(pillText);
+        const pillW = pillMetrics.width + 24;
+        const pillH = 32;
+        const pillX = bounds.centerX - pillW / 2;
+        const pillY = bounds.top - 44 > 10 ? bounds.top - 44 : bounds.bottom + 12;
+
+        ctx.fillStyle = 'rgba(11, 12, 16, 0.92)';
+        ctx.strokeStyle = '#00d482';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(pillX, pillY, pillW, pillH, 6);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#00d482';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(pillText, bounds.centerX, pillY + pillH / 2);
 
         ctx.restore();
     }

@@ -74,17 +74,23 @@ class NovaCutInspector {
                 </div>
 
                 <div class="param-row">
-                    <span class="param-label">Position X</span>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span class="param-label">Position X</span>
+                        <button class="btn-reset-pos" id="btnResetMediaPosX" title="Centrera X (0)">0</button>
+                    </div>
                     <div class="param-input-group">
-                        <input type="range" class="slider-input" id="propPosX" min="-800" max="800" step="5" value="${clip.posX || 0}">
+                        <input type="range" class="slider-input" id="propPosX" min="-960" max="960" step="5" value="${clip.posX || 0}">
                         <span class="num-display" id="valPosX">${clip.posX || 0}</span>
                     </div>
                 </div>
 
                 <div class="param-row">
-                    <span class="param-label">Position Y</span>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span class="param-label">Position Y</span>
+                        <button class="btn-reset-pos" id="btnResetMediaPosY" title="Centrera Y (0)">0</button>
+                    </div>
                     <div class="param-input-group">
-                        <input type="range" class="slider-input" id="propPosY" min="-600" max="600" step="5" value="${clip.posY || 0}">
+                        <input type="range" class="slider-input" id="propPosY" min="-540" max="540" step="5" value="${clip.posY || 0}">
                         <span class="num-display" id="valPosY">${clip.posY || 0}</span>
                     </div>
                 </div>
@@ -125,6 +131,23 @@ class NovaCutInspector {
         this.bindInput('propPosY', 'valPosY', (v) => { clip.posY = parseInt(v); return v; });
         this.bindInput('propRotation', 'valRotation', (v) => { clip.rotation = parseInt(v); return `${v}°`; });
         this.bindInput('propOpacity', 'valOpacity', (v) => { clip.opacity = parseFloat(v); return `${Math.round(parseFloat(v)*100)}%`; });
+
+        const btnResetMediaX = document.getElementById('btnResetMediaPosX');
+        if (btnResetMediaX) {
+            btnResetMediaX.addEventListener('click', () => {
+                clip.posX = 0;
+                this.updatePositionInputs(clip.posX, clip.posY || 0);
+                this.engine.render();
+            });
+        }
+        const btnResetMediaY = document.getElementById('btnResetMediaPosY');
+        if (btnResetMediaY) {
+            btnResetMediaY.addEventListener('click', () => {
+                clip.posY = 0;
+                this.updatePositionInputs(clip.posX || 0, clip.posY);
+                this.engine.render();
+            });
+        }
 
         document.getElementById('propSpeed').addEventListener('change', (e) => {
             clip.speed = parseFloat(e.target.value);
@@ -183,11 +206,55 @@ class NovaCutInspector {
             </div>
 
             <div class="inspector-section">
-                <div class="section-title">Position</div>
+                <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>Position & Justering</span>
+                    <span style="font-size: 10px; color: var(--accent); font-weight: normal; text-transform: none;">✋ Dra direkt i videon</span>
+                </div>
+
+                <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 2px;">Snabbplacering:</div>
+                <div class="quick-pos-grid">
+                    <button class="btn-pos-preset" data-pos="top-left" title="Uppe Vänster">↖</button>
+                    <button class="btn-pos-preset" data-pos="top-center" title="Uppe Mitten">⬆</button>
+                    <button class="btn-pos-preset" data-pos="top-right" title="Uppe Höger">↗</button>
+                    <button class="btn-pos-preset" data-pos="mid-left" title="Mitten Vänster">⬅</button>
+                    <button class="btn-pos-preset" data-pos="mid-center" title="Mitten Centrerad">⏺</button>
+                    <button class="btn-pos-preset" data-pos="mid-right" title="Mitten Höger">➡</button>
+                    <button class="btn-pos-preset" data-pos="bottom-left" title="Nere Vänster">↙</button>
+                    <button class="btn-pos-preset" data-pos="bottom-center" title="Nere Mitten">⬇</button>
+                    <button class="btn-pos-preset" data-pos="bottom-right" title="Nere Höger">↘</button>
+                </div>
+
+                <button id="btnPresetSubtitle" class="btn-pos-preset" style="width: 100%; justify-content: center; font-size: 11px; padding: 7px 10px; gap: 6px;">
+                    <span>💬</span> <span>Placera som undertext (Lower-Third)</span>
+                </button>
+
+                <div class="param-row" style="margin-top: 4px;">
+                    <span class="param-label">Justering</span>
+                    <div class="btn-align-group">
+                        <button class="btn-align-item ${clip.align === 'left' ? 'active' : ''}" data-align="left" title="Vänsterjusterat">⯇ Vänster</button>
+                        <button class="btn-align-item ${(!clip.align || clip.align === 'center') ? 'active' : ''}" data-align="center" title="Centrerat">Centrerat</button>
+                        <button class="btn-align-item ${clip.align === 'right' ? 'active' : ''}" data-align="right" title="Högerjusterat">Höger ⯈</button>
+                    </div>
+                </div>
+
                 <div class="param-row">
-                    <span class="param-label">Position Y</span>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span class="param-label">Position X</span>
+                        <button class="btn-reset-pos" id="btnResetPosX" title="Centrera X (0)">0</button>
+                    </div>
                     <div class="param-input-group">
-                        <input type="range" class="slider-input" id="propPosY" min="-500" max="500" step="10" value="${clip.posY || 0}">
+                        <input type="range" class="slider-input" id="propPosX" min="-960" max="960" step="5" value="${clip.posX || 0}">
+                        <span class="num-display" id="valPosX">${clip.posX || 0}</span>
+                    </div>
+                </div>
+
+                <div class="param-row">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span class="param-label">Position Y</span>
+                        <button class="btn-reset-pos" id="btnResetPosY" title="Centrera Y (0)">0</button>
+                    </div>
+                    <div class="param-input-group">
+                        <input type="range" class="slider-input" id="propPosY" min="-540" max="540" step="5" value="${clip.posY || 0}">
                         <span class="num-display" id="valPosY">${clip.posY || 0}</span>
                     </div>
                 </div>
@@ -207,7 +274,78 @@ class NovaCutInspector {
         });
 
         this.bindInput('propFontSize', 'valFontSize', (v) => { clip.fontSize = parseInt(v); return `${v}px`; });
+        this.bindInput('propPosX', 'valPosX', (v) => { clip.posX = parseInt(v); return v; });
         this.bindInput('propPosY', 'valPosY', (v) => { clip.posY = parseInt(v); return v; });
+
+        const posMap = {
+            'top-left': { posX: -550, posY: -380, align: 'left' },
+            'top-center': { posX: 0, posY: -380, align: 'center' },
+            'top-right': { posX: 550, posY: -380, align: 'right' },
+            'mid-left': { posX: -550, posY: 0, align: 'left' },
+            'mid-center': { posX: 0, posY: 0, align: 'center' },
+            'mid-right': { posX: 550, posY: 0, align: 'right' },
+            'bottom-left': { posX: -550, posY: 380, align: 'left' },
+            'bottom-center': { posX: 0, posY: 380, align: 'center' },
+            'bottom-right': { posX: 550, posY: 380, align: 'right' }
+        };
+
+        this.bodyEl.querySelectorAll('.btn-pos-preset').forEach(btn => {
+            if (!btn.dataset.pos) return;
+            btn.addEventListener('click', () => {
+                const target = posMap[btn.dataset.pos];
+                if (target) {
+                    clip.posX = target.posX;
+                    clip.posY = target.posY;
+                    clip.align = target.align;
+                    this.updatePositionInputs(clip.posX, clip.posY);
+                    this.bodyEl.querySelectorAll('.btn-align-item').forEach(b => {
+                        b.classList.toggle('active', b.dataset.align === clip.align);
+                    });
+                    this.engine.render();
+                }
+            });
+        });
+
+        const btnSub = document.getElementById('btnPresetSubtitle');
+        if (btnSub) {
+            btnSub.addEventListener('click', () => {
+                clip.posX = 0;
+                clip.posY = 380;
+                clip.align = 'center';
+                this.updatePositionInputs(clip.posX, clip.posY);
+                this.bodyEl.querySelectorAll('.btn-align-item').forEach(b => {
+                    b.classList.toggle('active', b.dataset.align === 'center');
+                });
+                this.engine.render();
+            });
+        }
+
+        this.bodyEl.querySelectorAll('.btn-align-item').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.bodyEl.querySelectorAll('.btn-align-item').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                clip.align = btn.dataset.align;
+                this.engine.render();
+            });
+        });
+
+        const btnResetX = document.getElementById('btnResetPosX');
+        if (btnResetX) {
+            btnResetX.addEventListener('click', () => {
+                clip.posX = 0;
+                this.updatePositionInputs(clip.posX, clip.posY || 0);
+                this.engine.render();
+            });
+        }
+
+        const btnResetY = document.getElementById('btnResetPosY');
+        if (btnResetY) {
+            btnResetY.addEventListener('click', () => {
+                clip.posY = 0;
+                this.updatePositionInputs(clip.posX || 0, clip.posY);
+                this.engine.render();
+            });
+        }
 
         document.getElementById('propTextColor').addEventListener('input', (e) => {
             clip.color = e.target.value;
@@ -322,6 +460,17 @@ class NovaCutInspector {
         `;
 
         this.bindInput('propAudioVol', 'valAudioVol', (v) => { clip.volume = parseFloat(v); return `${Math.round(parseFloat(v)*100)}%`; });
+    }
+
+    updatePositionInputs(posX, posY) {
+        const slX = document.getElementById('propPosX');
+        const valX = document.getElementById('valPosX');
+        const slY = document.getElementById('propPosY');
+        const valY = document.getElementById('valPosY');
+        if (slX) slX.value = posX;
+        if (valX) valX.textContent = posX;
+        if (slY) slY.value = posY;
+        if (valY) valY.textContent = posY;
     }
 
     bindInput(inputId, displayId, updateFn) {
