@@ -1,0 +1,13 @@
+{
+  "id": "film-dust",
+  "name": "Filmdamm & Repor (Dust & Scratches)",
+  "version": "1.0.0",
+  "author": "NovaCut Team",
+  "category": "overlay",
+  "description": "Autentiska 12 FPS dammpartiklar och analoga filmrepor för 16mm/35mm känsla.",
+  "previewColor": "#a1a1aa",
+  "overlayType": "dust-scratches",
+  "params": [
+    { "id": "count", "label": "Partikeltäthet", "type": "slider", "min": 15, "max": 120, "step": 5, "default": 45 }
+  ]
+}

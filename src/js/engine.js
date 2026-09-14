@@ -351,7 +351,7 @@ class NovaCutEngine {
         ctx.restore();
     }
 
-    renderSpecialOverlay(type, params, width, height) {
+    renderSpecialOverlay(type, params = {}, width, height) {
         const { ctx } = this;
         ctx.save();
 
@@ -374,6 +374,115 @@ class NovaCutEngine {
             vignette.addColorStop(1, 'rgba(0, 0, 0, 0.65)');
             ctx.fillStyle = vignette;
             ctx.fillRect(0, 0, width, height);
+
+        } else if (type === 'rain') {
+            // 🌧️ Cinematic Rain & Water Streaks
+            const count = params.count || 140;
+            const speed = (params.speed || 1.0) * 2000;
+            const slant = (params.wind !== undefined ? params.wind : -0.2) * 500;
+            const len = params.length || 38;
+
+            ctx.strokeStyle = params.color || 'rgba(190, 220, 255, 0.5)';
+            ctx.lineWidth = params.thickness || 2.0;
+            ctx.lineCap = 'round';
+
+            const t = this.currentTime;
+
+            for (let i = 0; i < count; i++) {
+                const seedX = ((i * 127.1 + 311.7) % 1) * width;
+                const seedY = ((i * 269.5 + 183.3) % 1) * height;
+                const speedMult = 0.85 + ((i * 17.3) % 0.35);
+
+                const y = (seedY + t * speed * speedMult) % (height + 120) - 60;
+                const x = (seedX + (y / height) * slant) % (width + 120) - 60;
+
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x + slant * 0.08, y + len);
+                ctx.stroke();
+            }
+
+        } else if (type === 'bokeh') {
+            // ✨ Golden Bokeh Orbs
+            const count = params.count || 28;
+            const color = params.color || '#ffcc33';
+            const baseSize = params.size || 55;
+            const speed = params.speed || 0.5;
+            const t = this.currentTime * speed;
+
+            for (let i = 0; i < count; i++) {
+                const seedX = ((i * 92.3 + 14.1) % 1) * width;
+                const seedY = ((i * 47.7 + 89.2) % 1) * height;
+                const radius = baseSize * (0.6 + ((i * 13.9) % 1) * 0.9);
+                const alpha = 0.18 + ((i * 7.1) % 1) * 0.28;
+
+                // Drift upward & subtle horizontal sway
+                const y = (seedY - t * 45 + height) % height;
+                const x = seedX + Math.sin(t * 1.6 + i) * 40;
+
+                const grad = ctx.createRadialGradient(x, y, radius * 0.05, x, y, radius);
+                grad.addColorStop(0, color);
+                grad.addColorStop(0.7, color);
+                grad.addColorStop(1, 'transparent');
+
+                ctx.fillStyle = grad;
+                ctx.globalAlpha = alpha;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Soft outer glowing ring
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2.0;
+                ctx.globalAlpha = alpha * 0.8;
+                ctx.stroke();
+            }
+
+        } else if (type === 'snow') {
+            // ❄️ Soft Snowfall
+            const count = params.count || 90;
+            const speed = params.speed || 1.0;
+            const t = this.currentTime * speed;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+
+            for (let i = 0; i < count; i++) {
+                const seedX = ((i * 71.9 + 53.1) % 1) * width;
+                const seedY = ((i * 37.3 + 19.7) % 1) * height;
+                const radius = 2.0 + ((i * 11.3) % 1) * 4.0;
+                const fallSpeed = 60 + ((i * 23.7) % 1) * 110;
+
+                const y = (seedY + t * fallSpeed) % height;
+                const x = seedX + Math.sin(t * 1.2 + i * 2) * 24;
+
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+        } else if (type === 'dust-scratches') {
+            // 🎞️ Retro Film Dust & Micro Scratches
+            const count = params.count || 50;
+            const frameSeed = Math.floor(this.currentTime * 12);
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+
+            for (let i = 0; i < count; i++) {
+                const x = ((i * 133.7 + frameSeed * 91.1) % 1) * width;
+                const y = ((i * 277.3 + frameSeed * 53.7) % 1) * height;
+
+                if (i % 6 === 0) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, Math.max(0, y - 50));
+                    ctx.lineTo(x + ((i % 2) - 1), Math.min(height, y + 50));
+                    ctx.stroke();
+                } else {
+                    const r = 1.0 + ((i * 7.7) % 1) * 2.0;
+                    ctx.beginPath();
+                    ctx.arc(x, y, r, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
         }
 
         ctx.restore();

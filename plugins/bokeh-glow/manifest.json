@@ -1,0 +1,16 @@
+{
+  "id": "bokeh-glow",
+  "name": "Gyllene Bokeh (Bokeh Glow)",
+  "version": "1.1.0",
+  "author": "NovaCut Team",
+  "category": "overlay",
+  "description": "Mjuka svävande ljusbubblor med gyllene gloria och subtil parallaxrörelse.",
+  "previewColor": "#fbbf24",
+  "overlayType": "bokeh",
+  "params": [
+    { "id": "count", "label": "Antal bubblor", "type": "slider", "min": 10, "max": 60, "step": 2, "default": 26 },
+    { "id": "size", "label": "Bubbeldiameter", "type": "slider", "min": 25, "max": 120, "step": 5, "default": 55 },
+    { "id": "speed", "label": "Svävhastighet", "type": "slider", "min": 0.1, "max": 2.0, "step": 0.1, "default": 0.6 },
+    { "id": "color", "label": "Färgton", "type": "color", "default": "#ffcc33" }
+  ]
+}

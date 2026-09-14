@@ -93,6 +93,66 @@ class NovaCutMarketplace {
                 params: [
                     { id: 'contrast', label: 'Kontrast', type: 'slider', min: 100, max: 200, step: 5, default: 150 }
                 ]
+            },
+            {
+                id: 'rain-storm',
+                name: 'Regn & Storm (Rain)',
+                version: '1.1.0',
+                author: 'NovaCut Team',
+                category: 'overlay',
+                description: 'Cinematiska regndroppar med anpassningsbar vind, fallhastighet och vattentjocklek.',
+                previewColor: '#38bdf8',
+                overlayType: 'rain',
+                params: [
+                    { id: 'count', label: 'Antal droppar', type: 'slider', min: 30, max: 400, step: 10, default: 160 },
+                    { id: 'speed', label: 'Hastighet', type: 'slider', min: 0.2, max: 2.5, step: 0.1, default: 1.0 },
+                    { id: 'wind', label: 'Vind / Vinkel', type: 'slider', min: -1.0, max: 1.0, step: 0.1, default: -0.25 },
+                    { id: 'length', label: 'Dropplängd', type: 'slider', min: 15, max: 80, step: 5, default: 40 },
+                    { id: 'thickness', label: 'Linjebredd', type: 'slider', min: 1.0, max: 4.0, step: 0.5, default: 1.8 }
+                ]
+            },
+            {
+                id: 'bokeh-glow',
+                name: 'Gyllene Bokeh (Bokeh Glow)',
+                version: '1.1.0',
+                author: 'NovaCut Team',
+                category: 'overlay',
+                description: 'Mjuka svävande ljusbubblor med gyllene gloria och subtil parallaxrörelse.',
+                previewColor: '#fbbf24',
+                overlayType: 'bokeh',
+                params: [
+                    { id: 'count', label: 'Antal bubblor', type: 'slider', min: 10, max: 60, step: 2, default: 26 },
+                    { id: 'size', label: 'Bubbeldiameter', type: 'slider', min: 25, max: 120, step: 5, default: 55 },
+                    { id: 'speed', label: 'Svävhastighet', type: 'slider', min: 0.1, max: 2.0, step: 0.1, default: 0.6 },
+                    { id: 'color', label: 'Färgton', type: 'color', default: '#ffcc33' }
+                ]
+            },
+            {
+                id: 'snow-blizzard',
+                name: 'Snöfall (Snow)',
+                version: '1.0.0',
+                author: 'NovaCut Team',
+                category: 'overlay',
+                description: 'Atmosfäriska snöflingor med realistiskt fall och mjuk horisontell svajning.',
+                previewColor: '#e0f2fe',
+                overlayType: 'snow',
+                params: [
+                    { id: 'count', label: 'Antal flingor', type: 'slider', min: 20, max: 250, step: 10, default: 90 },
+                    { id: 'speed', label: 'Fallhastighet', type: 'slider', min: 0.3, max: 2.5, step: 0.1, default: 1.0 }
+                ]
+            },
+            {
+                id: 'film-dust',
+                name: 'Filmdamm & Repor (Dust & Scratches)',
+                version: '1.0.0',
+                author: 'NovaCut Team',
+                category: 'overlay',
+                description: 'Autentiska 12 FPS dammpartiklar och analoga filmrepor för 16mm/35mm känsla.',
+                previewColor: '#a1a1aa',
+                overlayType: 'dust-scratches',
+                params: [
+                    { id: 'count', label: 'Partikeltäthet', type: 'slider', min: 15, max: 120, step: 5, default: 45 }
+                ]
             }
         ];
     }
