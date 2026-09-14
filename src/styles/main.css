@@ -546,6 +546,43 @@ body {
     color: var(--text-secondary);
 }
 
+.media-card-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 0 6px 8px;
+}
+
+.btn-card-action {
+    background: var(--bg-surface-hover);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 4px 6px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s ease;
+}
+
+.btn-card-action:hover {
+    background: var(--accent);
+    color: #0c0d12;
+    border-color: var(--accent);
+}
+
+.btn-card-action.btn-place-all {
+    background: rgba(0, 212, 130, 0.12);
+    border-color: rgba(0, 212, 130, 0.3);
+    color: var(--accent);
+}
+
+.btn-card-action.btn-place-all:hover {
+    background: var(--accent);
+    color: #0c0d12;
+}
+
 /* Modal Styling */
 .modal-overlay {
     position: fixed;
