@@ -1,0 +1,16 @@
+{
+  "id": "vhs-retro",
+  "name": "80s Retro VHS",
+  "version": "1.0.0",
+  "author": "NovaCut Team",
+  "category": "filter",
+  "description": "Authentic analog cassette feel with scanlines, soft grain, and color bleed",
+  "previewColor": "#ff007f",
+  "cssFilter": "contrast(115%) saturate(125%) sepia(20%)",
+  "overlayType": "vhs-scanlines",
+  "params": [
+    { "id": "noise", "label": "Scanline Density", "type": "slider", "min": 0, "max": 1, "step": 0.05, "default": 0.6 },
+    { "id": "tracking", "label": "Tape Jitter", "type": "slider", "min": 0, "max": 10, "step": 1, "default": 2 },
+    { "id": "rgbSplit", "label": "RGB Shift", "type": "slider", "min": 0, "max": 5, "step": 0.5, "default": 1.5 }
+  ]
+}

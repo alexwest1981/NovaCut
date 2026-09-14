@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+exec "$DIR/node_modules/electron/dist/electron" \
+  --name="NovaCut" \
+  --class="NovaCut" \
+  --ozone-platform=wayland \
+  --disable-vulkan \
+  --enable-features=VaapiVideoDecodeLinuxGL,VaapiVideoDecoder \
+  "$DIR/src/main.js" "$@"

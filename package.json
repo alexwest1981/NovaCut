@@ -1,0 +1,23 @@
+{
+  "name": "novacut",
+  "version": "0.1.0",
+  "description": "A modern, lightweight CapCut-style video editor for Linux with an extensible marketplace",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron . --ozone-platform=wayland --disable-vulkan"
+  },
+  "keywords": [
+    "video-editor",
+    "capcut",
+    "linux",
+    "wayland",
+    "ffmpeg",
+    "timeline",
+    "marketplace"
+  ],
+  "author": "Alex & Antigravity",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^44.3.0"
+  }
+}

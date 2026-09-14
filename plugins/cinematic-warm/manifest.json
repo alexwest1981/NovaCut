@@ -1,0 +1,16 @@
+{
+  "id": "cinematic-warm",
+  "name": "Cinematic Golden Hour",
+  "version": "1.0.0",
+  "author": "NovaCut Team",
+  "category": "filter",
+  "description": "Warm filmic Kodak-style look with golden highlights, deep shadows, and subtle vignette",
+  "previewColor": "#ffaa00",
+  "cssFilter": "contrast(110%) saturate(120%) sepia(18%) hue-rotate(-10deg)",
+  "overlayType": "vignette",
+  "params": [
+    { "id": "warmth", "label": "Warmth", "type": "slider", "min": 0, "max": 50, "step": 1, "default": 18 },
+    { "id": "vignette", "label": "Vignette Darkness", "type": "slider", "min": 0, "max": 1, "step": 0.05, "default": 0.4 },
+    { "id": "contrast", "label": "Contrast", "type": "slider", "min": 90, "max": 160, "step": 5, "default": 110 }
+  ]
+}

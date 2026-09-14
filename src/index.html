@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NovaCut - Video Editor</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/timeline.css">
+    <link rel="stylesheet" href="styles/marketplace.css">
+</head>
+<body>
+
+    <!-- App Header -->
+    <header class="header">
+        <div class="header-left">
+            <div class="brand">
+                <div class="brand-icon">⚡</div>
+                <span>NovaCut</span>
+                <span class="brand-badge">Linux</span>
+            </div>
+            <input type="text" id="projectTitle" class="project-title-input" value="Mitt Projekt" title="Klicka för att byta projektnamn">
+        </div>
+
+        <div class="header-center">
+            <!-- Aspect Ratio Selector -->
+            <select id="aspectRatioSelect" class="select-compact" title="Välj bildförhållande">
+                <option value="16:9">16:9 (YouTube / Widescreen)</option>
+                <option value="9:16">9:16 (TikTok / Reels / Shorts)</option>
+                <option value="1:1">1:1 (Kvadratisk / Instagram)</option>
+                <option value="4:5">4:5 (Porträtt)</option>
+            </select>
+
+            <button id="btnUndo" class="btn-icon" title="Ångra (Ctrl+Z)" disabled>↩</button>
+            <button id="btnRedo" class="btn-icon" title="Gör om (Ctrl+Y)" disabled>↪</button>
+        </div>
+
+        <div class="header-right">
+            <button id="btnOpenExportModal" class="btn-primary">
+                <span>Exportera</span>
+                <span>▶</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main 3-Pane Workspace -->
+    <div class="workspace">
+
+        <!-- Left Drawer (Tabs: Media, Text, Effects, Audio, Marketplace) -->
+        <div class="left-pane">
+            <div class="sidebar-tabs">
+                <button class="tab-btn active" data-tab="media">📁 Media</button>
+                <button class="tab-btn" data-tab="text">🔤 Text</button>
+                <button class="tab-btn" data-tab="effects">🪄 Filter</button>
+                <button class="tab-btn" data-tab="audio">🎵 Ljud</button>
+                <button class="tab-btn" data-tab="marketplace">🛒 Market</button>
+            </div>
+
+            <!-- Tab 1: Media Library -->
+            <div id="tab-media" class="tab-content active">
+                <div class="media-actions">
+                    <button id="btnImportMedia" class="btn-primary" style="width: 100%; justify-content: center;">
+                        <span>+ Importera Filer</span>
+                    </button>
+                </div>
+
+                <div id="mediaDropzone" class="media-dropzone">
+                    <p>Dra och släpp video, ljud eller bilder här</p>
+                </div>
+
+                <div id="mediaGrid" class="media-grid">
+                    <!-- Media cards rendered dynamically -->
+                </div>
+            </div>
+
+            <!-- Tab 2: Text Presets -->
+            <div id="tab-text" class="tab-content">
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <button id="btnAddDefaultText" class="btn-primary" style="justify-content: center;">+ Lägg till text på tidslinjen</button>
+                    <div class="section-title" style="margin-top: 10px;">Textstilar & Mallar</div>
+                    <div id="textPresetsGrid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                        <!-- Text presets rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 3: Built-in Effects & Filter Layers -->
+            <div id="tab-effects" class="tab-content">
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <p style="font-size: 11px; color: var(--text-muted);">Lägg till filterlager på tidslinjen för att påverka alla underliggande spår.</p>
+                    <div id="effectsGrid" style="display: flex; flex-direction: column; gap: 10px;">
+                        <!-- Effects rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 4: Audio Presets & SFX -->
+            <div id="tab-audio" class="tab-content">
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <button id="btnImportAudioOnly" class="btn-primary" style="justify-content: center;">+ Importera Musik / SFX</button>
+                    <div class="section-title" style="margin-top: 10px;">Inbyggda Ljudklipp</div>
+                    <div id="audioPresetsList" style="display: flex; flex-direction: column; gap: 8px;">
+                        <!-- Audio presets rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 5: Community Marketplace -->
+            <div id="tab-marketplace" class="tab-content">
+                <div class="create-filter-banner" id="btnOpenCreatePluginModal">
+                    <h4>🛠️ Skapa Eget Filter / Plugin</h4>
+                    <p>Bygg egna reglage & shaders – exportera och dela med communityn</p>
+                </div>
+
+                <div class="marketplace-header">
+                    <input type="text" id="marketplaceSearch" class="marketplace-search" placeholder="Sök i community marketplace...">
+                    <div class="category-chips">
+                        <div class="chip active" data-cat="all">Alla</div>
+                        <div class="chip" data-cat="filter">Filter</div>
+                        <div class="chip" data-cat="transition">Övergångar</div>
+                        <div class="chip" data-cat="overlay">Effektlager</div>
+                    </div>
+                </div>
+
+                <div id="marketplaceList" class="marketplace-list">
+                    <!-- Marketplace plugins rendered dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Center Pane: Preview Player & Canvas -->
+        <div class="center-pane">
+            <div class="canvas-container">
+                <canvas id="previewCanvas" width="1920" height="1080"></canvas>
+            </div>
+
+            <!-- Playback Transport Controls -->
+            <div class="preview-controls">
+                <div class="timecode-display">
+                    <span id="currentTimecode" class="current">00:00:00.00</span> /
+                    <span id="totalTimecode">00:00:10.00</span>
+                </div>
+
+                <div class="transport-buttons">
+                    <button id="btnPrevFrame" class="btn-transport" title="Föregående bildruta (←)">⏮</button>
+                    <button id="btnPlayPause" class="btn-transport play-btn" title="Spela / Pausa (Mellanslag)">▶</button>
+                    <button id="btnNextFrame" class="btn-transport" title="Nästa bildruta (→)">⏭</button>
+                    <button id="btnLoop" class="btn-transport" title="Loopa uppspelning">🔁</button>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 12px; color: var(--text-muted);">🔊</span>
+                    <input type="range" id="masterVolumeSlider" min="0" max="1" step="0.05" value="1" style="width: 70px;">
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Pane: Inspector & Properties -->
+        <div class="right-pane" id="inspectorPane">
+            <div class="inspector-header">
+                <span id="inspectorTitle">Egenskaper</span>
+                <span id="inspectorBadge" class="brand-badge">Ingen vald</span>
+            </div>
+            <div class="inspector-body" id="inspectorBody">
+                <!-- Inspector controls rendered dynamically based on selected clip -->
+                <div style="color: var(--text-muted); text-align: center; margin-top: 40px;">
+                    <p>Markera ett klipp, en text eller ett filter på tidslinjen för att redigera egenskaper.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Bottom Multi-Track Timeline -->
+    <div class="timeline-panel">
+        <!-- Toolbar -->
+        <div class="timeline-toolbar">
+            <div class="timeline-tools-left">
+                <button id="btnSplitClip" class="tool-btn" title="Klipp / Dela vid spelhuvud (S eller Ctrl+B)">
+                    <span>✂️ Dela (S)</span>
+                </button>
+                <button id="btnDeleteClip" class="tool-btn" title="Ta bort markerat klipp (Delete / Backspace)">
+                    <span>🗑️ Ta bort</span>
+                </button>
+                <div class="tool-divider"></div>
+                <button id="btnSnappingToggle" class="tool-btn active" title="Snapping (N)">
+                    <span>🧲 Snapping</span>
+                </button>
+            </div>
+
+            <div class="timeline-tools-right">
+                <div class="zoom-container">
+                    <span style="font-size: 11px;">🔍</span>
+                    <input type="range" id="timelineZoomSlider" min="20" max="200" value="60" style="width: 90px;" title="Zooma tidslinje">
+                </div>
+            </div>
+        </div>
+
+        <!-- Scrollable Timeline Tracks and Ruler -->
+        <div class="timeline-content-wrapper">
+            <!-- Fixed Left Track Headers -->
+            <div class="track-headers">
+                <div class="track-headers-spacer"></div>
+                <div class="track-header">
+                    <div class="track-header-left">
+                        <span class="track-dot text"></span>
+                        <span class="track-header-title">Text 1</span>
+                    </div>
+                </div>
+                <div class="track-header">
+                    <div class="track-header-left">
+                        <span class="track-dot effect"></span>
+                        <span class="track-header-title">Effektlager</span>
+                    </div>
+                </div>
+                <div class="track-header">
+                    <div class="track-header-left">
+                        <span class="track-dot overlay"></span>
+                        <span class="track-header-title">Overlay Video</span>
+                    </div>
+                </div>
+                <div class="track-header">
+                    <div class="track-header-left">
+                        <span class="track-dot video"></span>
+                        <span class="track-header-title">Huvudvideo</span>
+                    </div>
+                </div>
+                <div class="track-header">
+                    <div class="track-header-left">
+                        <span class="track-dot audio"></span>
+                        <span class="track-header-title">Ljudspår</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Horizontal / Vertical Scrollable Lanes -->
+            <div class="timeline-viewport" id="timelineViewport">
+                <div class="timeline-tracks-canvas" id="timelineCanvas">
+                    <!-- Top Ruler -->
+                    <div class="time-ruler" id="timeRuler">
+                        <canvas id="rulerCanvas" height="26"></canvas>
+                    </div>
+
+                    <!-- Lanes -->
+                    <div class="track-lane" id="lane-text" data-track-id="text"></div>
+                    <div class="track-lane" id="lane-effect" data-track-id="effect"></div>
+                    <div class="track-lane" id="lane-overlay" data-track-id="overlay"></div>
+                    <div class="track-lane" id="lane-video" data-track-id="video"></div>
+                    <div class="track-lane" id="lane-audio" data-track-id="audio"></div>
+
+                    <!-- Red Playhead Scrubber -->
+                    <div class="playhead-scrubber" id="playheadScrubber">
+                        <div class="playhead-handle" id="playheadHandle"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div id="exportModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>Exportera Video</span>
+                <button class="btn-icon close-modal-btn">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Upplösning</label>
+                    <select id="exportResolution" class="form-select">
+                        <option value="1920x1080">1080p Full HD (1920 × 1080)</option>
+                        <option value="1080x1920">1080p Vertikal (1080 × 1920 - TikTok/Reels)</option>
+                        <option value="1280x720">720p HD (1280 × 720)</option>
+                        <option value="3840x2160">4K Ultra HD (3840 × 2160)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Bildfrekvens (FPS)</label>
+                    <select id="exportFps" class="form-select">
+                        <option value="30">30 FPS (Standard)</option>
+                        <option value="60">60 FPS (Super smooth)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Format & Hårdvaruacceleration</label>
+                    <select id="exportCodec" class="form-select">
+                        <option value="nvenc">MP4 (H.264 med NVIDIA NVENC hårdvaruacceleration)</option>
+                        <option value="webm">WebM (Snabb direkt export)</option>
+                    </select>
+                </div>
+                <div id="exportProgressContainer" style="display: none; margin-top: 10px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <span id="exportStatusText">Renderar video...</span>
+                        <span id="exportPercent">0%</span>
+                    </div>
+                    <div style="width: 100%; height: 8px; background: var(--bg-surface-elevated); border-radius: 4px; overflow: hidden;">
+                        <div id="exportProgressBar" style="width: 0%; height: 100%; background: var(--accent); transition: width 0.1s;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-icon close-modal-btn" style="width: auto; padding: 0 12px;">Avbryt</button>
+                <button id="btnStartExport" class="btn-primary">Börja Exportera</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Plugin / Filter Developer Modal -->
+    <div id="createPluginModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>Skapa Eget Filter / Plugin</span>
+                <button class="btn-icon close-modal-btn">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Filter Namn</label>
+                    <input type="text" id="devPluginName" class="form-input" placeholder="t.ex. Sunset Dream">
+                </div>
+                <div class="form-group">
+                    <label>Skapare / Författare</label>
+                    <input type="text" id="devPluginAuthor" class="form-input" placeholder="Ditt namn eller alias">
+                </div>
+                <div class="form-group">
+                    <label>Beskrivning</label>
+                    <textarea id="devPluginDesc" class="form-textarea" placeholder="Beskriv vad filtret gör..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>CSS / WebGL Filterformel</label>
+                    <input type="text" id="devPluginFilter" class="form-input" value="contrast(120%) saturate(130%) sepia(20%)" placeholder="t.ex. contrast(120%) saturate(140%)">
+                </div>
+                <div class="form-group">
+                    <label>Färgtema för kortet</label>
+                    <input type="color" id="devPluginColor" class="color-picker" value="#00d482">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-icon close-modal-btn" style="width: auto; padding: 0 12px;">Avbryt</button>
+                <button id="btnSaveNewPlugin" class="btn-primary">Spara & Installera Filter</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Video/Audio Cache Elements for Composition -->
+    <div id="mediaCache" style="display: none;"></div>
+
+    <!-- Scripts -->
+    <script src="js/engine.js"></script>
+    <script src="js/timeline.js"></script>
+    <script src="js/inspector.js"></script>
+    <script src="js/marketplace.js"></script>
+    <script src="js/exporter.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
