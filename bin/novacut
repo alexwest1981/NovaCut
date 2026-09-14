@@ -1,9 +1,16 @@
 #!/usr/bin/env bash
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-exec "$DIR/node_modules/electron/dist/electron" \
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do
+  DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+APP_DIR="$(cd -P "$(dirname "$SOURCE")/.." && pwd)"
+
+exec "$APP_DIR/node_modules/electron/dist/electron" \
   --name="NovaCut" \
   --class="NovaCut" \
   --ozone-platform=wayland \
   --disable-vulkan \
   --enable-features=VaapiVideoDecodeLinuxGL,VaapiVideoDecoder \
-  "$DIR/src/main.js" "$@"
+  "$APP_DIR/src/main.js" "$@"
