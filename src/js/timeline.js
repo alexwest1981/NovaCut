@@ -223,6 +223,11 @@ class NovaCutTimeline {
         }
     }
 
+    getSelectedClip() {
+        if (!this.selectedClipId) return null;
+        return this.clips.find(c => c.id === this.selectedClipId) || null;
+    }
+
     deselectAll() {
         this.selectedClipId = null;
         document.querySelectorAll('.timeline-clip').forEach(el => el.classList.remove('selected'));

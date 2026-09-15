@@ -15,6 +15,11 @@ if (!fs.existsSync(userPluginDir)) {
     fs.mkdirSync(userPluginDir, { recursive: true });
 }
 
+const userFontsDir = path.join(app.getPath('userData'), 'fonts');
+if (!fs.existsSync(userFontsDir)) {
+    fs.mkdirSync(userFontsDir, { recursive: true });
+}
+
 function createWindow() {
     mainWindow = new BrowserWindow({
         title: 'NovaCut - Video Editor',
@@ -137,6 +142,52 @@ ipcMain.handle('plugin:loadAll', async () => {
     scanDir(builtinDir, true);
     scanDir(userPluginDir, false);
     return plugins;
+});
+
+// Custom Font Handlers (TTF, OTF, WOFF, WOFF2 from DaFont or local)
+ipcMain.handle('font:import', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+        title: 'Välj typsnittsfil att importera (t.ex. från DaFont)',
+        filters: [
+            { name: 'Typsnittsfiler (*.ttf, *.otf, *.woff, *.woff2)', extensions: ['ttf', 'otf', 'woff', 'woff2'] }
+        ],
+        properties: ['openFile']
+    });
+    if (result.canceled || result.filePaths.length === 0) return null;
+    const filePath = result.filePaths[0];
+    const fileName = path.basename(filePath);
+    const fontName = path.parse(filePath).name;
+    const destPath = path.join(userFontsDir, fileName);
+    fs.copyFileSync(filePath, destPath);
+
+    const buffer = fs.readFileSync(destPath);
+    return {
+        fontName,
+        fileName,
+        path: destPath,
+        dataBase64: buffer.toString('base64')
+    };
+});
+
+ipcMain.handle('font:loadCustom', async () => {
+    if (!fs.existsSync(userFontsDir)) return [];
+    const files = fs.readdirSync(userFontsDir);
+    const fonts = [];
+    for (const f of files) {
+        const ext = path.extname(f).toLowerCase();
+        if (['.ttf', '.otf', '.woff', '.woff2'].includes(ext)) {
+            const fontName = path.parse(f).name;
+            const fullPath = path.join(userFontsDir, f);
+            const buffer = fs.readFileSync(fullPath);
+            fonts.push({
+                fontName,
+                fileName: f,
+                path: fullPath,
+                dataBase64: buffer.toString('base64')
+            });
+        }
+    }
+    return fonts;
 });
 
 // FFmpeg Export Engine

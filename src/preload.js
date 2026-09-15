@@ -8,5 +8,7 @@ contextBridge.exposeInMainWorld('novaCut', {
     exportFFmpeg: (options) => ipcRenderer.invoke('export:ffmpeg', options),
     onExportProgress: (callback) => {
         ipcRenderer.on('export:progress', (event, data) => callback(data));
-    }
+    },
+    importFont: () => ipcRenderer.invoke('font:import'),
+    loadCustomFonts: () => ipcRenderer.invoke('font:loadCustom')
 });

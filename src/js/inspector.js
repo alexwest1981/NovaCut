@@ -156,6 +156,35 @@ class NovaCutInspector {
     }
 
     renderTextProperties(clip) {
+        let fontOptionsHTML = `
+            <optgroup label="⚡ Standard">
+                <option value="sans-serif" ${(!clip.fontFamily || clip.fontFamily === 'sans-serif') ? 'selected' : ''}>Modern Sans-serif</option>
+                <option value="Impact, sans-serif" ${clip.fontFamily?.includes('Impact') ? 'selected' : ''}>Impact (Meme/Bold)</option>
+                <option value="'JetBrains Mono', monospace" ${clip.fontFamily?.includes('Mono') ? 'selected' : ''}>Monospace / Tech</option>
+                <option value="Georgia, serif" ${clip.fontFamily?.includes('Georgia') ? 'selected' : ''}>Klassisk Serif</option>
+            </optgroup>
+        `;
+
+        if (window.fontManager) {
+            const curated = window.fontManager.getCuratedFonts();
+            fontOptionsHTML += `<optgroup label="🌟 Google Fonts (Kurerade)">`;
+            curated.forEach(f => {
+                const isSel = clip.fontFamily === f.fontFamily || clip.fontFamily === f.name;
+                fontOptionsHTML += `<option value="${f.fontFamily}" ${isSel ? 'selected' : ''}>${f.name} (${f.category})</option>`;
+            });
+            fontOptionsHTML += `</optgroup>`;
+
+            const custom = window.fontManager.getCustomFonts();
+            if (custom.length > 0) {
+                fontOptionsHTML += `<optgroup label="📁 Importerade (DaFont m.fl.)">`;
+                custom.forEach(f => {
+                    const isSel = clip.fontFamily === f.fontFamily;
+                    fontOptionsHTML += `<option value="${f.fontFamily}" ${isSel ? 'selected' : ''}>${f.fontName}</option>`;
+                });
+                fontOptionsHTML += `</optgroup>`;
+            }
+        }
+
         this.bodyEl.innerHTML = `
             <div class="inspector-section">
                 <div class="section-title">Textinnehåll</div>
@@ -166,12 +195,12 @@ class NovaCutInspector {
                 <div class="section-title">Typografi & Stil</div>
                 
                 <div class="param-row">
-                    <span class="param-label">Teckensnitt</span>
-                    <select id="propFontFamily" class="select-compact">
-                        <option value="sans-serif" ${clip.fontFamily === 'sans-serif' ? 'selected' : ''}>Modern Sans-serif</option>
-                        <option value="Impact" ${clip.fontFamily === 'Impact' ? 'selected' : ''}>Impact (Meme/Bold)</option>
-                        <option value="'JetBrains Mono', monospace" ${clip.fontFamily?.includes('Mono') ? 'selected' : ''}>Monospace / Tech</option>
-                        <option value="Georgia, serif" ${clip.fontFamily === 'Georgia, serif' ? 'selected' : ''}>Klassisk Serif</option>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span class="param-label">Teckensnitt</span>
+                        <button class="btn-reset-pos" id="btnImportCustomFontInspector" title="Importera typsnittsfil (.ttf / .otf från t.ex. DaFont)">📂 +</button>
+                    </div>
+                    <select id="propFontFamily" class="select-compact" style="max-width: 170px;">
+                        ${fontOptionsHTML}
                     </select>
                 </div>
 
@@ -272,6 +301,20 @@ class NovaCutInspector {
             clip.fontFamily = e.target.value;
             this.engine.render();
         });
+
+        const btnImportFont = document.getElementById('btnImportCustomFontInspector');
+        if (btnImportFont) {
+            btnImportFont.addEventListener('click', async () => {
+                if (window.fontManager) {
+                    const res = await window.fontManager.importCustomFont();
+                    if (res && res.fontFamily) {
+                        clip.fontFamily = res.fontFamily;
+                        this.update(clip);
+                        this.engine.render();
+                    }
+                }
+            });
+        }
 
         this.bindInput('propFontSize', 'valFontSize', (v) => { clip.fontSize = parseInt(v); return `${v}px`; });
         this.bindInput('propPosX', 'valPosX', (v) => { clip.posX = parseInt(v); return v; });
