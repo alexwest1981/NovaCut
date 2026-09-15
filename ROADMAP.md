@@ -113,9 +113,24 @@ Detta dokument beskriver sprintplanen för **NovaCut**, en modern, blixtsnabb oc
     - 🔴 **LIVE Sändning:** LIVE-banner med pulserande radiovågor.
   - Full interaktivitet på canvas: skalbar, roterbar, flyttbar med muspekaren och keyframing!
 
-### Sprint 16: Beat Detection & Automatisk Klippning (Kommande sprint)
-* **Ljudanalys & Beat Markers:** Automatisk transient- och beat-detektering på bakgrundsmusik med visualisering på tidslinjens linjal.
-* **Auto-Cut till Takten:** 1-klicks uppdelning av videoklipp synkroniserat med musikens beats för action- och musikmontage.
+### Sprint 16: Beat Detection & Automatisk Klippning
+* **Rytm- och Taktdetektering (`NovaCutBeats`):**
+  - Offline ljudanalys via Web Audio API med blockvis energiberäkning och glidande medelvärdesvarians ($E > c \cdot \langle E \rangle$).
+  - Justerbar känslighet (`Hög`, `Medium`, `Låg`) med automatisk fallback till musikalisk taktmatris (t.ex. 120/128 BPM) om ljudspår saknas eller inte kan avkodas.
+* **Gyllene Taktmarkörer på Linjalen:**
+  - Bärnstensfärgade diamantmarkörer direkt på tidslinjens linjal med subtila vertikala hjälplinjer.
+* **Magnetisk Beat Snapping:**
+  - När klipp eller spelhuvud dras på tidslinjen snäpper de magnetiskt mot varje detekterat taktslag.
+* **⚡ Auto-Cut till Takten (Montage Velocity Cut):**
+  - 1-klicks knapp i tidslinjens verktygsfält som automatiskt klyver markerat videoklipp (`splitClipAtTime`) vid varje beat och applicerar rytmisk alternerande mikrozoom (+8% varannan sektion) för den virala CapCut/TikTok montage-känslan!
 
-### Sprint 17: Projektmallar & Viral Format Wizard
-* **Snabbstartsmallar:** TikTok Viral Hook, YouTube Tutorial, Gaming Highlight, Podcast Clip, Meme Format med förinställda spår, musik, subtitles och stickers.
+### Sprint 17: Projektmallar & Viral Format Wizard (Kommande sprint)
+* **1-Klicks Formatmallar:**
+  - ⚡ **TikTok Viral Hook (9:16):** Förberett med hook-text, zoom-in och snabb taktklippning.
+  - 🎮 **Gaming Reaction / Facecam (9:16 & 16:9):** Automatisk uppdelning av V1 (gameplay) och V2 (facecam med cirkelmask).
+  - 🎙️ **Podcast Highlight (1:1 & 9:16):** Split-screen för två talare med auto-captions banner.
+  - 🎬 **Cinematic YouTube 4K (16:9):** Letterbox, 35mm filmkorn, teal & orange färgprofil och mjuk övergång.
+
+### Sprint 18: Moln- och Lokal Render Queue
+* **Bakgrunds-rendering & Köhantering:** Flera exporter kan köas upp utan att blockera redigeringen.
+
