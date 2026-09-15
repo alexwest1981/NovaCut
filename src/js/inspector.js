@@ -127,6 +127,81 @@ class NovaCutInspector {
 
     renderMediaProperties(clip) {
         this.bodyEl.innerHTML = `
+            <!-- Picture-in-Picture & Reaktionslayouter Section -->
+            <div class="inspector-section">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <div class="section-title" style="margin-bottom: 0;">🖼️ Picture-in-Picture & Layout</div>
+                    <span style="font-size: 10px; color: var(--accent); font-weight: 600;">1-Klick</span>
+                </div>
+
+                <div class="text-style-presets" id="pipPresetsRow">
+                    <button class="btn-text-preset" data-pip="gaming-br" title="Gaming Facecam: Nere till höger med ram och skugga">
+                        <span class="preset-icon">🎮</span>
+                        <span>Nere Höger</span>
+                    </button>
+                    <button class="btn-text-preset" data-pip="facecam-tr" title="Facecam: Uppe till höger">
+                        <span class="preset-icon">🎙️</span>
+                        <span>Uppe Höger</span>
+                    </button>
+                    <button class="btn-text-preset" data-pip="circle-bubble" title="Reaction Bubble: Cirkelmaskad facecam">
+                        <span class="preset-icon">⚪</span>
+                        <span>Cirkel-PiP</span>
+                    </button>
+                    <button class="btn-text-preset" data-pip="split-top" title="TikTok Split 50%: Övre halvan för reaktion/webcam">
+                        <span class="preset-icon">📱</span>
+                        <span>Topp 50%</span>
+                    </button>
+                    <button class="btn-text-preset" data-pip="split-bottom" title="TikTok Split 50%: Undre halvan för gameplay/video">
+                        <span class="preset-icon">🕹️</span>
+                        <span>Botten 50%</span>
+                    </button>
+                    <button class="btn-text-preset" data-pip="fullscreen" title="Återställ till fullskärm (100% centrerad)">
+                        <span class="preset-icon">⛶</span>
+                        <span>Fullskärm</span>
+                    </button>
+                </div>
+
+                <!-- Dual-track Smart Layout Button -->
+                <button id="btnApplyDualTrackReaction" class="btn-secondary" style="width: 100%; margin-bottom: 10px; font-size: 11px; padding: 6px; justify-content: center; gap: 6px;">
+                    <span>⚡ Synka V1 + V2 till TikTok Split (Topp/Botten)</span>
+                </button>
+
+                <!-- PiP Ram & Outline -->
+                <div class="param-row">
+                    <span class="param-label">Ram / Kantlinje</span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="propPipBorder" ${clip.borderWidth ? 'checked' : ''}>
+                        <input type="color" class="color-picker" id="propPipBorderColor" value="${clip.borderColor || '#00d482'}">
+                    </div>
+                </div>
+
+                <div id="groupPipBorderControls" style="${clip.borderWidth ? 'display: block;' : 'display: none;'}">
+                    <div class="param-row">
+                        <span class="param-label">Ramtjocklek</span>
+                        <div class="param-input-group">
+                            <input type="range" class="slider-input" id="propPipBorderWidth" min="1" max="20" step="1" value="${clip.borderWidth || 4}">
+                            <span class="num-display" id="valPipBorderWidth">${clip.borderWidth || 4}px</span>
+                        </div>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">Hörnradie</span>
+                        <div class="param-input-group">
+                            <input type="range" class="slider-input" id="propPipCornerRadius" min="0" max="100" step="4" value="${clip.borderRadius || 0}">
+                            <span class="num-display" id="valPipCornerRadius">${clip.borderRadius || 0}px</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PiP Drop Shadow -->
+                <div class="param-row">
+                    <span class="param-label">Kastskugga (Pop)</span>
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer;">
+                        <input type="checkbox" id="propPipShadow" ${clip.pipShadow ? 'checked' : ''}>
+                        <span style="color: var(--text-muted);">Lyft fram Facecam med skugga</span>
+                    </label>
+                </div>
+            </div>
+
             <div class="inspector-section">
                 <div class="section-title">Transformering & Keyframing</div>
                 
@@ -828,6 +903,149 @@ class NovaCutInspector {
             this.engine.render();
             return `${v}%`;
         });
+
+        // Picture-in-Picture & Layout Presets
+        const pipRow = document.getElementById('pipPresetsRow');
+        if (pipRow) {
+            pipRow.querySelectorAll('.btn-text-preset').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const mode = btn.getAttribute('data-pip');
+                    const w = this.engine.canvas.width;
+                    const h = this.engine.canvas.height;
+
+                    if (mode === 'gaming-br') {
+                        clip.scale = 0.32;
+                        clip.posX = Math.round(w / 2 - (w * clip.scale) / 2 - 36);
+                        clip.posY = Math.round(h / 2 - (h * clip.scale) / 2 - 36);
+                        clip.borderRadius = 16;
+                        clip.borderWidth = 4;
+                        clip.borderColor = '#00d482';
+                        clip.pipShadow = true;
+                        delete clip.mask;
+                    } else if (mode === 'facecam-tr') {
+                        clip.scale = 0.32;
+                        clip.posX = Math.round(w / 2 - (w * clip.scale) / 2 - 36);
+                        clip.posY = Math.round(-h / 2 + (h * clip.scale) / 2 + 36);
+                        clip.borderRadius = 16;
+                        clip.borderWidth = 4;
+                        clip.borderColor = '#ffffff';
+                        clip.pipShadow = true;
+                        delete clip.mask;
+                    } else if (mode === 'circle-bubble') {
+                        clip.scale = 0.35;
+                        clip.posX = Math.round(w / 2 - (w * clip.scale) / 2 - 40);
+                        clip.posY = Math.round(h / 2 - (h * clip.scale) / 2 - 40);
+                        clip.mask = { type: 'circle', size: Math.round(Math.min(w, h) * 0.85) };
+                        clip.borderWidth = 5;
+                        clip.borderColor = '#00d482';
+                        clip.pipShadow = true;
+                        delete clip.borderRadius;
+                    } else if (mode === 'split-top') {
+                        clip.scale = 1.0;
+                        clip.posX = 0;
+                        clip.posY = Math.round(-h / 4);
+                        clip.mask = { type: 'rectangle', width: w, height: Math.round(h / 2), roundness: 0 };
+                        delete clip.borderWidth;
+                        delete clip.borderRadius;
+                        delete clip.pipShadow;
+                    } else if (mode === 'split-bottom') {
+                        clip.scale = 1.0;
+                        clip.posX = 0;
+                        clip.posY = Math.round(h / 4);
+                        clip.mask = { type: 'rectangle', width: w, height: Math.round(h / 2), roundness: 0 };
+                        delete clip.borderWidth;
+                        delete clip.borderRadius;
+                        delete clip.pipShadow;
+                    } else if (mode === 'fullscreen') {
+                        clip.scale = 1.0;
+                        clip.posX = 0;
+                        clip.posY = 0;
+                        clip.rotation = 0;
+                        delete clip.mask;
+                        delete clip.borderWidth;
+                        delete clip.borderRadius;
+                        delete clip.pipShadow;
+                    }
+
+                    this.render(clip);
+                    this.engine.render();
+                });
+            });
+        }
+
+        const btnDualTrack = document.getElementById('btnApplyDualTrackReaction');
+        if (btnDualTrack) {
+            btnDualTrack.addEventListener('click', () => {
+                const overlayClip = this.timeline.clips.find(c => c.trackId === 'overlay');
+                const videoClip = this.timeline.clips.find(c => c.trackId === 'video');
+                const w = this.engine.canvas.width;
+                const h = this.engine.canvas.height;
+
+                if (overlayClip && videoClip) {
+                    overlayClip.scale = 1.0;
+                    overlayClip.posX = 0;
+                    overlayClip.posY = Math.round(-h / 4);
+                    overlayClip.mask = { type: 'rectangle', width: w, height: Math.round(h / 2), roundness: 0 };
+                    delete overlayClip.borderWidth;
+
+                    videoClip.scale = 1.0;
+                    videoClip.posX = 0;
+                    videoClip.posY = Math.round(h / 4);
+                    videoClip.mask = { type: 'rectangle', width: w, height: Math.round(h / 2), roundness: 0 };
+                    delete videoClip.borderWidth;
+
+                    this.render(clip);
+                    this.engine.render();
+                    btnDualTrack.innerHTML = '<span>✅ V1 + V2 synkade till TikTok Split!</span>';
+                    setTimeout(() => {
+                        btnDualTrack.innerHTML = '<span>⚡ Synka V1 + V2 till TikTok Split (Topp/Botten)</span>';
+                    }, 2000);
+                } else {
+                    clip.scale = 1.0;
+                    clip.posX = 0;
+                    clip.posY = Math.round(-h / 4);
+                    clip.mask = { type: 'rectangle', width: w, height: Math.round(h / 2), roundness: 0 };
+                    this.render(clip);
+                    this.engine.render();
+                }
+            });
+        }
+
+        const chkBorder = document.getElementById('propPipBorder');
+        const borderControls = document.getElementById('groupPipBorderControls');
+        const inputBorderColor = document.getElementById('propPipBorderColor');
+        const chkShadow = document.getElementById('propPipShadow');
+
+        if (chkBorder) {
+            chkBorder.addEventListener('change', (e) => {
+                const checked = e.target.checked;
+                clip.borderWidth = checked ? (clip.borderWidth || 4) : 0;
+                if (borderControls) borderControls.style.display = checked ? 'block' : 'none';
+                this.engine.render();
+            });
+        }
+        if (inputBorderColor) {
+            inputBorderColor.addEventListener('input', (e) => {
+                clip.borderColor = e.target.value;
+                this.engine.render();
+            });
+        }
+        this.bindInput('propPipBorderWidth', 'valPipBorderWidth', (v) => {
+            clip.borderWidth = parseInt(v);
+            this.engine.render();
+            return `${v}px`;
+        });
+        this.bindInput('propPipCornerRadius', 'valPipCornerRadius', (v) => {
+            clip.borderRadius = parseInt(v);
+            this.engine.render();
+            return `${v}px`;
+        });
+        if (chkShadow) {
+            chkShadow.addEventListener('change', (e) => {
+                clip.pipShadow = e.target.checked;
+                this.engine.render();
+            });
+        }
 
         const selInType = document.getElementById('propTransInType');
         const rowInDur = document.getElementById('rowTransInDur');

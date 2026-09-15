@@ -567,6 +567,13 @@ class NovaCutEngine {
                 drawW = height * aspect;
             }
 
+            if (clip.borderRadius && !hasMask) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.roundRect(-drawW / 2, -drawH / 2, drawW, drawH, clip.borderRadius);
+                ctx.clip();
+            }
+
             if (clip.chromaKey && clip.chromaKey.enabled) {
                 const chromaCanvas = this.processChromaKey(mediaEl, drawW, drawH, clip.chromaKey);
                 ctx.drawImage(chromaCanvas, -drawW / 2, -drawH / 2, drawW, drawH);
@@ -574,14 +581,30 @@ class NovaCutEngine {
                 ctx.drawImage(mediaEl, -drawW / 2, -drawH / 2, drawW, drawH);
             }
 
+            if (clip.borderRadius && !hasMask) {
+                ctx.restore();
+            }
+
         } else if (mediaEl && mediaEl.tagName === 'IMG') {
             drawW = mediaEl.naturalWidth || width;
             drawH = mediaEl.naturalHeight || height;
+
+            if (clip.borderRadius && !hasMask) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.roundRect(-drawW / 2, -drawH / 2, drawW, drawH, clip.borderRadius);
+                ctx.clip();
+            }
+
             if (clip.chromaKey && clip.chromaKey.enabled) {
                 const chromaCanvas = this.processChromaKey(mediaEl, drawW, drawH, clip.chromaKey);
                 ctx.drawImage(chromaCanvas, -drawW / 2, -drawH / 2, drawW, drawH);
             } else {
                 ctx.drawImage(mediaEl, -drawW / 2, -drawH / 2, drawW, drawH);
+            }
+
+            if (clip.borderRadius && !hasMask) {
+                ctx.restore();
             }
         } else {
             // Generated Demo Pattern (e.g. Cyberpunk Grid & Moving Orb)
@@ -590,6 +613,39 @@ class NovaCutEngine {
 
         // Close Mask Clip Path
         if (hasMask) {
+            ctx.restore();
+        }
+
+        // PiP Border & Drop Shadow (Gaming Facecam frame)
+        if (clip.borderWidth || clip.pipShadow) {
+            ctx.save();
+            ctx.strokeStyle = clip.borderWidth ? (clip.borderColor || '#00d482') : 'rgba(0, 0, 0, 0.4)';
+            ctx.lineWidth = clip.borderWidth || 1;
+            if (clip.pipShadow) {
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+                ctx.shadowBlur = 22;
+                ctx.shadowOffsetX = 4;
+                ctx.shadowOffsetY = 6;
+            }
+
+            if (clip.mask && clip.mask.type === 'circle') {
+                const radius = (clip.mask.size || 500) / 2;
+                ctx.beginPath();
+                ctx.arc(0, 0, radius, 0, Math.PI * 2);
+                ctx.stroke();
+            } else if (clip.mask && clip.mask.type === 'rectangle') {
+                const mw = clip.mask.width || 800;
+                const mh = clip.mask.height || 600;
+                const round = clip.mask.roundness || 0;
+                ctx.beginPath();
+                ctx.roundRect(-mw / 2, -mh / 2, mw, mh, round);
+                ctx.stroke();
+            } else {
+                const round = clip.borderRadius || 0;
+                ctx.beginPath();
+                ctx.roundRect(-drawW / 2, -drawH / 2, drawW, drawH, round);
+                ctx.stroke();
+            }
             ctx.restore();
         }
 
