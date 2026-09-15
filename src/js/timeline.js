@@ -11,6 +11,7 @@ class NovaCutTimeline {
 
         this.clips = [];
         this.selectedClipId = null;
+        this.beatMarkers = [];
 
         this.tracks = [
             { id: 'text', name: 'Text 1', type: 'text' },
@@ -112,6 +113,34 @@ class NovaCutTimeline {
                 ctx.lineTo(subX, height);
                 ctx.stroke();
             }
+        }
+
+        // Draw Beat Markers on Ruler
+        if (this.beatMarkers && this.beatMarkers.length > 0) {
+            ctx.save();
+            this.beatMarkers.forEach(sec => {
+                const x = sec * pps;
+                if (x >= 0 && x <= width) {
+                    // Amber diamond marker
+                    ctx.fillStyle = '#ffcc00';
+                    ctx.beginPath();
+                    ctx.moveTo(x, 2);
+                    ctx.lineTo(x + 4, 7);
+                    ctx.lineTo(x, 12);
+                    ctx.lineTo(x - 4, 7);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // Vertical guide line
+                    ctx.strokeStyle = 'rgba(255, 204, 0, 0.45)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(x, 12);
+                    ctx.lineTo(x, height);
+                    ctx.stroke();
+                }
+            });
+            ctx.restore();
         }
     }
 
@@ -516,6 +545,75 @@ class NovaCutTimeline {
         this.engine.render();
     }
 
+    splitClipAtTime(clipId, splitTime) {
+        const clip = this.clips.find(c => c.id === clipId);
+        if (!clip) return null;
+        if (this.trackStates[clip.trackId]?.locked) return null;
+
+        const clipEnd = clip.startTime + clip.duration;
+        if (splitTime <= clip.startTime + 0.1 || splitTime >= clipEnd - 0.1) {
+            return null;
+        }
+
+        const firstDuration = splitTime - clip.startTime;
+        const secondDuration = clip.duration - firstDuration;
+
+        clip.duration = firstDuration;
+        this.renderClipDOM(clip);
+
+        const secondClip = {
+            ...JSON.parse(JSON.stringify(clip)),
+            id: `clip-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+            startTime: splitTime,
+            duration: secondDuration,
+            sourceOffset: (clip.sourceOffset || 0) + firstDuration,
+            title: `${clip.title}`
+        };
+
+        this.clips.push(secondClip);
+        this.renderClipDOM(secondClip);
+        return secondClip;
+    }
+
+    autoCutClipToBeats(clipId, applyVelocityZoom = true) {
+        const currentClip = this.clips.find(c => c.id === clipId);
+        if (!currentClip) return 0;
+        if (!this.beatMarkers || this.beatMarkers.length === 0) return 0;
+
+        const clipStart = currentClip.startTime;
+        const clipEnd = clipStart + currentClip.duration;
+        const beats = this.beatMarkers
+            .filter(b => b > clipStart + 0.15 && b < clipEnd - 0.15)
+            .sort((a, b) => a - b);
+
+        if (beats.length === 0) return 0;
+
+        let cutCount = 0;
+        const trackClips = [currentClip];
+
+        for (const beatTime of beats) {
+            const target = this.clips.find(c => c.trackId === currentClip.trackId && beatTime > c.startTime + 0.1 && beatTime < c.startTime + c.duration - 0.1);
+            if (target) {
+                const newClip = this.splitClipAtTime(target.id, beatTime);
+                if (newClip) {
+                    trackClips.push(newClip);
+                    cutCount++;
+                }
+            }
+        }
+
+        if (applyVelocityZoom) {
+            trackClips.forEach((c, idx) => {
+                if (idx % 2 === 1) {
+                    c.scale = (c.scale || 1.0) * 1.08;
+                }
+            });
+        }
+
+        this.engine.render();
+        return cutCount;
+    }
+
     deleteSelectedClip() {
         if (!this.selectedClipId) return;
         const index = this.clips.findIndex(c => c.id === this.selectedClipId);
@@ -856,6 +954,10 @@ class NovaCutTimeline {
                 snapPoints.push(c.startTime + c.duration);
             }
         });
+
+        if (this.beatMarkers && this.beatMarkers.length > 0) {
+            snapPoints.push(...this.beatMarkers);
+        }
 
         for (const pt of snapPoints) {
             if (Math.abs(targetTime - pt) <= thresholdSec) {
