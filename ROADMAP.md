@@ -93,13 +93,29 @@ Detta dokument beskriver sprintplanen för **NovaCut**, en modern, blixtsnabb oc
 * **Dubbelspårs Smart Layout:** 1-klicks knapp ("⚡ Synka V1 + V2 till TikTok Split") som automatiskt placerar V2 (Overlay) i övre halvan och V1 (Huvudvideo) i undre halvan.
 * **Kantlinjer & Skuggor:** Ställbar ramtjocklek (1-20px), hörnradie (0-100px) samt kastskugga som lyfter fram facecamen över bakgrundsvideon.
 
-### Sprint 15: Ljud- och Memebibliotek (SFX & Stickers) (Kommande sprint)
-* **Inbyggt Ljudeffektbibliotek (SFX):** Whoosh, Pop, Ding, Kamera-klick, Cyber Glitch, Cinematic Boom, Vine Boom med 1-klicks insättning på tidslinjen.
-* **Meme Overlays & Stickers:** Samling av animerade stickers, emojis och transparenter för virala klipp.
+### Sprint 15: Ljud- och Memebibliotek (SFX & Stickers)
+* **Utökat Ljudeffektbibliotek (SFX):**
+  - Syntetisering i realtid med Web Audio API (100% offline, noll disk-bloat, kristallklart 44.1kHz 16-bit WAV).
+  - Ljudeffekter: 🗿 **Vine Boom** (massiv mättad sub-bas), 💨 **Whoosh Swift & Whip Fast**, 🫧 **Pop Bubble**, 🔔 **Ding Chime**, 📸 **Camera Shutter**, 💿 **Vinyl Scratch**, ⚡ **Glitch Zap**, 💥 **Cinematic Sub Impact**, 🥁 **Tension Riser**, 🖱️ **UI Click**, ⌨️ **Mechanical Key**, 🔫 **Sci-Fi Laser**, 🎺 **Tada Fanfare**, ❌ **Fail Buzzer**.
+  - Förhandslyssning med play/stop-indikator och 1-klicks infogning på ljudspåret vid spelhuvudet.
+* **Meme Overlays & Vektor-Stickers Engine (`NovaCutStickers`):**
+  - Dedikerad sidoflik "🎭 Stickers" med kategorifiltrering (Memes, UI, Reaktioner, Pilar & Varningar).
+  - 10 procedurgenererade vektorstickers med realtidsanimering:
+    - 🔴 **REC Indikator:** Blinkande röd linsdiod och löpande tidskod.
+    - 🔔 **Subscribe & Bell:** Röd YouTube-knapp med svängande guldklocka.
+    - 🎯 **Uppmärksamhetspil:** Fet kurvad röd pil med vit kant.
+    - 💥 **WOW! Comic Burst:** 16-uddig stjärnexplosion i serietidningsstil.
+    - ⬛ **CENSORED Balk:** Klassisk censurbalk med fet vit monospace-text.
+    - 🕶️ **Thug Life Solglasögon:** 8-bitars pixlade solglasögon med glansreflektioner.
+    - 🔥 **Lit Fire Flame:** Levande flerlagers glödande eldflamma.
+    - ⚠️ **Varningstriangel:** Gul varselskylt med utropstecken.
+    - 👑 **Gyllene Krona:** Kunglig krona med cyan och röda ädelstenar.
+    - 🔴 **LIVE Sändning:** LIVE-banner med pulserande radiovågor.
+  - Full interaktivitet på canvas: skalbar, roterbar, flyttbar med muspekaren och keyframing!
 
-### Sprint 16: Beat Detection & Automatisk Klippning
-* **Ljudanalys & Beat Markers:** Automatisk transient- och beat-detektering på bakgrundsmusik.
-* **Auto-Cut till Takten:** Skapa klippunkter i takt med musiken för action- och musikmontage.
+### Sprint 16: Beat Detection & Automatisk Klippning (Kommande sprint)
+* **Ljudanalys & Beat Markers:** Automatisk transient- och beat-detektering på bakgrundsmusik med visualisering på tidslinjens linjal.
+* **Auto-Cut till Takten:** 1-klicks uppdelning av videoklipp synkroniserat med musikens beats för action- och musikmontage.
 
-
-
+### Sprint 17: Projektmallar & Viral Format Wizard
+* **Snabbstartsmallar:** TikTok Viral Hook, YouTube Tutorial, Gaming Highlight, Podcast Clip, Meme Format med förinställda spår, musik, subtitles och stickers.
