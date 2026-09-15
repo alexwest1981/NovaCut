@@ -323,14 +323,17 @@ class NovaCutProjects {
         document.querySelectorAll('.timeline-clip').forEach(el => el.remove());
         this.timeline.clips = [];
 
-        // 4. Load Clips
+        // 4. Restore Media Elements & Media Library
+        await this.restoreProjectMedia(projectData);
+
+        // 5. Load Clips
         if (Array.isArray(projectData.clips)) {
             projectData.clips.forEach(clipData => {
                 this.timeline.addClip(clipData);
             });
         }
 
-        // 5. Update timeline and render
+        // 6. Update timeline and render
         this.timeline.recalculateProjectDuration();
         this.timeline.renderAllClips();
         this.engine.seek(0);
@@ -338,6 +341,105 @@ class NovaCutProjects {
 
         this.hideWelcome();
         this.showToast(`Projekt "${projectData.title || 'Projekt'}" öppnat!`);
+    }
+
+    async restoreProjectMedia(projectData) {
+        const mediaGrid = document.getElementById('mediaGrid');
+        if (mediaGrid) {
+            mediaGrid.innerHTML = '';
+        }
+        if (!window.projectMediaLibrary) {
+            window.projectMediaLibrary = new Map();
+        } else {
+            window.projectMediaLibrary.clear();
+        }
+
+        const mediaMap = new Map();
+
+        if (Array.isArray(projectData.mediaLibrary)) {
+            projectData.mediaLibrary.forEach(item => {
+                if (item && (item.id || item.mediaId)) {
+                    const mid = item.id || item.mediaId;
+                    mediaMap.set(mid, { ...item, id: mid });
+                }
+            });
+        }
+
+        if (Array.isArray(projectData.clips)) {
+            projectData.clips.forEach(clip => {
+                if (clip.mediaId && ['video', 'image', 'audio'].includes(clip.type)) {
+                    if (!mediaMap.has(clip.mediaId)) {
+                        mediaMap.set(clip.mediaId, {
+                            id: clip.mediaId,
+                            path: clip.filePath || null,
+                            name: clip.title || clip.mediaName || 'Mediafil',
+                            type: clip.type,
+                            duration: clip.duration
+                        });
+                    } else {
+                        const existing = mediaMap.get(clip.mediaId);
+                        if (!existing.path && clip.filePath) existing.path = clip.filePath;
+                    }
+                }
+            });
+        }
+
+        for (const [mediaId, item] of mediaMap.entries()) {
+            let filePath = item.path;
+
+            if (window.novaCut && typeof window.novaCut.locateMediaFile === 'function') {
+                const located = await window.novaCut.locateMediaFile(item.name, filePath);
+                if (located) {
+                    filePath = located;
+                    item.path = located;
+                }
+            }
+
+            if (!filePath) {
+                console.warn(`[NovaCut Projects] Kunde inte lokalisera mediafil för "${item.name}"`);
+                continue;
+            }
+
+            if (Array.isArray(projectData.clips)) {
+                projectData.clips.forEach(c => {
+                    if (c.mediaId === mediaId) {
+                        c.filePath = filePath;
+                    }
+                });
+            }
+
+            if (typeof window.handleImportedFile === 'function') {
+                window.handleImportedFile({
+                    mediaId: mediaId,
+                    path: filePath,
+                    name: item.name,
+                    type: item.type,
+                    size: item.size || 0,
+                    duration: item.duration
+                });
+            } else {
+                if (item.type === 'image') {
+                    const img = new Image();
+                    img.src = filePath;
+                    img.onload = () => { if (this.engine.render) this.engine.render(); };
+                    this.engine.mediaElements.set(mediaId, img);
+                } else if (item.type === 'video') {
+                    const video = document.createElement('video');
+                    video.src = filePath;
+                    video.preload = 'metadata';
+                    video.muted = true;
+                    this.engine.mediaElements.set(mediaId, video);
+                    const cache = document.getElementById('mediaCache');
+                    if (cache) cache.appendChild(video);
+                } else if (item.type === 'audio') {
+                    const audio = new Audio(filePath);
+                    audio.preload = 'metadata';
+                    this.engine.mediaElements.set(mediaId, audio);
+                    const cache = document.getElementById('mediaCache');
+                    if (cache) cache.appendChild(audio);
+                }
+            }
+        }
     }
 
     createNewProject(aspectRatio = '16:9', title = 'Nytt Projekt') {
@@ -378,6 +480,7 @@ class NovaCutProjects {
             title: title || 'Namnlöst Projekt',
             aspectRatio: ratio,
             duration: this.engine.duration || 10.0,
+            mediaLibrary: window.projectMediaLibrary ? Array.from(window.projectMediaLibrary.values()) : [],
             clips: this.timeline.clips.map(c => ({ ...c })),
             updatedAt: new Date().toISOString()
         };

@@ -149,6 +149,8 @@ class NovaCutTimeline {
             id: clipData.id || `clip-${Date.now()}-${Math.floor(Math.random()*1000)}`,
             trackId: clipData.trackId || 'video',
             mediaId: clipData.mediaId || null,
+            filePath: clipData.filePath || null,
+            mediaName: clipData.mediaName || clipData.title || null,
             title: clipData.title || 'Nytt Klipp',
             type: clipData.type || 'video',
             startTime: clipData.startTime !== undefined ? clipData.startTime : 0,
@@ -179,7 +181,17 @@ class NovaCutTimeline {
             pluginId: clipData.pluginId || null,
             params: clipData.params || {},
             // Audio specific
-            volume: clipData.volume !== undefined ? clipData.volume : 1.0
+            volume: clipData.volume !== undefined ? clipData.volume : 1.0,
+            fadeIn: clipData.fadeIn || 0,
+            fadeOut: clipData.fadeOut || 0,
+            // Keyframes and transitions
+            keyframes: clipData.keyframes || null,
+            transitionIn: clipData.transitionIn || null,
+            transitionOut: clipData.transitionOut || null,
+            mask: clipData.mask || null,
+            chromaKey: clipData.chromaKey || null,
+            demoPattern: clipData.demoPattern || null,
+            ...clipData
         };
 
         this.clips.push(clip);

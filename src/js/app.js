@@ -219,9 +219,24 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${m}:${s.toString().padStart(2, '0')}`;
     }
 
+    if (!window.projectMediaLibrary) {
+        window.projectMediaLibrary = new Map();
+    }
+
     function handleImportedFile(fileObj) {
-        const mediaId = `media-${Date.now()}-${Math.floor(Math.random()*1000)}`;
-        let detectedDuration = fileObj.type === 'image' ? 4.0 : 180.0;
+        const mediaId = fileObj.mediaId || `media-${Date.now()}-${Math.floor(Math.random()*1000)}`;
+        let detectedDuration = fileObj.duration || (fileObj.type === 'image' ? 4.0 : 180.0);
+
+        // Track in media library
+        window.projectMediaLibrary.set(mediaId, {
+            id: mediaId,
+            mediaId: mediaId,
+            name: fileObj.name,
+            path: fileObj.path,
+            type: fileObj.type,
+            size: fileObj.size || 0,
+            duration: detectedDuration
+        });
 
         const mediaCard = document.createElement('div');
         mediaCard.className = 'media-card';
@@ -256,14 +271,20 @@ document.addEventListener('DOMContentLoaded', () => {
             video.addEventListener('loadedmetadata', () => {
                 if (video.duration && isFinite(video.duration)) {
                     detectedDuration = video.duration;
+                    const item = window.projectMediaLibrary.get(mediaId);
+                    if (item) item.duration = video.duration;
                     badge.textContent = formatDuration(video.duration);
                 }
             });
             engine.mediaElements.set(mediaId, video);
-            document.getElementById('mediaCache').appendChild(video);
+            const cache = document.getElementById('mediaCache');
+            if (cache) cache.appendChild(video);
         } else if (fileObj.type === 'image') {
             const img = new Image();
             img.src = fileObj.path;
+            img.onload = () => {
+                if (engine.render) engine.render();
+            };
             engine.mediaElements.set(mediaId, img);
         } else if (fileObj.type === 'audio') {
             const audio = new Audio(fileObj.path);
@@ -271,6 +292,8 @@ document.addEventListener('DOMContentLoaded', () => {
             audio.addEventListener('loadedmetadata', () => {
                 if (audio.duration && isFinite(audio.duration)) {
                     detectedDuration = audio.duration;
+                    const item = window.projectMediaLibrary.get(mediaId);
+                    if (item) item.duration = audio.duration;
                     badge.textContent = formatDuration(audio.duration);
                     const btnAll = mediaCard.querySelector('.btn-place-all');
                     if (btnAll) {
@@ -279,7 +302,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             engine.mediaElements.set(mediaId, audio);
-            document.getElementById('mediaCache').appendChild(audio);
+            const cache = document.getElementById('mediaCache');
+            if (cache) cache.appendChild(audio);
         }
 
         const placeAudio = (fitToVideo = false) => {
@@ -291,6 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             timeline.addClip({
                 mediaId: mediaId,
+                filePath: fileObj.path,
                 title: fileObj.name,
                 type: 'audio',
                 trackId: 'audio',
@@ -321,6 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
             mediaCard.addEventListener('click', () => {
                 timeline.addClip({
                     mediaId: mediaId,
+                    filePath: fileObj.path,
                     title: fileObj.name,
                     type: fileObj.type,
                     trackId: fileObj.type === 'overlay' ? 'overlay' : 'video',
@@ -330,17 +356,20 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        document.getElementById('mediaGrid').appendChild(mediaCard);
+        const grid = document.getElementById('mediaGrid');
+        if (grid) grid.appendChild(mediaCard);
     }
 
+    window.handleImportedFile = handleImportedFile;
+
     function handleWebFile(file) {
-        const url = URL.createObjectURL(file);
+        const actualPath = file.path || (window.URL && URL.createObjectURL(file));
         let type = 'video';
-        if (file.type.startsWith('audio/')) type = 'audio';
-        if (file.type.startsWith('image/')) type = 'image';
+        if (file.type.startsWith('audio/') || (file.name && file.name.match(/\.(mp3|wav|aac|ogg|flac|m4a)$/i))) type = 'audio';
+        if (file.type.startsWith('image/') || (file.name && file.name.match(/\.(png|jpg|jpeg|gif|webp|bmp|svg)$/i))) type = 'image';
 
         handleImportedFile({
-            path: url,
+            path: actualPath,
             name: file.name,
             type: type,
             size: file.size

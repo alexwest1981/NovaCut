@@ -163,6 +163,42 @@ ipcMain.handle('dialog:openMedia', async () => {
     });
 });
 
+// Locate media file on disk (for restoring and relinking projects)
+ipcMain.handle('media:locate', async (event, filename, fallbackPath) => {
+    if (fallbackPath && fs.existsSync(fallbackPath)) {
+        return fallbackPath;
+    }
+
+    if (!filename) return null;
+
+    const baseName = path.basename(filename);
+    const home = app.getPath('home') || process.env.HOME || '/home/alex';
+    const candidates = [
+        path.join(app.getPath('userData'), 'media', baseName),
+        path.join(home, 'Downloads', baseName),
+        path.join(home, 'Downloads', 'OmaDrop', 'Received', baseName),
+        path.join(home, 'Music', baseName),
+        path.join(home, 'Videos', baseName),
+        path.join(home, 'Pictures', baseName),
+        path.join(home, 'Desktop', baseName),
+        path.join(process.cwd(), baseName)
+    ];
+
+    for (const c of candidates) {
+        try {
+            if (fs.existsSync(c)) return c;
+        } catch (_) {}
+    }
+
+    try {
+        const cmd = `find "${home}/Downloads" "${home}/Music" "${home}/Pictures" "${home}/Videos" -maxdepth 4 -name "${baseName}" 2>/dev/null | head -n 1`;
+        const found = execSync(cmd, { encoding: 'utf8', timeout: 2500 }).trim();
+        if (found && fs.existsSync(found)) return found;
+    } catch (_) {}
+
+    return null;
+});
+
 // Save Export Dialog
 ipcMain.handle('dialog:saveExport', async (event, defaultName = 'NovaCut_Video.mp4') => {
     if (!mainWindow) return null;
@@ -268,25 +304,40 @@ ipcMain.handle('font:loadCustom', async () => {
 // --- Project Management IPC Handlers ---
 ipcMain.handle('project:list', async () => {
     try {
-        if (!fs.existsSync(userProjectsDir)) return [];
-        const files = fs.readdirSync(userProjectsDir);
+        const dirs = [userProjectsDir];
+        const altDir = path.join(os.homedir(), '.config', 'Electron', 'projects');
+        if (altDir !== userProjectsDir && fs.existsSync(altDir)) {
+            dirs.push(altDir);
+        }
+
+        const seenIds = new Set();
         const projects = [];
-        for (const file of files) {
-            if (file.endsWith('.novacut') || file.endsWith('.json')) {
-                try {
-                    const raw = fs.readFileSync(path.join(userProjectsDir, file), 'utf8');
-                    const data = JSON.parse(raw);
-                    projects.push({
-                        id: data.id || path.parse(file).name,
-                        title: data.title || 'Namnlöst Projekt',
-                        aspectRatio: data.aspectRatio || '16:9',
-                        duration: data.duration || 10.0,
-                        clipCount: (data.clips || []).length,
-                        updatedAt: data.updatedAt || data.createdAt || fs.statSync(path.join(userProjectsDir, file)).mtime.toISOString(),
-                        filePath: path.join(userProjectsDir, file)
-                    });
-                } catch (e) {
-                    console.warn('Could not parse project file:', file, e);
+
+        for (const dir of dirs) {
+            if (!fs.existsSync(dir)) continue;
+            const files = fs.readdirSync(dir);
+            for (const file of files) {
+                if (file.endsWith('.novacut') || file.endsWith('.json')) {
+                    try {
+                        const fullPath = path.join(dir, file);
+                        const raw = fs.readFileSync(fullPath, 'utf8');
+                        const data = JSON.parse(raw);
+                        const id = data.id || path.parse(file).name;
+                        if (seenIds.has(id)) continue;
+                        seenIds.add(id);
+
+                        projects.push({
+                            id: id,
+                            title: data.title || 'Namnlöst Projekt',
+                            aspectRatio: data.aspectRatio || '16:9',
+                            duration: data.duration || 10.0,
+                            clipCount: (data.clips || []).length,
+                            updatedAt: data.updatedAt || data.createdAt || fs.statSync(fullPath).mtime.toISOString(),
+                            filePath: fullPath
+                        });
+                    } catch (e) {
+                        console.warn('Could not parse project file:', file, e);
+                    }
                 }
             }
         }
@@ -307,6 +358,15 @@ ipcMain.handle('project:save', async (event, projectData) => {
 
         const filePath = path.join(userProjectsDir, `${id}.novacut`);
         fs.writeFileSync(filePath, JSON.stringify(projectData, null, 2));
+
+        // If alternate Electron project directory exists, also mirror save
+        const altDir = path.join(os.homedir(), '.config', 'Electron', 'projects');
+        if (altDir !== userProjectsDir && fs.existsSync(altDir)) {
+            try {
+                fs.writeFileSync(path.join(altDir, `${id}.novacut`), JSON.stringify(projectData, null, 2));
+            } catch (_) {}
+        }
+
         return { success: true, project: projectData, filePath };
     } catch (err) {
         return { success: false, error: err.message };
@@ -315,15 +375,19 @@ ipcMain.handle('project:save', async (event, projectData) => {
 
 ipcMain.handle('project:load', async (event, projectId) => {
     try {
-        const filePath = path.join(userProjectsDir, `${projectId}.novacut`);
-        if (!fs.existsSync(filePath)) {
-            const altPath = path.join(userProjectsDir, projectId);
-            if (fs.existsSync(altPath)) {
-                return JSON.parse(fs.readFileSync(altPath, 'utf8'));
+        const possiblePaths = [
+            path.join(userProjectsDir, `${projectId}.novacut`),
+            path.join(userProjectsDir, projectId),
+            path.join(os.homedir(), '.config', 'Electron', 'projects', `${projectId}.novacut`),
+            path.join(os.homedir(), '.config', 'Electron', 'projects', projectId)
+        ];
+
+        for (const p of possiblePaths) {
+            if (fs.existsSync(p)) {
+                return JSON.parse(fs.readFileSync(p, 'utf8'));
             }
-            throw new Error('Projektet hittades inte');
         }
-        return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        throw new Error('Projektet hittades inte');
     } catch (err) {
         return { error: err.message };
     }

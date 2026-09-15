@@ -586,8 +586,19 @@ class NovaCutEngine {
             }
 
         } else if (mediaEl && mediaEl.tagName === 'IMG') {
-            drawW = mediaEl.naturalWidth || width;
-            drawH = mediaEl.naturalHeight || height;
+            if (!mediaEl.complete) {
+                mediaEl.onload = () => this.render();
+            }
+
+            const iw = mediaEl.naturalWidth || width;
+            const ih = mediaEl.naturalHeight || height;
+            const aspect = iw / ih;
+            drawW = width;
+            drawH = width / aspect;
+            if (drawH < height) {
+                drawH = height;
+                drawW = height * aspect;
+            }
 
             if (clip.borderRadius && !hasMask) {
                 ctx.save();
