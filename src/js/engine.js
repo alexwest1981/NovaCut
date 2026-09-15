@@ -932,43 +932,289 @@ class NovaCutEngine {
         const { ctx } = this;
         const w = width;
         const h = height;
-
-        // Gradient background
-        const grad = ctx.createLinearGradient(-w/2, -h/2, w/2, h/2);
-        grad.addColorStop(0, '#111827');
-        grad.addColorStop(0.5, '#1e1b4b');
-        grad.addColorStop(1, '#0f172a');
-        ctx.fillStyle = grad;
-        ctx.fillRect(-w/2, -h/2, w, h);
-
-        // Animated neon orb synced with speed-ramped time
         const localTime = Math.max(0, Math.min(clip.duration, this.currentTime - clip.startTime));
         const t = this.getClipSourceTime(clip, localTime);
-        const orbX = Math.sin(t * 2) * (w * 0.25);
-        const orbY = Math.cos(t * 2) * (h * 0.2);
+        const pattern = clip.demoPattern || 'neon';
 
-        const radial = ctx.createRadialGradient(orbX, orbY, 10, orbX, orbY, 180);
-        radial.addColorStop(0, '#00d482');
-        radial.addColorStop(0.5, 'rgba(59, 130, 246, 0.4)');
-        radial.addColorStop(1, 'transparent');
-        ctx.fillStyle = radial;
-        ctx.fillRect(-w/2, -h/2, w, h);
+        if (pattern === 'gameplay') {
+            // Sci-Fi / Tactical FPS Gameplay Simulation
+            const grad = ctx.createLinearGradient(-w/2, -h/2, w/2, h/2);
+            grad.addColorStop(0, '#060c18');
+            grad.addColorStop(0.6, '#0d1b2a');
+            grad.addColorStop(1, '#050a14');
+            ctx.fillStyle = grad;
+            ctx.fillRect(-w/2, -h/2, w, h);
 
-        // Grid lines
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-        ctx.lineWidth = 2;
-        const step = 80;
-        for (let x = -w/2; x <= w/2; x += step) {
+            // Tech Hex / Grid Floor
+            ctx.strokeStyle = 'rgba(0, 212, 130, 0.08)';
+            ctx.lineWidth = 1.5;
+            const step = 60;
+            for (let x = -w/2; x <= w/2; x += step) {
+                ctx.beginPath();
+                ctx.moveTo(x, -h/2);
+                ctx.lineTo(x, h/2);
+                ctx.stroke();
+            }
+            for (let y = -h/2; y <= h/2; y += step) {
+                ctx.beginPath();
+                ctx.moveTo(-w/2, y);
+                ctx.lineTo(w/2, y);
+                ctx.stroke();
+            }
+
+            // Animated Aim Reticle / Crosshairs
+            const targetX = Math.sin(t * 1.8) * (w * 0.18);
+            const targetY = Math.cos(t * 2.3) * (h * 0.14);
+
+            ctx.save();
+            ctx.translate(targetX, targetY);
+            ctx.strokeStyle = '#00d482';
+            ctx.lineWidth = 2;
+
+            // Reticle circle
             ctx.beginPath();
-            ctx.moveTo(x, -h/2);
-            ctx.lineTo(x, h/2);
+            ctx.arc(0, 0, 36, 0, Math.PI * 2);
             ctx.stroke();
-        }
-        for (let y = -h/2; y <= h/2; y += step) {
+
+            // Crosshair ticks
             ctx.beginPath();
-            ctx.moveTo(-w/2, y);
-            ctx.lineTo(w/2, y);
+            ctx.moveTo(-48, 0); ctx.lineTo(-24, 0);
+            ctx.moveTo(24, 0); ctx.lineTo(48, 0);
+            ctx.moveTo(0, -48); ctx.lineTo(0, -24);
+            ctx.moveTo(0, 24); ctx.lineTo(0, 48);
             ctx.stroke();
+
+            // Center dot
+            ctx.fillStyle = '#ff3366';
+            ctx.beginPath();
+            ctx.arc(0, 0, 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // HUD Elements: Mini Radar (Top Right)
+            const radarX = w/2 - 80;
+            const radarY = -h/2 + 80;
+            ctx.strokeStyle = 'rgba(0, 212, 130, 0.4)';
+            ctx.fillStyle = 'rgba(0, 30, 20, 0.6)';
+            ctx.beginPath();
+            ctx.arc(radarX, radarY, 44, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Radar Sweep line
+            const sweepAngle = (t * 3.5) % (Math.PI * 2);
+            ctx.beginPath();
+            ctx.moveTo(radarX, radarY);
+            ctx.lineTo(radarX + Math.cos(sweepAngle) * 44, radarY + Math.sin(sweepAngle) * 44);
+            ctx.stroke();
+
+            // HUD Elements: Health & Shield Bars (Bottom Left)
+            const hudX = -w/2 + 30;
+            const hudY = h/2 - 50;
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+            ctx.fillRect(hudX, hudY, 160, 16);
+            ctx.fillStyle = '#00d482';
+            const healthW = 110 + Math.sin(t * 4) * 20;
+            ctx.fillRect(hudX + 2, hudY + 2, healthW, 12);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '10px monospace';
+            ctx.fillText('HP 100 • 60 FPS', hudX, hudY - 6);
+
+        } else if (pattern === 'facecam') {
+            // Streamer Facecam / Webcam simulation
+            const grad = ctx.createRadialGradient(0, 0, 20, 0, 0, w * 0.55);
+            grad.addColorStop(0, '#2e1065');
+            grad.addColorStop(0.6, '#180d2d');
+            grad.addColorStop(1, '#0b0617');
+            ctx.fillStyle = grad;
+            ctx.fillRect(-w/2, -h/2, w, h);
+
+            // Stylized Streamer Avatar Silhouette
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+            ctx.beginPath();
+            // Head
+            ctx.arc(0, -20, 48, 0, Math.PI * 2);
+            ctx.fill();
+            // Shoulders
+            ctx.beginPath();
+            ctx.arc(0, 100, 90, Math.PI, 0);
+            ctx.fill();
+
+            // Headphones band & earcups
+            ctx.strokeStyle = '#00d482';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(0, -26, 54, Math.PI * 0.85, Math.PI * 2.15);
+            ctx.stroke();
+            ctx.fillStyle = '#00d482';
+            ctx.fillRect(-58, -35, 10, 22);
+            ctx.fillRect(48, -35, 10, 22);
+
+            // Dynamic Audio Equalizer Bars at bottom of facecam
+            const bars = 10;
+            const barW = 8;
+            const spacing = 4;
+            const totalBarsW = bars * (barW + spacing);
+            const startX = -totalBarsW / 2;
+            const baseY = h/2 - 24;
+
+            for (let i = 0; i < bars; i++) {
+                const barH = 6 + Math.abs(Math.sin(t * 8 + i * 0.8)) * 26;
+                ctx.fillStyle = (i % 2 === 0) ? '#00d482' : '#38bdf8';
+                ctx.fillRect(startX + i * (barW + spacing), baseY - barH, barW, barH);
+            }
+
+            // Status Badge
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.9)';
+            ctx.beginPath();
+            ctx.roundRect(-w/2 + 14, -h/2 + 14, 52, 18, 4);
+            ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 9px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('🔴 LIVE', -w/2 + 40, -h/2 + 26);
+
+        } else if (pattern === 'podcast') {
+            // Warm Studio Acoustic Panels & Spectrum Equalizer
+            const grad = ctx.createLinearGradient(-w/2, -h/2, w/2, h/2);
+            grad.addColorStop(0, '#1c100b');
+            grad.addColorStop(0.5, '#2e1810');
+            grad.addColorStop(1, '#130b07');
+            ctx.fillStyle = grad;
+            ctx.fillRect(-w/2, -h/2, w, h);
+
+            // Central Pulsing Soundwave Visualizer (28 spectrum bars)
+            const numBars = 28;
+            const barW = Math.max(3, w * 0.015);
+            const gap = barW * 0.6;
+            const totalW = numBars * (barW + gap);
+            const startX = -totalW / 2;
+
+            for (let i = 0; i < numBars; i++) {
+                const harmonic = Math.sin(t * 6 + i * 0.45) * Math.cos(t * 3 - i * 0.2);
+                const heightMult = 18 + Math.abs(harmonic) * (h * 0.22);
+                const x = startX + i * (barW + gap);
+
+                const barGrad = ctx.createLinearGradient(0, -heightMult, 0, heightMult);
+                barGrad.addColorStop(0, '#f59e0b');
+                barGrad.addColorStop(0.5, '#ef4444');
+                barGrad.addColorStop(1, '#b45309');
+                ctx.fillStyle = barGrad;
+
+                ctx.beginPath();
+                ctx.roundRect(x, -heightMult, barW, heightMult * 2, barW/2);
+                ctx.fill();
+            }
+
+            // Warm Studio Bokeh particles
+            ctx.fillStyle = 'rgba(245, 158, 11, 0.12)';
+            for (let p = 0; p < 8; p++) {
+                const bx = Math.sin(t * 0.5 + p) * (w * 0.35);
+                const by = Math.cos(t * 0.7 + p * 1.5) * (h * 0.3);
+                ctx.beginPath();
+                ctx.arc(bx, by, 30 + p * 6, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+        } else if (pattern === 'cinematic') {
+            // Cinematic Anamorphic Twilight / Horizon
+            const grad = ctx.createLinearGradient(0, -h/2, 0, h/2);
+            grad.addColorStop(0, '#090d16');
+            grad.addColorStop(0.4, '#1e293b');
+            grad.addColorStop(0.65, '#3b1c14');
+            grad.addColorStop(0.85, '#1e110d');
+            grad.addColorStop(1, '#07090e');
+            ctx.fillStyle = grad;
+            ctx.fillRect(-w/2, -h/2, w, h);
+
+            // Anamorphic Horizontal Flare streak
+            const flareY = Math.sin(t * 0.4) * (h * 0.08);
+            const flareGrad = ctx.createLinearGradient(-w/2, flareY, w/2, flareY);
+            flareGrad.addColorStop(0, 'transparent');
+            flareGrad.addColorStop(0.3, 'rgba(56, 189, 248, 0.15)');
+            flareGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.65)');
+            flareGrad.addColorStop(0.7, 'rgba(249, 115, 22, 0.25)');
+            flareGrad.addColorStop(1, 'transparent');
+
+            ctx.fillStyle = flareGrad;
+            ctx.fillRect(-w/2, flareY - 4, w, 8);
+
+            // Soft glowing horizon orb
+            const orbGrad = ctx.createRadialGradient(0, flareY, 5, 0, flareY, 140);
+            orbGrad.addColorStop(0, 'rgba(255, 255, 255, 0.35)');
+            orbGrad.addColorStop(0.4, 'rgba(249, 115, 22, 0.2)');
+            orbGrad.addColorStop(1, 'transparent');
+            ctx.fillStyle = orbGrad;
+            ctx.fillRect(-w/2, -h/2, w, h);
+
+        } else if (pattern === 'viral') {
+            // High-Energy Viral Gradient & Pulsing Radial Bursts
+            const beatPulse = Math.abs(Math.sin(t * 8));
+            const grad = ctx.createRadialGradient(0, 0, 10, 0, 0, w * (0.6 + beatPulse * 0.1));
+            grad.addColorStop(0, '#ef4444');
+            grad.addColorStop(0.4, '#8b5cf6');
+            grad.addColorStop(0.8, '#1e1b4b');
+            grad.addColorStop(1, '#09090b');
+            ctx.fillStyle = grad;
+            ctx.fillRect(-w/2, -h/2, w, h);
+
+            // Dynamic Radial Speed Lines
+            ctx.save();
+            ctx.rotate(t * 0.2);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.09)';
+            ctx.lineWidth = 3;
+            const rays = 16;
+            for (let r = 0; r < rays; r++) {
+                const angle = (r / rays) * Math.PI * 2;
+                ctx.beginPath();
+                ctx.moveTo(Math.cos(angle) * 60, Math.sin(angle) * 60);
+                ctx.lineTo(Math.cos(angle) * w, Math.sin(angle) * w);
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            // Concentric shockwave ring
+            const ringRadius = ((t * 220) % (w * 0.55));
+            ctx.strokeStyle = `rgba(255, 230, 0, ${Math.max(0, 0.5 - ringRadius / (w * 0.55))})`;
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(0, 0, ringRadius, 0, Math.PI * 2);
+            ctx.stroke();
+
+        } else {
+            // Default Neon Orb & Grid
+            const grad = ctx.createLinearGradient(-w/2, -h/2, w/2, h/2);
+            grad.addColorStop(0, '#111827');
+            grad.addColorStop(0.5, '#1e1b4b');
+            grad.addColorStop(1, '#0f172a');
+            ctx.fillStyle = grad;
+            ctx.fillRect(-w/2, -h/2, w, h);
+
+            const orbX = Math.sin(t * 2) * (w * 0.25);
+            const orbY = Math.cos(t * 2) * (h * 0.2);
+            const radial = ctx.createRadialGradient(orbX, orbY, 10, orbX, orbY, 180);
+            radial.addColorStop(0, '#00d482');
+            radial.addColorStop(0.5, 'rgba(59, 130, 246, 0.4)');
+            radial.addColorStop(1, 'transparent');
+            ctx.fillStyle = radial;
+            ctx.fillRect(-w/2, -h/2, w, h);
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+            ctx.lineWidth = 2;
+            const step = 80;
+            for (let x = -w/2; x <= w/2; x += step) {
+                ctx.beginPath();
+                ctx.moveTo(x, -h/2);
+                ctx.lineTo(x, h/2);
+                ctx.stroke();
+            }
+            for (let y = -h/2; y <= h/2; y += step) {
+                ctx.beginPath();
+                ctx.moveTo(-w/2, y);
+                ctx.lineTo(w/2, y);
+                ctx.stroke();
+            }
         }
     }
 

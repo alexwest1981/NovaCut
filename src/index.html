@@ -23,6 +23,9 @@
                 <span>💾</span>
                 <span>Spara</span>
             </button>
+            <button id="btnOpenTemplatesHeader" class="btn-templates-header" title="Projektmallar & Viral Format Wizard">
+                <span>⚡ Mallar & Wizard</span>
+            </button>
         </div>
 
         <div class="header-center">
@@ -652,6 +655,14 @@
                         </div>
                     </div>
 
+                    <button id="btnWelcomeTemplates" class="btn-welcome-templates" title="Öppna formatwizard med färdiga virala mallar">
+                        <span class="tpl-icon">⚡</span>
+                        <div>
+                            <div class="tpl-title">Formatmallar & Wizard</div>
+                            <div class="tpl-sub">TikTok, Gaming, Podcast & 4K</div>
+                        </div>
+                    </button>
+
                     <button id="btnWelcomeOpenFile" class="btn-welcome-open">
                         <span>📁</span>
                         <span>Öppna projektfil (.novacut)...</span>
@@ -664,9 +675,33 @@
                 </div>
             </div>
 
-            <!-- Main Content: Projects Grid -->
+            <!-- Main Content: Templates & Projects Grid -->
             <div class="welcome-main">
-                <div class="welcome-main-header">
+                <!-- Section 1: Viral Format Templates & Wizard -->
+                <div class="welcome-templates-section">
+                    <div class="welcome-section-header">
+                        <div>
+                            <h2 class="welcome-heading" style="display: flex; align-items: center; gap: 8px;">
+                                <span>⚡ Formatmallar & Viral Wizard</span>
+                                <span class="badge-hot">1-Klick</span>
+                            </h2>
+                            <p class="welcome-subheading">Starta med optimerade spår, kinetisk text, SFX och layouter för sociala medier</p>
+                        </div>
+                        <div class="welcome-template-filter-chips">
+                            <button class="welcome-template-filter-chip active" data-category="all">Alla</button>
+                            <button class="welcome-template-filter-chip" data-category="tiktok">9:16 TikTok</button>
+                            <button class="welcome-template-filter-chip" data-category="gaming">Gaming</button>
+                            <button class="welcome-template-filter-chip" data-category="podcast">Podcast</button>
+                            <button class="welcome-template-filter-chip" data-category="youtube">16:9 YouTube</button>
+                        </div>
+                    </div>
+                    <div class="welcome-templates-grid" id="welcomeTemplatesGrid">
+                        <!-- Populated dynamically by templates.js -->
+                    </div>
+                </div>
+
+                <!-- Section 2: Previous Projects -->
+                <div class="welcome-main-header" style="margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border-color);">
                     <div>
                         <h2 class="welcome-heading">Mina Projekt</h2>
                         <p class="welcome-subheading">Välj ett tidigare projekt för att fortsätta klippa eller öppna</p>
@@ -680,6 +715,104 @@
                 <div class="welcome-projects-grid" id="welcomeProjectsGrid">
                     <!-- Project cards populated dynamically by projects.js -->
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Viral Format Wizard Modal -->
+    <div id="formatWizardModal" class="welcome-modal-overlay">
+        <div class="wizard-modal-container">
+            <div class="wizard-header">
+                <div class="wizard-title-group">
+                    <span class="wizard-header-icon">⚡</span>
+                    <div>
+                        <h2 class="wizard-heading">Viral Format Wizard</h2>
+                        <p class="wizard-subheading">Anpassa mallens innehåll, typografi och format före generering</p>
+                    </div>
+                </div>
+                <button class="btn-icon" id="btnCloseWizardModal" title="Stäng">✕</button>
+            </div>
+
+            <div class="wizard-body">
+                <!-- Left Pane: Template Picker List -->
+                <div class="wizard-sidebar">
+                    <div class="wizard-sidebar-title">Välj Formatmall</div>
+                    <div class="wizard-template-list" id="wizardTemplateList">
+                        <!-- List populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Right Pane: Live Preview & Customizer Form -->
+                <div class="wizard-content">
+                    <!-- Hero Preview Banner -->
+                    <div class="wizard-preview-banner" id="wizardPreviewBanner">
+                        <div class="wizard-preview-inner">
+                            <h3 id="wizardPreviewTitle">⚡ TikTok Viral Hook</h3>
+                            <p id="wizardPreviewDesc">Optimerad för maximal retention på TikTok, Reels & Shorts.</p>
+                        </div>
+                    </div>
+
+                    <!-- Customizer Form Fields -->
+                    <div class="wizard-form-grid">
+                        <div class="form-group full-width">
+                            <label class="param-label">Projektnamn</label>
+                            <input type="text" id="wizardProjectName" class="param-input" value="Mitt TikTok Projekt">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="param-label">Primär Hook-Rubrik</label>
+                            <input type="text" id="wizardHeadline" class="param-input" value="SLUTA SCROLLA! 🛑">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="param-label">Underrubrik / Tagline</label>
+                            <input type="text" id="wizardSubtitle" class="param-input" value="3 misstag du gör varje dag">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="param-label">Skapare / Social Handle</label>
+                            <input type="text" id="wizardHandle" class="param-input" value="@creator">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="param-label">Färgstil & LUT Look</label>
+                            <select id="wizardColorStyle" class="select-compact" style="width: 100%;">
+                                <option value="cyberpunk">Cyberpunk Neon</option>
+                                <option value="teal-orange">Teal & Orange (Filmisk)</option>
+                                <option value="warm">Varm Studio / Sunset</option>
+                                <option value="natural">Naturlig & Fräsch</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label class="param-label">Bildförhållande (Aspect Ratio)</label>
+                            <div class="wizard-ratio-selector">
+                                <button class="wizard-ratio-chip active" data-ratio="9:16">9:16 (TikTok/Reels)</button>
+                                <button class="wizard-ratio-chip" data-ratio="16:9">16:9 (YouTube Widescreen)</button>
+                                <button class="wizard-ratio-chip" data-ratio="1:1">1:1 (Kvadrat)</button>
+                            </div>
+                        </div>
+
+                        <div class="form-group full-width wizard-toggles">
+                            <label class="wizard-toggle-label">
+                                <input type="checkbox" id="wizardIncludeSfx" checked>
+                                <span>🔊 Inkludera Viral SFX (Vine Boom, Whoosh, Impact)</span>
+                            </label>
+                            <label class="wizard-toggle-label">
+                                <input type="checkbox" id="wizardIncludeBeats" checked>
+                                <span>🎵 Aktivera Beat Markers & Snapping (128 BPM)</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="wizard-footer">
+                <button class="btn-secondary" id="btnCancelWizard">Avbryt</button>
+                <button class="btn-primary" id="btnApplyWizardTemplate">
+                    <span>⚡ Skapa Projekt från Mall</span>
+                    <span>▶</span>
+                </button>
             </div>
         </div>
     </div>
@@ -782,6 +915,7 @@
     <script src="js/transitions.js"></script>
     <script src="js/stickers.js"></script>
     <script src="js/beats.js"></script>
+    <script src="js/templates.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

@@ -731,7 +731,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const projectManager = new NovaCutProjects(engine, timeline);
     window.projectManager = projectManager;
 
-    // 10. Setup Interactive Responsive Panel Resizers
+    // 10. Initialize Format Templates & Viral Wizard
+    const templatesManager = new NovaCutTemplates(engine, timeline, projectManager);
+    window.templatesManager = templatesManager;
+
+    // 11. Setup Interactive Responsive Panel Resizers
     setupLayoutResizers(engine, timeline);
 
     // Always start application with the Welcome Screen & Project List

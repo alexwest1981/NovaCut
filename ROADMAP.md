@@ -19,7 +19,13 @@ Detta dokument beskriver sprintplanen för **NovaCut**, en modern, blixtsnabb oc
 | **Sprint 9** | **Export Presets för Sociala Medier** | ✅ Klar | 1-klicks export med optimerade NVENC/VAAPI-profiler för TikTok, Reels, Shorts och 4K, live GPU-detektering och MP4-transkodning. |
 | **Sprint 10** | **Video Transitions & Visuella FX** | ✅ Klar | Övergångar mellan klipp (Zoom In/Out, Whip Pan, Dissolve, Glitch, Dip to Black) och live videoeffekter (VHS Retro, Camera Shake, RGB Split, 35mm Grain). |
 | **Sprint 11** | **Color Grading & Maskering** | ✅ Klar | Färgkorrigering (Temperatur, Tint, Mättnad, Kontrast, Vignette, LUTs) och Maskering (Cirkel/Facecam, Rektangel, Linjär, Spegel, Invertera). |
-| **Sprint 12** | **Chroma Key & Green Screen** | 🚀 Nästa sprint | Färgpipett för grön/blåskärm, tolerans/similarity, spill suppression och transparent kompositering över bakgrundsspår. |
+| **Sprint 12** | **Chroma Key & Green Screen** | ✅ Klar | Färgpipett för grön/blåskärm, tolerans/similarity, spill suppression och transparent kompositering över bakgrundsspår. |
+| **Sprint 13** | **Kinetic Typography & Text Animationer** | ✅ Klar | Typewriter, Pop & Bounce, Slide Up, 3D Flip, Zoom Pulse, Neon Glow, Cyber Glitch, stilar och 1-klicks presets. |
+| **Sprint 14** | **Picture-in-Picture & Reaktionslayouter** | ✅ Klar | Gaming Facecam (Nere Höger), Reaction Bubble, TikTok Split 50/50, V1+V2 automatisk layout, ramar och kastskuggor. |
+| **Sprint 15** | **SFX-bibliotek & Meme Stickers Engine** | ✅ Klar | 14 Web Audio SFX (Vine Boom, Whoosh, Impact m.fl.) och 10 vektoranimerade stickers (REC, Subscribe, Arrow, WOW!). |
+| **Sprint 16** | **Beat Detection & Auto-Cut till Takten** | ✅ Klar | Transient- och energianalys, gyllene beat markers, magnetisk beat snapping och 1-klicks Velocity Montage Cut. |
+| **Sprint 17** | **Projektmallar & Viral Format Wizard** | ✅ Klar | 1-klicks mallar (TikTok Hook, Gaming, Podcast, Cinematic 4K, Dual Split), configurator wizard och procedurgenererade mönster. |
+| **Sprint 18** | **Lokal Render Queue & Bakgrundsrendering** | 🚀 Nästa sprint | Flera samtidiga/köade exporter i bakgrunden utan att blockera redigeringen, batch-export och förloppsövervakning. |
 
 ---
 
@@ -124,13 +130,26 @@ Detta dokument beskriver sprintplanen för **NovaCut**, en modern, blixtsnabb oc
 * **⚡ Auto-Cut till Takten (Montage Velocity Cut):**
   - 1-klicks knapp i tidslinjens verktygsfält som automatiskt klyver markerat videoklipp (`splitClipAtTime`) vid varje beat och applicerar rytmisk alternerande mikrozoom (+8% varannan sektion) för den virala CapCut/TikTok montage-känslan!
 
-### Sprint 17: Projektmallar & Viral Format Wizard (Kommande sprint)
-* **1-Klicks Formatmallar:**
-  - ⚡ **TikTok Viral Hook (9:16):** Förberett med hook-text, zoom-in och snabb taktklippning.
-  - 🎮 **Gaming Reaction / Facecam (9:16 & 16:9):** Automatisk uppdelning av V1 (gameplay) och V2 (facecam med cirkelmask).
-  - 🎙️ **Podcast Highlight (1:1 & 9:16):** Split-screen för två talare med auto-captions banner.
-  - 🎬 **Cinematic YouTube 4K (16:9):** Letterbox, 35mm filmkorn, teal & orange färgprofil och mjuk övergång.
+### Sprint 17: Projektmallar & Viral Format Wizard
+* **1-Klicks Formatmallar (`NovaCutTemplates`):**
+  - ⚡ **TikTok Viral Hook (9:16):** Animerad gul Hormozi-hook ("SLUTA SCROLLA! 🛑"), Pop & Bounce-animation, Vine Boom SFX, energifyllda radiala hastighetslinjer och 128 BPM gyllene beat snapping.
+  - 🎮 **Gaming Reaction / Facecam (16:9 & 9:16):** Dubbelspårslayout med fullskärms gameplay (V1, sci-fi HUD crosshairs) + Facecam (V2, cirkelmask, neon grön ram, kastskugga, animerade ljudstaplar) och "🔴 LIVE"-märke.
+  - 🎙️ **Podcast Highlight (9:16 & 1:1):** Talk-layout med dynamiskt ljudspektrum, avsnittsbanner överst, tvåstegs karaoke-highlight undertexter och studiovärme.
+  - 🎬 **Cinematic YouTube 4K (16:9):** Widescreen letterbox med anamorfiskt horisontblänk, Teal & Orange color grade, 35mm filmkorn, elegant serif-titel och Cinematic Sub Impact.
+  - 📱 **TikTok Dual Split (50/50, 9:16):** Synkad 50/50-delning för duetter, jämförelser och debatter med reaktionspil och CTA-fråga.
+* **Viral Format Wizard (`#formatWizardModal`):**
+  - Interaktiv modal för att välja mall och skräddarsy rubrik, underrubrik, kreatörstag, bildförhållande (9:16, 16:9, 1:1), färgprofil samt valbara ljudeffekter (SFX) och beat markers.
+* **Välkomsthubb & Snabbstart:**
+  - Dedikerat mallgalleri i startfönstret med kategorifiltrering (`Alla`, `9:16 TikTok`, `Gaming`, `Podcast`, `16:9 YouTube`) och direktknapparna `⚡ Blixtstart` samt `🎨 Anpassa`.
+  - Snabbknapp i programmets huvudmeny (`⚡ Mallar & Wizard`) för att när som helst starta en ny layout.
+* **Realtidsanimerade Demo-Mönster i Uppspelningsmotorn:**
+  - Motorn (`renderProceduralDemo`) ritar procedurgenererade, 60fps-animerade mönster (`viral`, `gameplay`, `facecam`, `podcast`, `cinematic`) så att mallarna ser proffsiga ut och rör sig direkt innan externa mediefiler importerats.
 
-### Sprint 18: Moln- och Lokal Render Queue
-* **Bakgrunds-rendering & Köhantering:** Flera exporter kan köas upp utan att blockera redigeringen.
+### Sprint 18: Lokal Render Queue & Bakgrundsrendering (Kommande sprint)
+* **Bakgrunds-rendering & Köhantering:** Flera exporter kan köas upp och köras i bakgrunden utan att blockera redigeringen på tidslinjen.
+* **Render Queue UI:** Dedikerad panel / modal med progress bars, beräknad återstående tid (ETA), paus/avbryt och direktlänk till exporterad fil.
+
+### Sprint 19: AI Smart Cut & Tystnadsborttagning
+* **Silence Removal:** Automatisk detektering av pauser och tystnad i röstspår med tröskelvärden och 1-klicks borttagning.
+
 
