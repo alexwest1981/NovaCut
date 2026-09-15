@@ -530,6 +530,53 @@ class NovaCutInspector {
                     </label>
                 </div>
             </div>
+
+            <!-- Chroma Key & Green Screen Section -->
+            <div class="inspector-section">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <div class="section-title" style="margin-bottom: 0;">🟩 Chroma Key (Green Screen)</div>
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer;">
+                        <input type="checkbox" id="propChromaEnabled" ${clip.chromaKey?.enabled ? 'checked' : ''}>
+                        <span style="color: var(--accent);">Aktiv</span>
+                    </label>
+                </div>
+
+                <div id="chromaKeyControls" style="display: ${clip.chromaKey?.enabled ? 'block' : 'none'};">
+                    <div class="param-row">
+                        <span class="param-label">Nyckelfärg</span>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <input type="color" id="propChromaColor" value="${clip.chromaKey?.color || '#00ff00'}" style="background: transparent; border: 1px solid var(--border-color); border-radius: 4px; width: 36px; height: 26px; cursor: pointer; padding: 1px;">
+                            <button class="btn-secondary" id="btnChromaEyedropper" title="Klicka på förhandsgranskningen för att välja färg" style="font-size: 11px; padding: 4px 8px; display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                                <span>🎯 Pipett</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="param-row">
+                        <span class="param-label">Tolerans</span>
+                        <div class="param-input-group">
+                            <input type="range" class="slider-input" id="propChromaTolerance" min="1" max="100" step="1" value="${clip.chromaKey?.tolerance !== undefined ? clip.chromaKey.tolerance : 35}">
+                            <span class="num-display" id="valChromaTolerance">${clip.chromaKey?.tolerance !== undefined ? clip.chromaKey.tolerance : 35}%</span>
+                        </div>
+                    </div>
+
+                    <div class="param-row">
+                        <span class="param-label">Mjukhet (Edge)</span>
+                        <div class="param-input-group">
+                            <input type="range" class="slider-input" id="propChromaSmooth" min="0" max="50" step="1" value="${clip.chromaKey?.smooth !== undefined ? clip.chromaKey.smooth : 10}">
+                            <span class="num-display" id="valChromaSmooth">${clip.chromaKey?.smooth !== undefined ? clip.chromaKey.smooth : 10}</span>
+                        </div>
+                    </div>
+
+                    <div class="param-row">
+                        <span class="param-label">Spilldämpning</span>
+                        <div class="param-input-group">
+                            <input type="range" class="slider-input" id="propChromaSpill" min="0" max="100" step="5" value="${clip.chromaKey?.spill !== undefined ? clip.chromaKey.spill : 40}">
+                            <span class="num-display" id="valChromaSpill">${clip.chromaKey?.spill !== undefined ? clip.chromaKey.spill : 40}%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         `;
 
         this.bindKeyframeControl(clip, 'scale', 'propScale', 'valScale', (v) => `${v.toFixed(2)}x`);
@@ -720,6 +767,67 @@ class NovaCutInspector {
                 this.engine.render();
             });
         }
+
+        // Chroma Key Event Handlers
+        const chkChroma = document.getElementById('propChromaEnabled');
+        const chromaControls = document.getElementById('chromaKeyControls');
+        const inputChromaColor = document.getElementById('propChromaColor');
+        const btnChromaEyedropper = document.getElementById('btnChromaEyedropper');
+
+        if (chkChroma) {
+            chkChroma.addEventListener('change', (e) => {
+                const enabled = e.target.checked;
+                clip.chromaKey = clip.chromaKey || {
+                    color: '#00ff00',
+                    tolerance: 35,
+                    smooth: 10,
+                    spill: 40
+                };
+                clip.chromaKey.enabled = enabled;
+                if (chromaControls) chromaControls.style.display = enabled ? 'block' : 'none';
+                this.engine.render();
+            });
+        }
+
+        if (inputChromaColor) {
+            inputChromaColor.addEventListener('input', (e) => {
+                clip.chromaKey = clip.chromaKey || { enabled: true };
+                clip.chromaKey.color = e.target.value;
+                this.engine.render();
+            });
+        }
+
+        if (btnChromaEyedropper) {
+            btnChromaEyedropper.addEventListener('click', () => {
+                btnChromaEyedropper.textContent = '🔍 Välj färg...';
+                this.engine.startColorPicker((hex) => {
+                    btnChromaEyedropper.innerHTML = '<span>🎯 Pipett</span>';
+                    clip.chromaKey = clip.chromaKey || { enabled: true };
+                    clip.chromaKey.color = hex;
+                    if (inputChromaColor) inputChromaColor.value = hex;
+                    this.engine.render();
+                });
+            });
+        }
+
+        this.bindInput('propChromaTolerance', 'valChromaTolerance', (v) => {
+            clip.chromaKey = clip.chromaKey || { enabled: true };
+            clip.chromaKey.tolerance = parseFloat(v);
+            this.engine.render();
+            return `${v}%`;
+        });
+        this.bindInput('propChromaSmooth', 'valChromaSmooth', (v) => {
+            clip.chromaKey = clip.chromaKey || { enabled: true };
+            clip.chromaKey.smooth = parseFloat(v);
+            this.engine.render();
+            return v;
+        });
+        this.bindInput('propChromaSpill', 'valChromaSpill', (v) => {
+            clip.chromaKey = clip.chromaKey || { enabled: true };
+            clip.chromaKey.spill = parseFloat(v);
+            this.engine.render();
+            return `${v}%`;
+        });
 
         const selInType = document.getElementById('propTransInType');
         const rowInDur = document.getElementById('rowTransInDur');

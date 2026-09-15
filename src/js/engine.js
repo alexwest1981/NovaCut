@@ -567,12 +567,22 @@ class NovaCutEngine {
                 drawW = height * aspect;
             }
 
-            ctx.drawImage(mediaEl, -drawW / 2, -drawH / 2, drawW, drawH);
+            if (clip.chromaKey && clip.chromaKey.enabled) {
+                const chromaCanvas = this.processChromaKey(mediaEl, drawW, drawH, clip.chromaKey);
+                ctx.drawImage(chromaCanvas, -drawW / 2, -drawH / 2, drawW, drawH);
+            } else {
+                ctx.drawImage(mediaEl, -drawW / 2, -drawH / 2, drawW, drawH);
+            }
 
         } else if (mediaEl && mediaEl.tagName === 'IMG') {
             drawW = mediaEl.naturalWidth || width;
             drawH = mediaEl.naturalHeight || height;
-            ctx.drawImage(mediaEl, -drawW / 2, -drawH / 2, drawW, drawH);
+            if (clip.chromaKey && clip.chromaKey.enabled) {
+                const chromaCanvas = this.processChromaKey(mediaEl, drawW, drawH, clip.chromaKey);
+                ctx.drawImage(chromaCanvas, -drawW / 2, -drawH / 2, drawW, drawH);
+            } else {
+                ctx.drawImage(mediaEl, -drawW / 2, -drawH / 2, drawW, drawH);
+            }
         } else {
             // Generated Demo Pattern (e.g. Cyberpunk Grid & Moving Orb)
             this.renderProceduralDemo(clip, width, height);
@@ -758,6 +768,104 @@ class NovaCutEngine {
             }
             ctx.clip();
         }
+    }
+
+    processChromaKey(sourceEl, drawW, drawH, chromaKey) {
+        if (!this.chromaCanvas) {
+            this.chromaCanvas = document.createElement('canvas');
+            this.chromaCtx = this.chromaCanvas.getContext('2d', { willReadFrequently: true });
+        }
+
+        // Keep internal resolution efficient
+        const targetW = Math.min(1280, Math.max(160, Math.round(drawW)));
+        const targetH = Math.min(720, Math.max(90, Math.round(drawH)));
+
+        if (this.chromaCanvas.width !== targetW || this.chromaCanvas.height !== targetH) {
+            this.chromaCanvas.width = targetW;
+            this.chromaCanvas.height = targetH;
+        }
+
+        const cctx = this.chromaCtx;
+        cctx.clearRect(0, 0, targetW, targetH);
+        cctx.drawImage(sourceEl, 0, 0, targetW, targetH);
+
+        const imgData = cctx.getImageData(0, 0, targetW, targetH);
+        const data = imgData.data;
+
+        // Parse key color
+        const hex = (chromaKey.color || '#00ff00').replace('#', '');
+        const kr = parseInt(hex.substring(0, 2), 16) || 0;
+        const kg = parseInt(hex.substring(2, 4), 16) || 255;
+        const kb = parseInt(hex.substring(4, 6), 16) || 0;
+
+        const tolerance = (chromaKey.tolerance !== undefined ? chromaKey.tolerance : 35) * 4.4;
+        const smooth = Math.max(1, (chromaKey.smooth !== undefined ? chromaKey.smooth : 10) * 3.0);
+        const spill = (chromaKey.spill !== undefined ? chromaKey.spill : 40) / 100;
+
+        for (let i = 0; i < data.length; i += 4) {
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
+
+            // Euclidean distance in RGB color space
+            const dr = r - kr;
+            const dg = g - kg;
+            const db = b - kb;
+            const dist = Math.sqrt(dr * dr + dg * dg + db * db);
+
+            if (dist < tolerance) {
+                // Keyed out (transparent)
+                data[i + 3] = 0;
+            } else if (dist < tolerance + smooth) {
+                // Smooth falloff boundary
+                const alphaFactor = (dist - tolerance) / smooth;
+                data[i + 3] = Math.round(data[i + 3] * alphaFactor);
+            }
+
+            // Green / Blue spill suppression on semi-transparent and opaque pixels
+            if (data[i + 3] > 0 && spill > 0) {
+                if (kg > kr && kg > kb) {
+                    const maxG = (r + b) / 2;
+                    if (g > maxG) {
+                        data[i + 1] = Math.round(g * (1 - spill) + maxG * spill);
+                    }
+                } else if (kb > kr && kb > kg) {
+                    const maxB = (r + g) / 2;
+                    if (b > maxB) {
+                        data[i + 2] = Math.round(b * (1 - spill) + maxB * spill);
+                    }
+                }
+            }
+        }
+
+        cctx.putImageData(imgData, 0, 0);
+        return this.chromaCanvas;
+    }
+
+    startColorPicker(callback) {
+        const prevCursor = this.canvas.style.cursor;
+        this.canvas.style.cursor = 'crosshair';
+
+        const onClick = (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            this.canvas.removeEventListener('click', onClick, { capture: true });
+            this.canvas.style.cursor = prevCursor;
+
+            const pt = this.getCanvasCoordinates(e);
+            try {
+                const pixel = this.ctx.getImageData(Math.round(pt.x), Math.round(pt.y), 1, 1).data;
+                const r = pixel[0].toString(16).padStart(2, '0');
+                const g = pixel[1].toString(16).padStart(2, '0');
+                const b = pixel[2].toString(16).padStart(2, '0');
+                const hexColor = `#${r}${g}${b}`;
+                if (typeof callback === 'function') callback(hexColor);
+            } catch (err) {
+                console.warn('[Engine] Color picker read error:', err);
+            }
+        };
+
+        this.canvas.addEventListener('click', onClick, { capture: true, once: true });
     }
 
     renderProceduralDemo(clip, width, height) {
