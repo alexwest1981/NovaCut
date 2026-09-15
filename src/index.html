@@ -56,7 +56,8 @@
             <div class="sidebar-tabs">
                 <button class="tab-btn active" data-tab="media">📁 Media</button>
                 <button class="tab-btn" data-tab="text">🔤 Text</button>
-                <button class="tab-btn" data-tab="effects">🪄 Filter</button>
+                <button class="tab-btn" data-tab="transitions">⧗ Övergångar</button>
+                <button class="tab-btn" data-tab="effects">🪄 Effekter</button>
                 <button class="tab-btn" data-tab="audio">🎵 Ljud</button>
                 <button class="tab-btn" data-tab="marketplace">🛒 Market</button>
             </div>
@@ -99,11 +100,85 @@
                 </div>
             </div>
 
+            <!-- Tab: Video Transitions (Klippövergångar) -->
+            <div id="tab-transitions" class="tab-content">
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <div style="display: flex; gap: 6px;">
+                        <button id="btnApplyTransitionAll" class="btn-secondary" style="flex: 1; font-size: 11px; padding: 6px 8px; justify-content: center;" title="Lägg till vald övergång på alla klipp i tidslinjen">
+                            <span>⚡ Alla Klipp</span>
+                        </button>
+                        <button id="btnApplyTransitionSelected" class="btn-primary" style="flex: 1; font-size: 11px; padding: 6px 8px; justify-content: center;" title="Tillämpa vald övergång på markerat klipp">
+                            <span>+ Markerad</span>
+                        </button>
+                    </div>
+
+                    <div class="category-chips">
+                        <div class="chip active transition-chip" data-cat="all">Alla</div>
+                        <div class="chip transition-chip" data-cat="soft">Mjuka</div>
+                        <div class="chip transition-chip" data-cat="motion">Rörelse</div>
+                        <div class="chip transition-chip" data-cat="light">Ljus</div>
+                        <div class="chip transition-chip" data-cat="glitch">Glitch</div>
+                    </div>
+
+                    <p style="font-size: 10px; color: var(--text-muted); margin: 0;">Klicka eller dra en övergång direkt till ett klipp i tidslinjen.</p>
+
+                    <div id="transitionsGrid" class="transitions-grid">
+                        <!-- Transitions rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+
             <!-- Tab 3: Built-in Effects & Filter Layers -->
             <div id="tab-effects" class="tab-content">
                 <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <p style="font-size: 11px; color: var(--text-muted);">Lägg till filterlager på tidslinjen för att påverka alla underliggande spår.</p>
-                    <div id="effectsGrid" style="display: flex; flex-direction: column; gap: 10px;">
+                    <div class="section-title" style="margin-top: 2px;">🎥 Live Videoeffekter</div>
+                    <div class="live-fx-grid" id="liveFxGrid">
+                        <div class="live-fx-card" data-fx="vhs-retro" title="Lägg till VHS 1995 Retro Cam på tidslinjen">
+                            <div class="fx-icon">📼</div>
+                            <div class="fx-meta">
+                                <div class="fx-title">VHS Retro '95</div>
+                                <div class="fx-desc">Scanlines & OSD</div>
+                            </div>
+                        </div>
+                        <div class="live-fx-card" data-fx="camera-shake" title="Lägg till Kamera Skak på tidslinjen">
+                            <div class="fx-icon">📳</div>
+                            <div class="fx-meta">
+                                <div class="fx-title">Kamera Skak</div>
+                                <div class="fx-desc">Handheld Jitter</div>
+                            </div>
+                        </div>
+                        <div class="live-fx-card" data-fx="rgb-split" title="Lägg till RGB Split / Glitch på tidslinjen">
+                            <div class="fx-icon">👾</div>
+                            <div class="fx-meta">
+                                <div class="fx-title">RGB Split</div>
+                                <div class="fx-desc">Cyber Glitch</div>
+                            </div>
+                        </div>
+                        <div class="live-fx-card" data-fx="film-grain" title="Lägg till 35mm Filmkorn på tidslinjen">
+                            <div class="fx-icon">🎞️</div>
+                            <div class="fx-meta">
+                                <div class="fx-title">35mm Filmkorn</div>
+                                <div class="fx-desc">Analog textur</div>
+                            </div>
+                        </div>
+                        <div class="live-fx-card" data-fx="bokeh" title="Lägg till Gyllene Bokeh på tidslinjen">
+                            <div class="fx-icon">✨</div>
+                            <div class="fx-meta">
+                                <div class="fx-title">Gyllene Bokeh</div>
+                                <div class="fx-desc">Ljuspartiklar</div>
+                            </div>
+                        </div>
+                        <div class="live-fx-card" data-fx="rain" title="Lägg till Filmiskt Regn på tidslinjen">
+                            <div class="fx-icon">🌧️</div>
+                            <div class="fx-meta">
+                                <div class="fx-title">Filmiskt Regn</div>
+                                <div class="fx-desc">Vattenstrimmor</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-title">🎨 Färgfilter & LUTs</div>
+                    <div id="effectsGrid" style="display: flex; flex-direction: column; gap: 8px;">
                         <!-- Effects rendered dynamically -->
                     </div>
                 </div>
@@ -677,6 +752,7 @@
     <script src="js/sfx.js"></script>
     <script src="js/projects.js"></script>
     <script src="js/exporter.js"></script>
+    <script src="js/transitions.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

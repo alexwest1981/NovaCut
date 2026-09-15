@@ -2026,6 +2026,179 @@ body {
     50% { opacity: 0.5; transform: scale(0.85); }
 }
 
+/* --- CapCut Pro: Video Transitions & Visual FX (Sprint 10) --- */
+.transitions-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.transition-card {
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 8px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    user-select: none;
+}
+
+.transition-card:hover {
+    background: var(--bg-surface-hover);
+    border-color: rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.transition-card.active {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 12px rgba(0, 212, 130, 0.25);
+}
+
+.transition-card .card-icon {
+    font-size: 22px;
+    margin-bottom: 2px;
+}
+
+.transition-card .card-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.transition-card.active .card-title {
+    color: var(--accent);
+}
+
+.transition-card .card-desc {
+    font-size: 9.5px;
+    color: var(--text-muted);
+    line-height: 1.25;
+}
+
+/* Timeline Transition Badges */
+.clip-transitions-layer {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    pointer-events: none;
+    display: flex;
+    justify-content: space-between;
+    overflow: hidden;
+}
+
+.clip-transition-badge {
+    pointer-events: auto;
+    background: rgba(0, 212, 130, 0.28);
+    backdrop-filter: blur(4px);
+    border: 1px solid var(--accent);
+    color: #ffffff;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 4px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 100%;
+    box-sizing: border-box;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    z-index: 12;
+}
+
+.clip-transition-badge:hover {
+    background: var(--accent);
+    color: #0b0c10;
+}
+
+.transition-in-badge {
+    border-right: 1px solid rgba(255, 255, 255, 0.4);
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+}
+
+.transition-out-badge {
+    border-left: 1px solid rgba(255, 255, 255, 0.4);
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+    justify-content: flex-end;
+}
+
+/* Live Visual FX Quick Cards */
+.live-fx-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.live-fx-card {
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.live-fx-card:hover {
+    background: var(--bg-surface-hover);
+    border-color: #ec4899;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(236, 72, 153, 0.2);
+}
+
+.live-fx-card .fx-icon {
+    font-size: 20px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(236, 72, 153, 0.15);
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+
+.live-fx-card .fx-meta {
+    flex: 1;
+    overflow: hidden;
+}
+
+.live-fx-card .fx-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.live-fx-card .fx-desc {
+    font-size: 9.5px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
 
 
 

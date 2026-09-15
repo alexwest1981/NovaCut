@@ -423,12 +423,91 @@ class NovaCutEngine {
 
         const propPosX = this.getInterpolatedProperty(clip, 'posX', 0);
         const propPosY = this.getInterpolatedProperty(clip, 'posY', 0);
-        const scale = this.getInterpolatedProperty(clip, 'scale', 1.0);
-        const opacity = this.getInterpolatedProperty(clip, 'opacity', 1.0);
+        let scale = this.getInterpolatedProperty(clip, 'scale', 1.0);
+        let opacity = this.getInterpolatedProperty(clip, 'opacity', 1.0);
         const rotDeg = this.getInterpolatedProperty(clip, 'rotation', 0);
 
-        const posX = propPosX + width / 2;
-        const posY = propPosY + height / 2;
+        let shiftX = 0;
+        let shiftY = 0;
+        let overlayColor = null;
+        let overlayAlpha = 0;
+        let glitchActive = false;
+
+        const localTime = Math.max(0, Math.min(clip.duration, this.currentTime - clip.startTime));
+
+        // Transition IN calculation
+        if (clip.transitionIn && clip.transitionIn.type && clip.transitionIn.type !== 'none') {
+            const dur = Math.max(0.1, clip.transitionIn.duration || 0.5);
+            if (localTime < dur) {
+                const rawP = Math.max(0, Math.min(1, localTime / dur));
+                const p = rawP * rawP * (3 - 2 * rawP); // smoothstep
+                const type = clip.transitionIn.type;
+
+                if (type === 'dissolve') {
+                    opacity *= p;
+                } else if (type === 'dip_black') {
+                    overlayColor = '#000000';
+                    overlayAlpha = Math.max(overlayAlpha, 1 - p);
+                } else if (type === 'dip_white' || type === 'flash') {
+                    overlayColor = '#ffffff';
+                    overlayAlpha = Math.max(overlayAlpha, (1 - p) * 0.95);
+                } else if (type === 'zoom_in') {
+                    scale *= (0.65 + 0.35 * p);
+                    opacity *= p;
+                } else if (type === 'zoom_out') {
+                    scale *= (1.35 - 0.35 * p);
+                    opacity *= p;
+                } else if (type === 'slide_left') {
+                    shiftX += width * (1 - p);
+                } else if (type === 'slide_right') {
+                    shiftX -= width * (1 - p);
+                } else if (type === 'glitch') {
+                    shiftX += (Math.random() - 0.5) * 35 * (1 - p);
+                    shiftY += (Math.random() - 0.5) * 15 * (1 - p);
+                    opacity *= (0.6 + 0.4 * p);
+                    glitchActive = true;
+                }
+            }
+        }
+
+        // Transition OUT calculation
+        if (clip.transitionOut && clip.transitionOut.type && clip.transitionOut.type !== 'none') {
+            const dur = Math.max(0.1, clip.transitionOut.duration || 0.5);
+            const timeLeft = clip.duration - localTime;
+            if (timeLeft < dur) {
+                const rawP = Math.max(0, Math.min(1, timeLeft / dur));
+                const p = rawP * rawP * (3 - 2 * rawP); // smoothstep
+                const type = clip.transitionOut.type;
+
+                if (type === 'dissolve') {
+                    opacity *= p;
+                } else if (type === 'dip_black') {
+                    overlayColor = '#000000';
+                    overlayAlpha = Math.max(overlayAlpha, 1 - p);
+                } else if (type === 'dip_white' || type === 'flash') {
+                    overlayColor = '#ffffff';
+                    overlayAlpha = Math.max(overlayAlpha, (1 - p) * 0.95);
+                } else if (type === 'zoom_in') {
+                    scale *= (1.35 - 0.35 * p);
+                    opacity *= p;
+                } else if (type === 'zoom_out') {
+                    scale *= (0.65 + 0.35 * p);
+                    opacity *= p;
+                } else if (type === 'slide_left') {
+                    shiftX -= width * (1 - p);
+                } else if (type === 'slide_right') {
+                    shiftX += width * (1 - p);
+                } else if (type === 'glitch') {
+                    shiftX += (Math.random() - 0.5) * 35 * (1 - p);
+                    shiftY += (Math.random() - 0.5) * 15 * (1 - p);
+                    opacity *= (0.6 + 0.4 * p);
+                    glitchActive = true;
+                }
+            }
+        }
+
+        const posX = propPosX + shiftX + width / 2;
+        const posY = propPosY + shiftY + height / 2;
         const rotation = rotDeg * Math.PI / 180;
 
         ctx.translate(posX, posY);
@@ -440,9 +519,11 @@ class NovaCutEngine {
             ctx.globalCompositeOperation = clip.blendMode;
         }
 
-        const localTime = Math.max(0, Math.min(clip.duration, this.currentTime - clip.startTime));
         const clipRelativeTime = this.getClipSourceTime(clip, localTime);
         const currentSpeed = this.getClipInstantaneousSpeed(clip, localTime);
+
+        let drawW = width;
+        let drawH = height;
 
         if (mediaEl && mediaEl.tagName === 'VIDEO') {
             const isVideoMuted = window.timeline?.trackStates?.[clip.trackId]?.muted || false;
@@ -466,8 +547,8 @@ class NovaCutEngine {
             const vw = mediaEl.videoWidth || 1920;
             const vh = mediaEl.videoHeight || 1080;
             const aspect = vw / vh;
-            let drawW = width;
-            let drawH = width / aspect;
+            drawW = width;
+            drawH = width / aspect;
             if (drawH < height) {
                 drawH = height;
                 drawW = height * aspect;
@@ -476,12 +557,30 @@ class NovaCutEngine {
             ctx.drawImage(mediaEl, -drawW / 2, -drawH / 2, drawW, drawH);
 
         } else if (mediaEl && mediaEl.tagName === 'IMG') {
-            const iw = mediaEl.naturalWidth || width;
-            const ih = mediaEl.naturalHeight || height;
-            ctx.drawImage(mediaEl, -iw / 2, -ih / 2, iw, ih);
+            drawW = mediaEl.naturalWidth || width;
+            drawH = mediaEl.naturalHeight || height;
+            ctx.drawImage(mediaEl, -drawW / 2, -drawH / 2, drawW, drawH);
         } else {
             // Generated Demo Pattern (e.g. Cyberpunk Grid & Moving Orb)
             this.renderProceduralDemo(clip, width, height);
+        }
+
+        // Render transition glitch RGB chromatic shift
+        if (glitchActive && mediaEl) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen';
+            ctx.globalAlpha = 0.5;
+            ctx.drawImage(mediaEl, -drawW / 2 + 10, -drawH / 2, drawW, drawH);
+            ctx.restore();
+        }
+
+        // Render transition overlay (e.g. Dip to Black / White Flash)
+        if (overlayColor && overlayAlpha > 0.01) {
+            ctx.save();
+            ctx.fillStyle = overlayColor;
+            ctx.globalAlpha = overlayAlpha;
+            ctx.fillRect(-drawW / 2, -drawH / 2, drawW, drawH);
+            ctx.restore();
         }
 
         ctx.restore();
@@ -1129,16 +1228,78 @@ class NovaCutEngine {
         const { ctx } = this;
         ctx.save();
 
-        if (type === 'vhs-scanlines') {
-            // Horizontal analog scanlines
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+        if (type === 'vhs-retro' || type === 'vhs-scanlines') {
+            // Analog scanlines
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
             for (let y = 0; y < height; y += 4) {
                 ctx.fillRect(0, y, width, 1.5);
             }
-            // VHS static jitter line
-            const jitterY = (Math.sin(this.currentTime * 10) * 0.5 + 0.5) * height;
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
-            ctx.fillRect(0, jitterY, width, 12);
+            // Tracking noise band
+            const jitterY = (Math.sin(this.currentTime * 7) * 0.5 + 0.5) * height;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+            ctx.fillRect(0, jitterY, width, 14);
+
+            // VHS On-Screen Display (OSD)
+            ctx.font = '700 22px "Courier New", monospace';
+            
+            // Blinking red REC dot
+            if (Math.floor(this.currentTime * 2) % 2 === 0) {
+                ctx.fillStyle = '#ff2222';
+                ctx.beginPath();
+                ctx.arc(42, 42, 8, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'left';
+            ctx.fillText('REC', 58, 48);
+
+            // SP Mode top right
+            ctx.textAlign = 'right';
+            ctx.fillText('SP', width - 40, 48);
+
+            // Bottom Left Channel
+            ctx.textAlign = 'left';
+            ctx.fillText('CH 03', 40, height - 40);
+
+            // Bottom Right Timecode
+            const mins = Math.floor(this.currentTime / 60).toString().padStart(2, '0');
+            const secs = Math.floor(this.currentTime % 60).toString().padStart(2, '0');
+            const frames = Math.floor((this.currentTime % 1) * 30).toString().padStart(2, '0');
+            ctx.textAlign = 'right';
+            ctx.fillText(`00:${mins}:${secs}:${frames}`, width - 40, height - 40);
+
+        } else if (type === 'camera-shake') {
+            // Handheld camera shake / jitter simulation
+            const intensity = params.intensity || 1.0;
+            const t = this.currentTime * 18;
+            const shakeX = (Math.sin(t) * 8 + Math.sin(t * 2.3) * 4) * intensity;
+            const shakeY = (Math.cos(t * 1.4) * 6 + Math.cos(t * 3.1) * 3) * intensity;
+            ctx.save();
+            ctx.globalAlpha = 0.3;
+            ctx.drawImage(this.canvas, shakeX * 0.4, shakeY * 0.4);
+            ctx.restore();
+
+        } else if (type === 'rgb-split') {
+            // Chromatic aberration RGB split
+            const offset = (params.offset || 8);
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen';
+            ctx.globalAlpha = 0.35;
+            ctx.drawImage(this.canvas, -offset, 0);
+            ctx.drawImage(this.canvas, offset, 0);
+            ctx.restore();
+
+        } else if (type === 'film-grain') {
+            // High-density analog 35mm film grain
+            const grainCount = params.count || 240;
+            const tSeed = Math.floor(this.currentTime * 24);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
+            for (let i = 0; i < grainCount; i++) {
+                const gx = ((i * 197.3 + tSeed * 77.1) % 1) * width;
+                const gy = ((i * 311.9 + tSeed * 123.7) % 1) * height;
+                const gSize = 1.5 + ((i * 13.7) % 1) * 2.2;
+                ctx.fillRect(gx, gy, gSize, gSize);
+            }
 
         } else if (type === 'vignette') {
             // Radial dark edges

@@ -21,6 +21,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const sfxManager = new NovaCutSFX(timeline, engine);
     window.sfxManager = sfxManager;
 
+    const transitions = new NovaCutTransitions(engine, timeline);
+    window.transitions = transitions;
+
     // 2. Setup Top Bar & Transport Controls
     document.getElementById('btnPlayPause').addEventListener('click', () => engine.togglePlay());
     document.getElementById('btnPrevFrame').addEventListener('click', () => engine.stepFrame(-1));

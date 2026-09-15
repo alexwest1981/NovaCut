@@ -310,6 +310,57 @@ class NovaCutInspector {
                     </div>
                 </div>
             </div>
+
+            <div class="inspector-section">
+                <div class="section-title">🎬 Klippövergångar (Transitions)</div>
+                <div class="param-row">
+                    <span class="param-label">Övergång In</span>
+                    <div class="param-input-group">
+                        <select class="form-select select-compact" id="propTransInType">
+                            <option value="none" ${!clip.transitionIn || clip.transitionIn.type === 'none' ? 'selected' : ''}>Ingen övergång</option>
+                            <option value="dissolve" ${clip.transitionIn?.type === 'dissolve' ? 'selected' : ''}>Cross Dissolve</option>
+                            <option value="dip_black" ${clip.transitionIn?.type === 'dip_black' ? 'selected' : ''}>Dip to Black</option>
+                            <option value="dip_white" ${clip.transitionIn?.type === 'dip_white' ? 'selected' : ''}>Dip to White (Flash)</option>
+                            <option value="zoom_in" ${clip.transitionIn?.type === 'zoom_in' ? 'selected' : ''}>Zoom In</option>
+                            <option value="zoom_out" ${clip.transitionIn?.type === 'zoom_out' ? 'selected' : ''}>Zoom Out</option>
+                            <option value="slide_left" ${clip.transitionIn?.type === 'slide_left' ? 'selected' : ''}>Whip Pan Vänster</option>
+                            <option value="slide_right" ${clip.transitionIn?.type === 'slide_right' ? 'selected' : ''}>Whip Pan Höger</option>
+                            <option value="glitch" ${clip.transitionIn?.type === 'glitch' ? 'selected' : ''}>Cyber Glitch</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="param-row" id="rowTransInDur" style="display: ${clip.transitionIn && clip.transitionIn.type !== 'none' ? 'flex' : 'none'};">
+                    <span class="param-label">Varaktighet In</span>
+                    <div class="param-input-group">
+                        <input type="range" class="slider-input" id="propTransInDur" min="0.2" max="2.0" step="0.1" value="${clip.transitionIn ? clip.transitionIn.duration : 0.5}">
+                        <span class="num-display" id="valTransInDur">${(clip.transitionIn ? clip.transitionIn.duration : 0.5).toFixed(1)}s</span>
+                    </div>
+                </div>
+
+                <div class="param-row">
+                    <span class="param-label">Övergång Ut</span>
+                    <div class="param-input-group">
+                        <select class="form-select select-compact" id="propTransOutType">
+                            <option value="none" ${!clip.transitionOut || clip.transitionOut.type === 'none' ? 'selected' : ''}>Ingen övergång</option>
+                            <option value="dissolve" ${clip.transitionOut?.type === 'dissolve' ? 'selected' : ''}>Cross Dissolve</option>
+                            <option value="dip_black" ${clip.transitionOut?.type === 'dip_black' ? 'selected' : ''}>Dip to Black</option>
+                            <option value="dip_white" ${clip.transitionOut?.type === 'dip_white' ? 'selected' : ''}>Dip to White (Flash)</option>
+                            <option value="zoom_in" ${clip.transitionOut?.type === 'zoom_in' ? 'selected' : ''}>Zoom In</option>
+                            <option value="zoom_out" ${clip.transitionOut?.type === 'zoom_out' ? 'selected' : ''}>Zoom Out</option>
+                            <option value="slide_left" ${clip.transitionOut?.type === 'slide_left' ? 'selected' : ''}>Whip Pan Vänster</option>
+                            <option value="slide_right" ${clip.transitionOut?.type === 'slide_right' ? 'selected' : ''}>Whip Pan Höger</option>
+                            <option value="glitch" ${clip.transitionOut?.type === 'glitch' ? 'selected' : ''}>Cyber Glitch</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="param-row" id="rowTransOutDur" style="display: ${clip.transitionOut && clip.transitionOut.type !== 'none' ? 'flex' : 'none'};">
+                    <span class="param-label">Varaktighet Ut</span>
+                    <div class="param-input-group">
+                        <input type="range" class="slider-input" id="propTransOutDur" min="0.2" max="2.0" step="0.1" value="${clip.transitionOut ? clip.transitionOut.duration : 0.5}">
+                        <span class="num-display" id="valTransOutDur">${(clip.transitionOut ? clip.transitionOut.duration : 0.5).toFixed(1)}s</span>
+                    </div>
+                </div>
+            </div>
         `;
 
         this.bindKeyframeControl(clip, 'scale', 'propScale', 'valScale', (v) => `${v.toFixed(2)}x`);
@@ -335,6 +386,68 @@ class NovaCutInspector {
             this.engine.render();
             return `${parseFloat(v).toFixed(1)}s`;
         });
+
+        const selInType = document.getElementById('propTransInType');
+        const rowInDur = document.getElementById('rowTransInDur');
+        const sliderInDur = document.getElementById('propTransInDur');
+        const valInDur = document.getElementById('valTransInDur');
+
+        if (selInType) {
+            selInType.addEventListener('change', (e) => {
+                const val = e.target.value;
+                if (val === 'none') {
+                    delete clip.transitionIn;
+                    if (rowInDur) rowInDur.style.display = 'none';
+                } else {
+                    const dur = sliderInDur ? parseFloat(sliderInDur.value) : 0.5;
+                    const optText = selInType.options[selInType.selectedIndex].text;
+                    clip.transitionIn = { type: val, name: optText, duration: dur };
+                    if (rowInDur) rowInDur.style.display = 'flex';
+                }
+                this.timeline.renderClipDOM(clip);
+                this.engine.render();
+            });
+        }
+        if (sliderInDur) {
+            sliderInDur.addEventListener('input', (e) => {
+                const d = parseFloat(e.target.value);
+                if (valInDur) valInDur.textContent = `${d.toFixed(1)}s`;
+                if (clip.transitionIn) clip.transitionIn.duration = d;
+                this.timeline.renderClipDOM(clip);
+                this.engine.render();
+            });
+        }
+
+        const selOutType = document.getElementById('propTransOutType');
+        const rowOutDur = document.getElementById('rowTransOutDur');
+        const sliderOutDur = document.getElementById('propTransOutDur');
+        const valOutDur = document.getElementById('valTransOutDur');
+
+        if (selOutType) {
+            selOutType.addEventListener('change', (e) => {
+                const val = e.target.value;
+                if (val === 'none') {
+                    delete clip.transitionOut;
+                    if (rowOutDur) rowOutDur.style.display = 'none';
+                } else {
+                    const dur = sliderOutDur ? parseFloat(sliderOutDur.value) : 0.5;
+                    const optText = selOutType.options[selOutType.selectedIndex].text;
+                    clip.transitionOut = { type: val, name: optText, duration: dur };
+                    if (rowOutDur) rowOutDur.style.display = 'flex';
+                }
+                this.timeline.renderClipDOM(clip);
+                this.engine.render();
+            });
+        }
+        if (sliderOutDur) {
+            sliderOutDur.addEventListener('input', (e) => {
+                const d = parseFloat(e.target.value);
+                if (valOutDur) valOutDur.textContent = `${d.toFixed(1)}s`;
+                if (clip.transitionOut) clip.transitionOut.duration = d;
+                this.timeline.renderClipDOM(clip);
+                this.engine.render();
+            });
+        }
 
         const btnResetMediaX = document.getElementById('btnResetMediaPosX');
         if (btnResetMediaX) {

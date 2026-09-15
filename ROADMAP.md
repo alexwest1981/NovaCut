@@ -17,7 +17,8 @@ Detta dokument beskriver sprintplanen för **NovaCut**, en modern, blixtsnabb oc
 | **Sprint 7** | **Ljudredigering & Auto-Ducking** | ✅ Klar | Fade In/Out-handtag på ljudklipp, automatisk volymsänkning av musik vid tal (auto-ducking). |
 | **Sprint 8** | **Auto-Captions & Virala Undertexter** | ✅ Klar | Automatisk textgenerering och animerade ordstilar (Hormozi, Pop, Karaoke highlight). |
 | **Sprint 9** | **Export Presets för Sociala Medier** | ✅ Klar | 1-klicks export med optimerade NVENC/VAAPI-profiler för TikTok, Reels, Shorts och 4K, live GPU-detektering och MP4-transkodning. |
-| **Sprint 10** | **Video Transitions & Visuella FX** | 🚀 Nästa sprint | Övergångar mellan klipp (Zoom In/Out, Whip Pan, Dissolve, Glitch, Dip to Black) och live videoeffekter (VHS, Shake, RGB Split). |
+| **Sprint 10** | **Video Transitions & Visuella FX** | ✅ Klar | Övergångar mellan klipp (Zoom In/Out, Whip Pan, Dissolve, Glitch, Dip to Black) och live videoeffekter (VHS Retro, Camera Shake, RGB Split, 35mm Grain). |
+| **Sprint 11** | **Color Grading & Maskering** | 🚀 Nästa sprint | Färgkorrigering (Temperatur, Tint, Mättnad, Kontrast, HSL), och Maskering (Rektangel, Cirkel/Facecam, Linjär Split-screen med Feather). |
 
 ---
 
@@ -51,7 +52,12 @@ Detta dokument beskriver sprintplanen för **NovaCut**, en modern, blixtsnabb oc
 * **Hårdvaruacceleration (NVIDIA NVENC):** Automatisk GPU-detektering (`lspci` & `ffmpeg`), realtidsindikator och blixtsnabb `h264_nvenc` samt `hevc_nvenc`-transkodning direkt till MP4 med AAC-ljud och `faststart` för sociala medier.
 * **Web Audio Export:** Full mixning av tidslinjens ljudspår under export.
 
-### Sprint 10: Video Transitions & Visuella FX (Kommande sprint)
-* **Klippövergångar (Transitions):** Drag-and-drop övergångar mellan angränsande klipp i tidslinjen: Zoom In/Out, Whip Pan, Dip to Black/White, Dissolve och Glitch.
-* **Tidslinjeinteraktion:** Visuella övergångsblock mellan klipp med justerbar varaktighet.
-* **Visuella FX:** Snabbapplicerade filter och effekter (RGB Split, Shake / Camera Jitter, Retro VHS, Film Grain).
+### Sprint 10: Video Transitions & Visuella FX
+* **Klippövergångar (Transitions):** Cross Dissolve, Dip to Black, Flash/Vit Blixt, Zoom In, Zoom Out, Whip Pan Vänster, Whip Pan Höger och Cyber Glitch.
+* **Tidslinjeinteraktion & Drag-and-Drop:** Visuella övergångsbrickor (`clip-transition-badge`) på klippändar, drag-and-drop direkt från biblioteket till klipp, samt snabbknappar ("Alla Klipp", "+ Markerad").
+* **Inspektorkontroll:** Interaktiva dropdowns för In/Ut-övergångar med millisekunds-exakta sliders för varaktighet.
+* **Live Visuella FX:** VHS Retro '95 OSD, Handheld Camera Shake, RGB Split Glitch, 35mm Film Grain, Gyllene Bokeh, Filmiskt Regn.
+
+### Sprint 11: Color Grading & Maskering (Kommande sprint)
+* **Färgkorrigering:** Temperatur (varm/kall), Tint (grön/magenta), Mättnad, Kontrast och Exponering.
+* **Video Masking:** Cirkelmask (Facecam / Reaktion), Rektangulär mask (Crop / Split screen), Linjär mask (Wipe), Invertering och Kantutjämning (Feather).

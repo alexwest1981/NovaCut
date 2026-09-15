@@ -348,6 +348,69 @@ class NovaCutTimeline {
                 kfLayer.appendChild(marker);
             });
         }
+
+        // Transitions visual layer on timeline
+        let transLayer = el.querySelector('.clip-transitions-layer');
+        if (!transLayer) {
+            transLayer = document.createElement('div');
+            transLayer.className = 'clip-transitions-layer';
+            el.appendChild(transLayer);
+        }
+        transLayer.innerHTML = '';
+
+        if (clip.transitionIn && clip.transitionIn.type && clip.transitionIn.type !== 'none') {
+            const inBadge = document.createElement('div');
+            inBadge.className = 'clip-transition-badge transition-in-badge';
+            const inPct = Math.min(45, (clip.transitionIn.duration / clip.duration) * 100);
+            inBadge.style.width = `${Math.max(22, inPct)}%`;
+            inBadge.innerHTML = `<span>⧗</span> ${clip.transitionIn.name || 'In'}`;
+            inBadge.title = `Övergång In: ${clip.transitionIn.name} (${clip.transitionIn.duration}s)`;
+            inBadge.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.selectClip(clip.id);
+            });
+            transLayer.appendChild(inBadge);
+        }
+
+        if (clip.transitionOut && clip.transitionOut.type && clip.transitionOut.type !== 'none') {
+            const outBadge = document.createElement('div');
+            outBadge.className = 'clip-transition-badge transition-out-badge';
+            const outPct = Math.min(45, (clip.transitionOut.duration / clip.duration) * 100);
+            outBadge.style.width = `${Math.max(22, outPct)}%`;
+            outBadge.innerHTML = `${clip.transitionOut.name || 'Ut'} <span>⧗</span>`;
+            outBadge.title = `Övergång Ut: ${clip.transitionOut.name} (${clip.transitionOut.duration}s)`;
+            outBadge.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.selectClip(clip.id);
+            });
+            transLayer.appendChild(outBadge);
+        }
+
+        // Bind transition drag-and-drop on clip
+        if (!el._transDropBound) {
+            el._transDropBound = true;
+            el.addEventListener('dragover', (e) => {
+                if (e.dataTransfer && Array.from(e.dataTransfer.types).includes('novacut/transition')) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'copy';
+                }
+            });
+            el.addEventListener('drop', (e) => {
+                const transId = e.dataTransfer ? e.dataTransfer.getData('novacut/transition') : null;
+                if (transId && window.transitions) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const rect = el.getBoundingClientRect();
+                    const dropX = e.clientX - rect.left;
+                    const direction = dropX < rect.width / 2 ? 'in' : 'out';
+                    window.transitions.applyTransitionToClip(clip, transId, null, direction);
+                    const sideLabel = direction === 'in' ? 'början' : 'slutet';
+                    if (window.novaCutToast) {
+                        window.novaCutToast(`⧗ Övergång tillagd i ${sideLabel} av "${clip.title}"!`);
+                    }
+                }
+            });
+        }
     }
 
     bindFadeHandle(handle, clip, direction) {
