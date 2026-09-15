@@ -16,7 +16,8 @@ Detta dokument beskriver sprintplanen för **NovaCut**, en modern, blixtsnabb oc
 | **Sprint 6** | **Speed Ramping & Hastighetskurvor** | ✅ Klar | Kurvbaserad hastighet (0.1x–10x), kurvmallar (Flash, Montage, Bullet-time, Hero, Custom), visuell kurveditor. |
 | **Sprint 7** | **Ljudredigering & Auto-Ducking** | ✅ Klar | Fade In/Out-handtag på ljudklipp, automatisk volymsänkning av musik vid tal (auto-ducking). |
 | **Sprint 8** | **Auto-Captions & Virala Undertexter** | ✅ Klar | Automatisk textgenerering och animerade ordstilar (Hormozi, Pop, Karaoke highlight). |
-| **Sprint 9** | **Export Presets för Sociala Medier** | 🚀 Pågår | 1-klicks export med optimerade NVENC/VAAPI-profiler för TikTok, Reels, Shorts och 4K. |
+| **Sprint 9** | **Export Presets för Sociala Medier** | ✅ Klar | 1-klicks export med optimerade NVENC/VAAPI-profiler för TikTok, Reels, Shorts och 4K, live GPU-detektering och MP4-transkodning. |
+| **Sprint 10** | **Video Transitions & Visuella FX** | 🚀 Nästa sprint | Övergångar mellan klipp (Zoom In/Out, Whip Pan, Dissolve, Glitch, Dip to Black) och live videoeffekter (VHS, Shake, RGB Split). |
 
 ---
 
@@ -45,5 +46,12 @@ Detta dokument beskriver sprintplanen för **NovaCut**, en modern, blixtsnabb oc
 * Integrering av offline Whisper-transkribering.
 * Ord-för-ord synkning och TikTok-typografi.
 
-### Sprint 9: 1-klicks Export
-* Snabbknappar för TikTok (1080x1920, 60fps), YouTube Shorts, Instagram och YouTube 4K.
+### Sprint 9: 1-klicks Export & NVENC Hårdvaruacceleration
+* **Sociala Medier-Presets:** Snabbknappar för TikTok & Reels (1080×1920 60fps), YouTube Shorts, YouTube 4K Ultra HD (HEVC), YouTube 1080p, Instagram Kvadrat (1:1) och Anpassad profil.
+* **Hårdvaruacceleration (NVIDIA NVENC):** Automatisk GPU-detektering (`lspci` & `ffmpeg`), realtidsindikator och blixtsnabb `h264_nvenc` samt `hevc_nvenc`-transkodning direkt till MP4 med AAC-ljud och `faststart` för sociala medier.
+* **Web Audio Export:** Full mixning av tidslinjens ljudspår under export.
+
+### Sprint 10: Video Transitions & Visuella FX (Kommande sprint)
+* **Klippövergångar (Transitions):** Drag-and-drop övergångar mellan angränsande klipp i tidslinjen: Zoom In/Out, Whip Pan, Dip to Black/White, Dissolve och Glitch.
+* **Tidslinjeinteraktion:** Visuella övergångsblock mellan klipp med justerbar varaktighet.
+* **Visuella FX:** Snabbapplicerade filter och effekter (RGB Split, Shake / Camera Jitter, Retro VHS, Film Grain).

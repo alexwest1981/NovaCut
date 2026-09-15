@@ -1,5 +1,5 @@
 /**
- * NovaCut - Video Export Engine (MediaRecorder & FFmpeg)
+ * NovaCut - Video Export Engine (CapCut Pro Social Media & NVENC Hardware Acceleration Hub)
  */
 class NovaCutExporter {
     constructor(engine, timeline) {
@@ -12,14 +12,83 @@ class NovaCutExporter {
         this.percentText = document.getElementById('exportPercent');
         this.statusText = document.getElementById('exportStatusText');
 
+        this.hwBadge = document.getElementById('exportHwBadge');
+        this.hwText = document.getElementById('exportHwText');
+
+        this.resSelect = document.getElementById('exportResolution');
+        this.fpsSelect = document.getElementById('exportFps');
+        this.bitrateSelect = document.getElementById('exportBitrate');
+        this.codecSelect = document.getElementById('exportCodec');
+
+        this.activePreset = 'tiktok';
+        this.presets = {
+            tiktok: { res: '1080x1920', fps: '60', bitrate: '18M', codec: 'nvenc_h264' },
+            shorts: { res: '1080x1920', fps: '60', bitrate: '20M', codec: 'nvenc_h264' },
+            yt4k: { res: '3840x2160', fps: '60', bitrate: '45M', codec: 'nvenc_hevc' },
+            yt1080: { res: '1920x1080', fps: '60', bitrate: '16M', codec: 'nvenc_h264' },
+            insta: { res: '1080x1080', fps: '30', bitrate: '12M', codec: 'nvenc_h264' },
+            custom: null
+        };
+
         this.isExporting = false;
+        this.initHwDetection();
         this.setupEvents();
+    }
+
+    async initHwDetection() {
+        if (window.novaCut && typeof window.novaCut.getHwAcceleration === 'function') {
+            try {
+                const hw = await window.novaCut.getHwAcceleration();
+                if (hw && hw.status) {
+                    if (this.hwText) {
+                        this.hwText.textContent = hw.status;
+                    }
+                    if (!hw.hasNvenc) {
+                        // If NVENC not available on current hardware, adjust default codec options
+                        const nvencOpt1 = this.codecSelect?.querySelector('option[value="nvenc_h264"]');
+                        const nvencOpt2 = this.codecSelect?.querySelector('option[value="nvenc_hevc"]');
+                        if (nvencOpt1) nvencOpt1.textContent = 'MP4 (H.264 mjukvara - NVENC ej tillgänglig)';
+                        if (nvencOpt2) nvencOpt2.textContent = 'MP4 (HEVC - NVENC ej tillgänglig)';
+                    }
+                }
+            } catch (err) {
+                console.warn('[Exporter] Could not probe hardware acceleration:', err);
+                if (this.hwText) this.hwText.textContent = 'Mjukvarukodning aktiv';
+            }
+        } else {
+            if (this.hwText) this.hwText.textContent = 'Webbläsare (MediaRecorder direkt)';
+        }
+
+        if (window.novaCut && typeof window.novaCut.onExportProgress === 'function') {
+            window.novaCut.onExportProgress((data) => {
+                if (!this.isExporting) return;
+                if (data && typeof data === 'object') {
+                    if (data.percent !== null && data.percent !== undefined) {
+                        // Transcode stage maps from 75% to 99%
+                        const mapped = Math.min(99, 75 + Math.round(data.percent * 0.24));
+                        this.progressBar.style.width = `${mapped}%`;
+                        this.percentText.textContent = `${mapped}%`;
+                    }
+                    if (data.stage === 'transcoding') {
+                        this.statusText.textContent = '⚡ NVIDIA NVENC hårdvarukodar till MP4...';
+                    }
+                }
+            });
+        }
     }
 
     setupEvents() {
         const btnOpen = document.getElementById('btnOpenExportModal');
         if (btnOpen) {
             btnOpen.addEventListener('click', () => {
+                // Pre-sync preset with current project aspect ratio if available
+                if (this.engine.aspectRatio === '9:16') {
+                    this.applyPreset('tiktok');
+                } else if (this.engine.aspectRatio === '1:1') {
+                    this.applyPreset('insta');
+                } else if (this.engine.aspectRatio === '16:9') {
+                    this.applyPreset('yt1080');
+                }
                 this.modal.classList.add('active');
             });
         }
@@ -30,15 +99,90 @@ class NovaCutExporter {
                 this.startExport();
             });
         }
+
+        // Preset cards selection
+        const presetGrid = document.getElementById('exportPresetsGrid');
+        if (presetGrid) {
+            presetGrid.querySelectorAll('.export-preset-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const presetKey = card.getAttribute('data-preset');
+                    this.applyPreset(presetKey);
+                });
+            });
+        }
+
+        // Detect manual adjustments and switch to custom
+        [this.resSelect, this.fpsSelect, this.bitrateSelect, this.codecSelect].forEach(select => {
+            if (select) {
+                select.addEventListener('change', () => {
+                    this.checkCustomPresetMatch();
+                });
+            }
+        });
+    }
+
+    applyPreset(presetKey) {
+        this.activePreset = presetKey;
+
+        // Highlight preset card
+        const presetGrid = document.getElementById('exportPresetsGrid');
+        if (presetGrid) {
+            presetGrid.querySelectorAll('.export-preset-card').forEach(c => {
+                c.classList.toggle('active', c.getAttribute('data-preset') === presetKey);
+            });
+        }
+
+        const preset = this.presets[presetKey];
+        if (!preset) return;
+
+        if (this.resSelect && preset.res) {
+            this.resSelect.value = preset.res;
+        }
+        if (this.fpsSelect && preset.fps) {
+            this.fpsSelect.value = preset.fps;
+        }
+        if (this.bitrateSelect && preset.bitrate) {
+            this.bitrateSelect.value = preset.bitrate;
+        }
+        if (this.codecSelect && preset.codec) {
+            this.codecSelect.value = preset.codec;
+        }
+    }
+
+    checkCustomPresetMatch() {
+        const curRes = this.resSelect?.value;
+        const curFps = this.fpsSelect?.value;
+        const curBitrate = this.bitrateSelect?.value;
+        const curCodec = this.codecSelect?.value;
+
+        let matched = 'custom';
+        for (const [k, p] of Object.entries(this.presets)) {
+            if (p && p.res === curRes && p.fps === curFps && p.bitrate === curBitrate && p.codec === curCodec) {
+                matched = k;
+                break;
+            }
+        }
+
+        this.activePreset = matched;
+        const presetGrid = document.getElementById('exportPresetsGrid');
+        if (presetGrid) {
+            presetGrid.querySelectorAll('.export-preset-card').forEach(c => {
+                c.classList.toggle('active', c.getAttribute('data-preset') === matched);
+            });
+        }
     }
 
     async startExport() {
         if (this.isExporting) return;
 
-        let savePath = null;
-        const projectTitle = document.getElementById('projectTitle').value.trim() || 'NovaCut_Video';
-        const defaultFileName = `${projectTitle.replace(/[\s\W]+/g, '_')}.mp4`;
+        const codec = this.codecSelect?.value || 'nvenc_h264';
+        const isWebM = codec === 'webm';
+        const ext = isWebM ? '.webm' : '.mp4';
 
+        const projectTitle = document.getElementById('projectTitle')?.value.trim() || 'NovaCut_Video';
+        const defaultFileName = `${projectTitle.replace(/[\s\W]+/g, '_')}${ext}`;
+
+        let savePath = null;
         if (window.novaCut && typeof window.novaCut.saveExportDialog === 'function') {
             savePath = await window.novaCut.saveExportDialog(defaultFileName);
             if (!savePath) return; // User cancelled
@@ -48,35 +192,77 @@ class NovaCutExporter {
         this.progressContainer.style.display = 'block';
         this.progressBar.style.width = '0%';
         this.percentText.textContent = '0%';
-        this.statusText.textContent = 'Förbereder export...';
+        this.statusText.textContent = 'Förbereder rendering...';
 
-        const resolution = document.getElementById('exportResolution').value;
+        const resolution = this.resSelect.value;
         const [targetWidth, targetHeight] = resolution.split('x').map(Number);
-        const fps = parseInt(document.getElementById('exportFps').value) || 30;
+        const fps = parseInt(this.fpsSelect.value) || 60;
+        const bitrate = this.bitrateSelect.value || '18M';
 
-        // Render project to MediaRecorder stream
-        await this.recordCanvas(savePath, targetWidth, targetHeight, fps);
+        await this.recordCanvas(savePath, targetWidth, targetHeight, fps, bitrate, codec);
     }
 
-    async recordCanvas(savePath, width, height, fps) {
+    async recordCanvas(savePath, width, height, fps, bitrate, codec) {
         const { engine, timeline } = this;
         engine.pause();
 
         const canvas = engine.canvas;
-        const totalDuration = engine.duration;
+        const totalDuration = Math.max(0.5, engine.duration || 5);
         const totalFrames = Math.ceil(totalDuration * fps);
 
-        // Capture Stream from Canvas
+        // Mix Audio
+        let audioTrack = null;
+        try {
+            const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtxClass) {
+                const audioCtx = new AudioCtxClass();
+                const dest = audioCtx.createMediaStreamDestination();
+
+                // If media elements have audio, connect them to destination
+                if (engine.mediaElements && engine.mediaElements.size > 0) {
+                    engine.mediaElements.forEach(el => {
+                        try {
+                            if (el && typeof el.play === 'function' && !el._novacutAudioConnected) {
+                                const srcNode = audioCtx.createMediaElementSource(el);
+                                srcNode.connect(dest);
+                                srcNode.connect(audioCtx.destination);
+                                el._novacutAudioConnected = true;
+                            }
+                        } catch (_) {}
+                    });
+                }
+                const tracks = dest.stream.getAudioTracks();
+                if (tracks && tracks.length > 0) {
+                    audioTrack = tracks[0];
+                }
+            }
+        } catch (e) {
+            console.warn('[Exporter] Web Audio mix error:', e);
+        }
+
+        // Capture stream from canvas
         const stream = canvas.captureStream(fps);
-        
-        let mimeType = 'video/webm;codecs=vp9';
+        if (audioTrack) {
+            stream.addTrack(audioTrack);
+        }
+
+        let mimeType = 'video/webm;codecs=vp9,opus';
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+            mimeType = 'video/webm;codecs=vp8,opus';
+        }
         if (!MediaRecorder.isTypeSupported(mimeType)) {
             mimeType = 'video/webm';
         }
 
+        // Parse numerical bits per second
+        let bps = 18000000;
+        if (bitrate.endsWith('M')) {
+            bps = parseFloat(bitrate) * 1000000;
+        }
+
         const recorder = new MediaRecorder(stream, {
             mimeType: mimeType,
-            videoBitsPerSecond: 16000000 // 16 Mbps high quality
+            videoBitsPerSecond: bps
         });
 
         const chunks = [];
@@ -87,31 +273,68 @@ class NovaCutExporter {
         };
 
         recorder.onstop = async () => {
-            this.statusText.textContent = 'Sparar videofil...';
-            this.progressBar.style.width = '100%';
-            this.percentText.textContent = '100%';
-
             const blob = new Blob(chunks, { type: mimeType });
+            const arrayBuffer = await blob.arrayBuffer();
 
             if (savePath && window.novaCut) {
-                // Save to local path via Node Buffer if in Electron
-                const reader = new FileReader();
-                reader.onload = () => {
-                    const buffer = Buffer.from(reader.result);
-                    const fs = require('fs');
-                    fs.writeFileSync(savePath, buffer);
-                    this.onExportComplete(savePath);
-                };
-                reader.readAsArrayBuffer(blob);
+                if (codec === 'webm') {
+                    // Direct WebM save
+                    this.statusText.textContent = 'Sparar WebM-fil...';
+                    this.progressBar.style.width = '100%';
+                    this.percentText.textContent = '100%';
+
+                    const res = await window.novaCut.saveDirectExport(arrayBuffer, savePath);
+                    if (res && res.error) {
+                        alert('Fel vid sparning av video: ' + res.error);
+                        this.isExporting = false;
+                        return;
+                    }
+                    this.onExportComplete(savePath, 'WebM');
+                } else {
+                    // Hardware accelerated Transcode via FFmpeg (NVENC / HEVC / x264)
+                    this.statusText.textContent = '⚡ Sparar temp-ström och startar NVIDIA NVENC...';
+                    this.progressBar.style.width = '75%';
+                    this.percentText.textContent = '75%';
+
+                    const tempRes = await window.novaCut.saveTempExport(arrayBuffer);
+                    if (!tempRes || !tempRes.tempPath) {
+                        alert('Kunde inte skapa temporär videofil inför NVENC-kodning.');
+                        this.isExporting = false;
+                        return;
+                    }
+
+                    this.statusText.textContent = '⚡ NVIDIA NVENC hårdvaruacceleration kodar MP4...';
+
+                    try {
+                        await window.novaCut.transcodeExport({
+                            inputPath: tempRes.tempPath,
+                            outputPath: savePath,
+                            codec: codec,
+                            bitrate: bitrate,
+                            fps: fps,
+                            width: width,
+                            height: height,
+                            duration: totalDuration
+                        });
+
+                        this.progressBar.style.width = '100%';
+                        this.percentText.textContent = '100%';
+                        this.onExportComplete(savePath, codec.includes('hevc') ? 'MP4 (HEVC)' : 'MP4 (NVENC H.264)');
+                    } catch (err) {
+                        console.error('[Exporter] Transcode failed:', err);
+                        alert('Fel vid hårdvarukodning: ' + err.message);
+                        this.isExporting = false;
+                    }
+                }
             } else {
-                // Web download fallback
+                // Web browser fallback download
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `${document.getElementById('projectTitle').value || 'NovaCut'}.webm`;
+                a.download = `${document.getElementById('projectTitle')?.value || 'NovaCut'}.webm`;
                 a.click();
                 URL.revokeObjectURL(url);
-                this.onExportComplete('Nedladdningar');
+                this.onExportComplete('Nedladdningar', 'WebM');
             }
         };
 
@@ -132,25 +355,30 @@ class NovaCutExporter {
             engine.render();
 
             currentFrame++;
-            const pct = Math.round((currentFrame / totalFrames) * 100);
+            // Canvas rendering maps from 0% to 75%
+            const pct = Math.round((currentFrame / totalFrames) * 75);
             this.progressBar.style.width = `${pct}%`;
             this.percentText.textContent = `${pct}%`;
-            this.statusText.textContent = `Renderar bildruta ${currentFrame} av ${totalFrames}...`;
+            this.statusText.textContent = `Renderar bildruta ${currentFrame} av ${totalFrames} (${Math.round((currentFrame / totalFrames) * 100)}%)...`;
 
-            setTimeout(renderNextFrame, 1000 / fps);
+            setTimeout(renderNextFrame, Math.max(1, Math.floor(1000 / fps / 2)));
         };
 
         renderNextFrame();
     }
 
-    onExportComplete(filePath) {
+    onExportComplete(filePath, formatName = 'MP4') {
         this.isExporting = false;
-        this.statusText.textContent = 'Export klar!';
+        this.statusText.textContent = `Export klar! (${formatName})`;
         setTimeout(() => {
             this.modal.classList.remove('active');
             this.progressContainer.style.display = 'none';
-            alert(`🎉 Videon har exporterats framgångsrikt!\n\nSparad till: ${filePath}`);
-        }, 600);
+            if (window.novaCutToast) {
+                window.novaCutToast(`🎉 ${formatName} exporterad framgångsrikt!`);
+            } else {
+                alert(`🎉 Videon har exporterats framgångsrikt!\n\nFormat: ${formatName}\nSparad till: ${filePath}`);
+            }
+        }, 500);
     }
 }
 

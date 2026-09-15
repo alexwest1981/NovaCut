@@ -6,6 +6,10 @@ contextBridge.exposeInMainWorld('novaCut', {
     savePlugin: (pluginData) => ipcRenderer.invoke('plugin:save', pluginData),
     loadPlugins: () => ipcRenderer.invoke('plugin:loadAll'),
     exportFFmpeg: (options) => ipcRenderer.invoke('export:ffmpeg', options),
+    getHwAcceleration: () => ipcRenderer.invoke('export:getHwAcceleration'),
+    saveTempExport: (buffer) => ipcRenderer.invoke('export:saveTemp', buffer),
+    saveDirectExport: (buffer, filePath) => ipcRenderer.invoke('export:saveDirect', buffer, filePath),
+    transcodeExport: (options) => ipcRenderer.invoke('export:transcode', options),
     onExportProgress: (callback) => {
         ipcRenderer.on('export:progress', (event, data) => callback(data));
     },

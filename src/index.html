@@ -365,50 +365,117 @@
         </div>
     </div>
 
-    <!-- Export Modal -->
+    <!-- Export Modal (CapCut Pro Social Media & NVENC Acceleration Hub) -->
     <div id="exportModal" class="modal-overlay">
-        <div class="modal-content">
+        <div class="modal-content modal-export-wide">
             <div class="modal-header">
-                <span>Exportera Video</span>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span>🚀 Exportera Video & Social Media Hub</span>
+                </div>
                 <button class="btn-icon close-modal-btn">✕</button>
             </div>
             <div class="modal-body">
-                <div class="form-group">
-                    <label>Upplösning</label>
-                    <select id="exportResolution" class="form-select">
-                        <option value="1920x1080">1080p Full HD (1920 × 1080)</option>
-                        <option value="1080x1920">1080p Vertikal (1080 × 1920 - TikTok/Reels)</option>
-                        <option value="1280x720">720p HD (1280 × 720)</option>
-                        <option value="3840x2160">4K Ultra HD (3840 × 2160)</option>
-                    </select>
+                <!-- Hardware Acceleration Status Badge -->
+                <div class="hw-encoder-badge" id="exportHwBadge">
+                    <div class="hw-encoder-dot"></div>
+                    <span id="exportHwText">⚡ Kontrollerar hårdvaruacceleration...</span>
                 </div>
-                <div class="form-group">
-                    <label>Bildfrekvens (FPS)</label>
-                    <select id="exportFps" class="form-select">
-                        <option value="30">30 FPS (Standard)</option>
-                        <option value="60">60 FPS (Super smooth)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Format & Hårdvaruacceleration</label>
-                    <select id="exportCodec" class="form-select">
-                        <option value="nvenc">MP4 (H.264 med NVIDIA NVENC hårdvaruacceleration)</option>
-                        <option value="webm">WebM (Snabb direkt export)</option>
-                    </select>
-                </div>
-                <div id="exportProgressContainer" style="display: none; margin-top: 10px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                        <span id="exportStatusText">Renderar video...</span>
-                        <span id="exportPercent">0%</span>
+
+                <!-- Presets Grid -->
+                <div class="form-group" style="margin-bottom: 4px;">
+                    <label style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);">Målplattform & Snabb-presets</label>
+                    <div class="export-presets-grid" id="exportPresetsGrid">
+                        <div class="export-preset-card active" data-preset="tiktok">
+                            <span class="card-icon">📱</span>
+                            <span class="card-title">TikTok & Reels</span>
+                            <span class="card-meta">1080×1920 • 60fps</span>
+                        </div>
+                        <div class="export-preset-card" data-preset="shorts">
+                            <span class="card-icon">🔴</span>
+                            <span class="card-title">YT Shorts</span>
+                            <span class="card-meta">1080×1920 • 60fps</span>
+                        </div>
+                        <div class="export-preset-card" data-preset="yt4k">
+                            <span class="card-icon">🎬</span>
+                            <span class="card-title">YouTube 4K</span>
+                            <span class="card-meta">3840×2160 • HEVC</span>
+                        </div>
+                        <div class="export-preset-card" data-preset="yt1080">
+                            <span class="card-icon">🖥️</span>
+                            <span class="card-title">YouTube 1080p</span>
+                            <span class="card-meta">1920×1080 • 60fps</span>
+                        </div>
+                        <div class="export-preset-card" data-preset="insta">
+                            <span class="card-icon">📸</span>
+                            <span class="card-title">Instagram Kvadrat</span>
+                            <span class="card-meta">1080×1080 • 30fps</span>
+                        </div>
+                        <div class="export-preset-card" data-preset="custom">
+                            <span class="card-icon">⚙️</span>
+                            <span class="card-title">Anpassad</span>
+                            <span class="card-meta">Full frihet</span>
+                        </div>
                     </div>
-                    <div style="width: 100%; height: 8px; background: var(--bg-surface-elevated); border-radius: 4px; overflow: hidden;">
-                        <div id="exportProgressBar" style="width: 0%; height: 100%; background: var(--accent); transition: width 0.1s;"></div>
+                </div>
+
+                <!-- 2-column Settings Grid -->
+                <div class="export-settings-grid">
+                    <div class="form-group">
+                        <label>Upplösning</label>
+                        <select id="exportResolution" class="form-select">
+                            <option value="1080x1920" selected>1080p Vertikal (1080 × 1920 - 9:16)</option>
+                            <option value="1920x1080">1080p Full HD (1920 × 1080 - 16:9)</option>
+                            <option value="1080x1080">1080p Kvadrat (1080 × 1080 - 1:1)</option>
+                            <option value="3840x2160">4K Ultra HD (3840 × 2160 - 16:9)</option>
+                            <option value="1280x720">720p HD (1280 × 720 - 16:9)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Bildfrekvens (FPS)</label>
+                        <select id="exportFps" class="form-select">
+                            <option value="60" selected>60 FPS (Super smooth)</option>
+                            <option value="30">30 FPS (Standard)</option>
+                            <option value="24">24 FPS (Filmisk känsla)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Bitrate & Kvalitet</label>
+                        <select id="exportBitrate" class="form-select">
+                            <option value="18M" selected>18 Mbps (Optimal för TikTok & Reels)</option>
+                            <option value="20M">20 Mbps (Hög kvalitet för YouTube)</option>
+                            <option value="45M">45 Mbps (Ultra High Bitrate / 4K)</option>
+                            <option value="12M">12 Mbps (Standard webbkvalitet)</option>
+                            <option value="6M">6 Mbps (Kompakt filstorlek)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Format & Kodning</label>
+                        <select id="exportCodec" class="form-select">
+                            <option value="nvenc_h264" selected>MP4 (H.264 med NVIDIA NVENC)</option>
+                            <option value="nvenc_hevc">MP4 (H.265 / HEVC med NVENC)</option>
+                            <option value="cpu_h264">MP4 (H.264 mjukvara - CPU)</option>
+                            <option value="webm">WebM (VP9 direkt export)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Progress status container -->
+                <div id="exportProgressContainer" style="display: none; margin-top: 6px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px;">
+                        <span id="exportStatusText" style="color: var(--text-primary); font-weight: 500;">Förbereder export...</span>
+                        <span id="exportPercent" style="color: var(--accent); font-weight: 700; font-family: var(--font-mono);">0%</span>
+                    </div>
+                    <div style="width: 100%; height: 8px; background: var(--bg-surface-elevated); border-radius: 4px; overflow: hidden; border: 1px solid var(--border);">
+                        <div id="exportProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #00d482, #00f2fe); transition: width 0.12s ease;"></div>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn-icon close-modal-btn" style="width: auto; padding: 0 12px;">Avbryt</button>
-                <button id="btnStartExport" class="btn-primary">Börja Exportera</button>
+                <button class="btn-icon close-modal-btn" style="width: auto; padding: 0 14px;">Avbryt</button>
+                <button id="btnStartExport" class="btn-primary" style="display: flex; align-items: center; gap: 6px;">
+                    <span>🚀</span>
+                    <span>Börja Exportera</span>
+                </button>
             </div>
         </div>
     </div>

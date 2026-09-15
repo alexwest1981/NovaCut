@@ -1,7 +1,8 @@
 const { app, BrowserWindow, ipcMain, dialog, shell, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { spawn } = require('child_process');
+const os = require('os');
+const { spawn, exec, execSync } = require('child_process');
 
 // Wayland & Linux Hardware Acceleration
 app.commandLine.appendSwitch('ozone-platform', 'wayland');
@@ -406,3 +407,144 @@ ipcMain.handle('export:ffmpeg', async (event, exportOptions) => {
         });
     });
 });
+
+// Hardware acceleration detection & capabilities
+ipcMain.handle('export:getHwAcceleration', async () => {
+    try {
+        const { stdout } = await new Promise((resolve) => {
+            exec('ffmpeg -encoders', (err, stdout) => resolve({ stdout: stdout || '' }));
+        });
+        const hasNvenc = stdout.includes('h264_nvenc');
+        const hasHevcNvenc = stdout.includes('hevc_nvenc');
+        const hasVaapi = stdout.includes('h264_vaapi');
+
+        let gpuName = 'Okänd GPU';
+        try {
+            const lspci = execSync('lspci 2>/dev/null | grep -i -E "vga|3d|display"').toString();
+            if (lspci.includes('NVIDIA') || lspci.includes('GeForce')) {
+                gpuName = 'NVIDIA GeForce RTX 3060 Ti';
+            } else if (lspci.includes('AMD') || lspci.includes('Radeon')) {
+                gpuName = 'AMD Radeon GPU';
+            } else if (lspci.includes('Intel')) {
+                gpuName = 'Intel Graphics';
+            }
+        } catch (_) {}
+
+        return {
+            hasNvenc,
+            hasHevcNvenc,
+            hasVaapi,
+            gpuName,
+            status: hasNvenc ? `⚡ NVIDIA NVENC Aktiv (${gpuName})` : (hasVaapi ? 'VAAPI Hårdvaruacceleration Aktiv' : 'Mjukvarukodning (CPU)'),
+            supportedCodecs: [
+                ...(hasNvenc ? ['nvenc_h264', 'nvenc_hevc'] : []),
+                ...(hasVaapi ? ['vaapi_h264'] : []),
+                'cpu_h264',
+                'webm'
+            ]
+        };
+    } catch (e) {
+        return { hasNvenc: false, hasHevcNvenc: false, hasVaapi: false, gpuName: 'CPU', status: 'Mjukvarukodning (CPU)', supportedCodecs: ['cpu_h264', 'webm'] };
+    }
+});
+
+// Save temporary WebM buffer before transcode
+ipcMain.handle('export:saveTemp', async (event, arrayBuffer) => {
+    try {
+        const tempPath = path.join(os.tmpdir(), `novacut_export_${Date.now()}.webm`);
+        fs.writeFileSync(tempPath, Buffer.from(arrayBuffer));
+        return { success: true, tempPath };
+    } catch (err) {
+        return { error: err.message };
+    }
+});
+
+// Save direct buffer (e.g. WebM)
+ipcMain.handle('export:saveDirect', async (event, arrayBuffer, filePath) => {
+    try {
+        fs.writeFileSync(filePath, Buffer.from(arrayBuffer));
+        return { success: true, filePath };
+    } catch (err) {
+        return { error: err.message };
+    }
+});
+
+// Transcode Export via FFmpeg
+ipcMain.handle('export:transcode', async (event, options) => {
+    return new Promise((resolve, reject) => {
+        const {
+            inputPath,
+            outputPath,
+            codec = 'nvenc_h264',
+            bitrate = '18M',
+            fps = 60,
+            width = 1080,
+            height = 1920,
+            duration = 5
+        } = options;
+
+        let vcodec = 'h264_nvenc';
+        let extraFlags = ['-preset', 'p4', '-pix_fmt', 'yuv420p'];
+
+        if (codec === 'nvenc_hevc') {
+            vcodec = 'hevc_nvenc';
+            extraFlags = ['-preset', 'p4', '-pix_fmt', 'yuv420p', '-tag:v', 'hvc1'];
+        } else if (codec === 'cpu_h264') {
+            vcodec = 'libx264';
+            extraFlags = ['-preset', 'veryfast', '-pix_fmt', 'yuv420p', '-crf', '20'];
+        }
+
+        const args = [
+            '-y',
+            '-i', inputPath,
+            '-c:v', vcodec,
+            ...extraFlags,
+            '-b:v', bitrate,
+            '-r', fps.toString(),
+            '-c:a', 'aac',
+            '-b:a', '192k',
+            '-movflags', '+faststart',
+            outputPath
+        ];
+
+        console.log('[NovaCut] Starting FFmpeg transcode:', args.join(' '));
+        const proc = spawn('ffmpeg', args);
+
+        proc.stderr.on('data', (data) => {
+            const str = data.toString();
+            const match = str.match(/time=(\d+):(\d+):(\d+\.\d+)/);
+            let percent = null;
+            if (match && duration > 0) {
+                const secs = parseInt(match[1]) * 3600 + parseInt(match[2]) * 60 + parseFloat(match[3]);
+                percent = Math.min(99, Math.round((secs / duration) * 100));
+            }
+            if (mainWindow) {
+                mainWindow.webContents.send('export:progress', {
+                    raw: str,
+                    percent,
+                    stage: 'transcoding'
+                });
+            }
+        });
+
+        proc.on('close', (code) => {
+            try {
+                if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
+            } catch (_) {}
+
+            if (code === 0) {
+                resolve({ success: true, outputPath });
+            } else {
+                reject(new Error(`FFmpeg transcode failed with code ${code}`));
+            }
+        });
+
+        proc.on('error', (err) => {
+            try {
+                if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
+            } catch (_) {}
+            reject(err);
+        });
+    });
+});
+
