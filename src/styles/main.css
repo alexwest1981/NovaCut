@@ -2283,8 +2283,42 @@ body {
     font-size: 14px;
 }
 
+/* --- CapCut Pro: Text Style Presets & Motion Badges --- */
+.text-style-presets {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-bottom: 12px;
+}
 
+.btn-text-preset {
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 4px;
+    font-size: 10px;
+    cursor: pointer;
+    text-align: center;
+    color: var(--text-secondary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    transition: all 0.15s ease;
+}
 
+.btn-text-preset:hover {
+    background: var(--bg-surface-hover);
+    color: var(--text-primary);
+    border-color: var(--accent);
+}
 
+.btn-text-preset.active {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+}
 
-
+.btn-text-preset .preset-icon {
+    font-size: 14px;
+}

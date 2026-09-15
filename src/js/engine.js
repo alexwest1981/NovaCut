@@ -931,12 +931,46 @@ class NovaCutEngine {
         ctx.scale(scale, scale);
         ctx.globalAlpha = opacity;
 
-        // Viral Pop Animation (Bounce on enter)
-        if (clip.captionStyle === 'pop') {
-            const localTime = Math.max(0, Math.min(clip.duration, this.currentTime - clip.startTime));
-            if (localTime < 0.22) {
-                const popScale = 1.0 + Math.sin((localTime / 0.22) * Math.PI) * 0.25;
+        // Text Motion Presets & In-Animations
+        const animType = clip.textAnim || (clip.captionStyle === 'pop' ? 'pop' : 'none');
+        const animDur = clip.textAnimDuration !== undefined ? clip.textAnimDuration : 0.8;
+        const localTime = Math.max(0, Math.min(clip.duration, this.currentTime - clip.startTime));
+        let displayText = clip.text || 'NovaCut';
+
+        if (animType === 'typewriter') {
+            const fullText = displayText;
+            const progress = Math.min(1.0, localTime / animDur);
+            const charsToShow = Math.floor(progress * fullText.length);
+            const isTyping = progress < 1.0;
+            const blink = Math.floor(localTime * 4) % 2 === 0;
+            displayText = fullText.substring(0, charsToShow) + (isTyping && blink ? '▎' : '');
+        } else if (animType === 'pop' || animType === 'bounce') {
+            if (localTime < animDur) {
+                const p = localTime / animDur;
+                const popScale = 1.0 + Math.sin(p * Math.PI) * 0.35 * (1 - p * 0.5);
                 ctx.scale(popScale, popScale);
+            }
+        } else if (animType === 'slide_up') {
+            if (localTime < animDur) {
+                const p = localTime / animDur;
+                const ease = 1 - Math.pow(1 - p, 3);
+                ctx.translate(0, (1 - ease) * 60);
+                ctx.globalAlpha *= ease;
+            }
+        } else if (animType === 'flip_in') {
+            if (localTime < animDur) {
+                const p = localTime / animDur;
+                const sY = Math.sin(p * Math.PI * 0.5);
+                ctx.scale(1.0, Math.max(0.01, sY));
+                ctx.globalAlpha *= Math.min(1.0, p * 2);
+            }
+        } else if (animType === 'zoom_pulse') {
+            const pulse = 1.0 + Math.sin(localTime * 3.5) * 0.05;
+            ctx.scale(pulse, pulse);
+        } else if (animType === 'glitch') {
+            const isGlitching = Math.sin(localTime * 14) > 0.75;
+            if (isGlitching) {
+                ctx.translate(Math.sin(localTime * 33) * 6, Math.cos(localTime * 45) * 3);
             }
         }
 
@@ -949,8 +983,7 @@ class NovaCutEngine {
         ctx.textAlign = clip.align || 'center';
         ctx.textBaseline = 'middle';
 
-        const text = clip.text || 'NovaCut';
-        const lines = text.split('\n');
+        const lines = displayText.split('\n');
         const lineHeight = fontSize * 1.2;
         const totalHeight = lines.length * lineHeight;
         const startY = -(totalHeight / 2) + (lineHeight / 2);
@@ -962,8 +995,9 @@ class NovaCutEngine {
                 const w = ctx.measureText(line).width;
                 if (w > maxW) maxW = w;
             });
-            const padX = 24;
-            const padY = 14;
+            const padX = clip.bgPadX !== undefined ? clip.bgPadX : 24;
+            const padY = clip.bgPadY !== undefined ? clip.bgPadY : 14;
+            const roundness = clip.bgRoundness !== undefined ? clip.bgRoundness : 8;
             const boxW = maxW + padX * 2;
             const boxH = totalHeight + padY * 2;
 
@@ -973,9 +1007,33 @@ class NovaCutEngine {
 
             ctx.fillStyle = clip.bgColor;
             ctx.beginPath();
-            ctx.roundRect(boxX, -boxH / 2, boxW, boxH, 8);
+            ctx.roundRect(boxX, -boxH / 2, boxW, boxH, roundness);
             ctx.fill();
         }
+
+        // Shadow & Glow Calculation
+        const isNeonPulse = (animType === 'neon_pulse');
+        const hasCustomGlow = clip.hasGlow || isNeonPulse;
+        const hasCustomShadow = clip.hasShadow;
+
+        let dynamicShadowBlur = 0;
+        let dynamicShadowColor = 'transparent';
+
+        if (isNeonPulse) {
+            dynamicShadowBlur = 12 + Math.round((Math.sin(localTime * 5.0) + 1) * 14);
+            dynamicShadowColor = clip.glowColor || '#00f2fe';
+        } else if (hasCustomGlow) {
+            dynamicShadowBlur = clip.glowBlur !== undefined ? clip.glowBlur : 22;
+            dynamicShadowColor = clip.glowColor || '#00f2fe';
+        } else if (hasCustomShadow) {
+            dynamicShadowBlur = clip.shadowBlur !== undefined ? clip.shadowBlur : 12;
+            dynamicShadowColor = clip.shadowColor || 'rgba(0, 0, 0, 0.85)';
+        } else if (!clip.outlineColor) {
+            dynamicShadowBlur = 12;
+            dynamicShadowColor = 'rgba(0, 0, 0, 0.8)';
+        }
+
+        const outlineWidth = clip.outlineWidth !== undefined ? clip.outlineWidth : (clip.captionStyle === 'hormozi' ? 8 : 6);
 
         // Word-by-word viral highlight (Karaoke / Hormozi)
         const isKaraokeOrHormozi = (clip.captionStyle === 'karaoke' || clip.captionStyle === 'hormozi');
@@ -985,7 +1043,6 @@ class NovaCutEngine {
             const words = line.trim().split(/\s+/);
 
             if (isKaraokeOrHormozi && words.length > 1) {
-                const localTime = Math.max(0, Math.min(clip.duration, this.currentTime - clip.startTime));
                 const progress = localTime / clip.duration;
                 const activeWordIdx = Math.min(words.length - 1, Math.floor(progress * words.length));
 
@@ -1023,7 +1080,7 @@ class NovaCutEngine {
 
                     if (clip.outlineColor) {
                         ctx.strokeStyle = clip.outlineColor;
-                        ctx.lineWidth = clip.outlineWidth || (clip.captionStyle === 'hormozi' ? 8 : 6);
+                        ctx.lineWidth = outlineWidth;
                         ctx.strokeText(word, wordCenterX, lineY);
                     }
 
@@ -1034,19 +1091,35 @@ class NovaCutEngine {
                 });
             } else {
                 // Standard rendering
+                if (dynamicShadowBlur > 0) {
+                    ctx.shadowColor = dynamicShadowColor;
+                    ctx.shadowBlur = dynamicShadowBlur;
+                    ctx.shadowOffsetX = (hasCustomShadow && !isNeonPulse && !hasCustomGlow) ? (clip.shadowOffsetX || 2) : 0;
+                    ctx.shadowOffsetY = (hasCustomShadow && !isNeonPulse && !hasCustomGlow) ? (clip.shadowOffsetY || 4) : 0;
+                } else {
+                    ctx.shadowColor = 'transparent';
+                    ctx.shadowBlur = 0;
+                }
+
                 if (clip.outlineColor) {
                     ctx.strokeStyle = clip.outlineColor;
-                    ctx.lineWidth = clip.outlineWidth || 6;
+                    ctx.lineWidth = outlineWidth;
                     ctx.strokeText(line, 0, lineY);
-                } else {
-                    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-                    ctx.shadowBlur = 12;
-                    ctx.shadowOffsetX = 2;
-                    ctx.shadowOffsetY = 4;
                 }
 
                 ctx.fillStyle = clip.color || '#ffffff';
                 ctx.fillText(line, 0, lineY);
+
+                // Chromatic Glitch Shift
+                if (animType === 'glitch' && Math.sin(localTime * 14) > 0.75) {
+                    ctx.save();
+                    ctx.globalCompositeOperation = 'screen';
+                    ctx.fillStyle = '#ff0055';
+                    ctx.fillText(line, -4, lineY);
+                    ctx.fillStyle = '#00ffff';
+                    ctx.fillText(line, 4, lineY);
+                    ctx.restore();
+                }
             }
         });
 

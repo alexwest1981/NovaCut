@@ -949,7 +949,37 @@ class NovaCutInspector {
             </div>
 
             <div class="inspector-section">
-                <div class="section-title">Typografi & Stil</div>
+                <div class="section-title">✨ Snabbstilar (Presets)</div>
+                <div class="text-style-presets" id="textStylePresets">
+                    <button class="btn-text-preset" data-preset="tiktok" title="TikTok Viral: Impact, Gul text, kraftig svart outline">
+                        <span class="preset-icon">⚡</span>
+                        <span>TikTok</span>
+                    </button>
+                    <button class="btn-text-preset" data-preset="neon" title="Cyber Neon: Cyan neon glow, vit text">
+                        <span class="preset-icon">💎</span>
+                        <span>Neon</span>
+                    </button>
+                    <button class="btn-text-preset" data-preset="cinematic" title="Filmisk Serif: Georgia, subtil mjuk skugga">
+                        <span class="preset-icon">🎬</span>
+                        <span>Filmisk</span>
+                    </button>
+                    <button class="btn-text-preset" data-preset="news" title="Breaking News: Röd bakgrundstag, vit bold text">
+                        <span class="preset-icon">📰</span>
+                        <span>News</span>
+                    </button>
+                    <button class="btn-text-preset" data-preset="hacker" title="Hacker Terminal: JetBrains Mono, neon grön">
+                        <span class="preset-icon">👾</span>
+                        <span>Hacker</span>
+                    </button>
+                    <button class="btn-text-preset" data-preset="clean" title="Minimalist Clean: Modern sans, ren vit text">
+                        <span class="preset-icon">⚪</span>
+                        <span>Minimal</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="inspector-section">
+                <div class="section-title">Typografi & Utseende</div>
                 
                 <div class="param-row">
                     <div style="display: flex; align-items: center; gap: 6px;">
@@ -975,39 +1005,81 @@ class NovaCutInspector {
                 </div>
 
                 <div class="param-row">
-                    <span class="param-label">Bakgrundsbox</span>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <input type="checkbox" id="propHasBg" ${clip.bgColor ? 'checked' : ''}>
-                        <input type="color" class="color-picker" id="propBgColor" value="${clip.bgColor || '#000000'}">
-                    </div>
-                </div>
-
-                <div class="param-row">
                     <span class="param-label">Konturlinje (Outline)</span>
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <input type="checkbox" id="propHasOutline" ${clip.outlineColor ? 'checked' : ''}>
                         <input type="color" class="color-picker" id="propOutlineColor" value="${clip.outlineColor || '#000000'}">
                     </div>
                 </div>
+
+                <div class="param-row" id="rowOutlineWidth" style="${clip.outlineColor ? 'display: flex;' : 'display: none;'}">
+                    <span class="param-label">Konturtjocklek</span>
+                    <div class="param-input-group">
+                        <input type="range" class="slider-input" id="propOutlineWidth" min="1" max="24" step="1" value="${clip.outlineWidth || 6}">
+                        <span class="num-display" id="valOutlineWidth">${clip.outlineWidth || 6}px</span>
+                    </div>
+                </div>
+
+                <div class="param-row">
+                    <span class="param-label">Skugga / Glow</span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="propHasShadow" ${(clip.hasShadow || clip.hasGlow) ? 'checked' : ''}>
+                        <input type="color" class="color-picker" id="propShadowColor" value="${clip.shadowColor || clip.glowColor || '#00f2fe'}">
+                    </div>
+                </div>
+
+                <div id="groupShadowControls" style="${(clip.hasShadow || clip.hasGlow) ? 'display: block;' : 'display: none;'}">
+                    <div class="param-row">
+                        <span class="param-label">Blur / Mjukhet</span>
+                        <div class="param-input-group">
+                            <input type="range" class="slider-input" id="propShadowBlur" min="0" max="50" step="2" value="${clip.shadowBlur !== undefined ? clip.shadowBlur : (clip.glowBlur !== undefined ? clip.glowBlur : 16)}">
+                            <span class="num-display" id="valShadowBlur">${clip.shadowBlur !== undefined ? clip.shadowBlur : (clip.glowBlur !== undefined ? clip.glowBlur : 16)}px</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="param-row">
+                    <span class="param-label">Bakgrundsbox</span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="propHasBg" ${clip.bgColor ? 'checked' : ''}>
+                        <input type="color" class="color-picker" id="propBgColor" value="${clip.bgColor || '#000000'}">
+                    </div>
+                </div>
             </div>
 
             <div class="inspector-section">
-                <div class="section-title">Viral Undertextanimation</div>
+                <div class="section-title">🎬 Textanimation & Kinetic Motion</div>
                 <div class="param-row">
-                    <span class="param-label">Stil / Effekt</span>
-                    <select id="propCaptionStyle" class="select-compact">
-                        <option value="none" ${!clip.captionStyle || clip.captionStyle === 'none' ? 'selected' : ''}>Standard (Statisk)</option>
-                        <option value="hormozi" ${clip.captionStyle === 'hormozi' ? 'selected' : ''}>🔥 Hormozi Highlight</option>
-                        <option value="karaoke" ${clip.captionStyle === 'karaoke' ? 'selected' : ''}>🎤 Karaoke Glow</option>
-                        <option value="pop" ${clip.captionStyle === 'pop' ? 'selected' : ''}>⚡ Pop & Bounce</option>
+                    <span class="param-label">Animation</span>
+                    <select id="propTextAnim" class="select-compact">
+                        <option value="none" ${(!clip.textAnim || clip.textAnim === 'none') && !clip.captionStyle ? 'selected' : ''}>Ingen (Statisk)</option>
+                        <option value="typewriter" ${clip.textAnim === 'typewriter' ? 'selected' : ''}>⌨️ Skrivmaskin (Typewriter)</option>
+                        <option value="pop" ${(clip.textAnim === 'pop' || clip.captionStyle === 'pop') ? 'selected' : ''}>⚡ Pop & Bounce In</option>
+                        <option value="slide_up" ${clip.textAnim === 'slide_up' ? 'selected' : ''}>⬆️ Slide Up & Fade</option>
+                        <option value="flip_in" ${clip.textAnim === 'flip_in' ? 'selected' : ''}>🔄 3D Flip In</option>
+                        <option value="zoom_pulse" ${clip.textAnim === 'zoom_pulse' ? 'selected' : ''}>💓 Zoom Pulse (Loop)</option>
+                        <option value="neon_pulse" ${clip.textAnim === 'neon_pulse' ? 'selected' : ''}>🌟 Neon Glow Pulse (Loop)</option>
+                        <option value="glitch" ${clip.textAnim === 'glitch' ? 'selected' : ''}>👾 Cyber Glitch (Loop)</option>
+                        <option value="hormozi" ${clip.captionStyle === 'hormozi' ? 'selected' : ''}>🔥 Hormozi Highlight (Per ord)</option>
+                        <option value="karaoke" ${clip.captionStyle === 'karaoke' ? 'selected' : ''}>🎤 Karaoke Glow (Per ord)</option>
                     </select>
                 </div>
+
+                <div class="param-row" id="rowTextAnimDur" style="${(clip.textAnim && ['typewriter', 'pop', 'slide_up', 'flip_in'].includes(clip.textAnim)) ? 'display: flex;' : 'display: none;'}">
+                    <span class="param-label">Varaktighet In</span>
+                    <div class="param-input-group">
+                        <input type="range" class="slider-input" id="propTextAnimDur" min="0.2" max="2.5" step="0.1" value="${clip.textAnimDuration || 0.8}">
+                        <span class="num-display" id="valTextAnimDur">${(clip.textAnimDuration || 0.8).toFixed(1)}s</span>
+                    </div>
+                </div>
+
                 <div class="param-row" id="rowHighlightColor" style="${(clip.captionStyle === 'karaoke' || clip.captionStyle === 'hormozi') ? 'display: flex;' : 'display: none;'}">
                     <span class="param-label">Betoningsfärg</span>
                     <input type="color" class="color-picker" id="propHighlightColor" value="${clip.highlightColor || (clip.captionStyle === 'hormozi' ? '#ffd000' : '#00d482')}">
                 </div>
+
                 <button id="btnApplyStyleToAllCaptions" class="btn-primary" style="width: 100%; margin-top: 8px; justify-content: center; font-size: 11px; padding: 7px;">
-                    <span>📑 Tillämpa stil på ALLA undertexter</span>
+                    <span>📑 Tillämpa stil på ALLA textklipp</span>
                 </button>
             </div>
 
@@ -1186,42 +1258,179 @@ class NovaCutInspector {
             this.engine.render();
         });
 
+        // Text Style Preset Click Handlers
+        const presetsContainer = document.getElementById('textStylePresets');
+        if (presetsContainer) {
+            presetsContainer.querySelectorAll('.btn-text-preset').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const preset = btn.getAttribute('data-preset');
+                    if (preset === 'tiktok') {
+                        clip.fontFamily = 'Impact, sans-serif';
+                        clip.color = '#ffe600';
+                        clip.outlineColor = '#000000';
+                        clip.outlineWidth = 10;
+                        clip.textAnim = 'pop';
+                        clip.captionStyle = 'pop';
+                        delete clip.bgColor;
+                        delete clip.hasGlow;
+                        delete clip.hasShadow;
+                    } else if (preset === 'neon') {
+                        clip.fontFamily = 'sans-serif';
+                        clip.color = '#ffffff';
+                        clip.hasGlow = true;
+                        clip.glowColor = '#00f2fe';
+                        clip.glowBlur = 24;
+                        clip.textAnim = 'neon_pulse';
+                        delete clip.outlineColor;
+                        delete clip.bgColor;
+                        delete clip.captionStyle;
+                    } else if (preset === 'cinematic') {
+                        clip.fontFamily = 'Georgia, serif';
+                        clip.color = '#ffffff';
+                        clip.hasShadow = true;
+                        clip.shadowColor = 'rgba(0, 0, 0, 0.85)';
+                        clip.shadowBlur = 12;
+                        clip.textAnim = 'slide_up';
+                        clip.textAnimDuration = 1.0;
+                        delete clip.outlineColor;
+                        delete clip.bgColor;
+                        delete clip.hasGlow;
+                        delete clip.captionStyle;
+                    } else if (preset === 'news') {
+                        clip.fontFamily = 'sans-serif';
+                        clip.color = '#ffffff';
+                        clip.bgColor = '#d90429';
+                        clip.textAnim = 'slide_up';
+                        delete clip.outlineColor;
+                        delete clip.hasGlow;
+                        delete clip.hasShadow;
+                        delete clip.captionStyle;
+                    } else if (preset === 'hacker') {
+                        clip.fontFamily = "'JetBrains Mono', monospace";
+                        clip.color = '#00ff66';
+                        clip.hasGlow = true;
+                        clip.glowColor = '#00ff66';
+                        clip.glowBlur = 18;
+                        clip.textAnim = 'typewriter';
+                        clip.textAnimDuration = 1.2;
+                        delete clip.bgColor;
+                        delete clip.outlineColor;
+                        delete clip.captionStyle;
+                    } else if (preset === 'clean') {
+                        clip.fontFamily = 'sans-serif';
+                        clip.color = '#ffffff';
+                        delete clip.outlineColor;
+                        delete clip.bgColor;
+                        delete clip.hasGlow;
+                        delete clip.hasShadow;
+                        clip.textAnim = 'none';
+                        delete clip.captionStyle;
+                    }
+
+                    this.render(clip);
+                    this.engine.render();
+                });
+            });
+        }
+
         const hasBg = document.getElementById('propHasBg');
         const bgColor = document.getElementById('propBgColor');
-        hasBg.addEventListener('change', () => {
-            clip.bgColor = hasBg.checked ? bgColor.value : null;
-            this.engine.render();
-        });
-        bgColor.addEventListener('input', () => {
-            if (hasBg.checked) {
-                clip.bgColor = bgColor.value;
+        if (hasBg && bgColor) {
+            hasBg.addEventListener('change', () => {
+                clip.bgColor = hasBg.checked ? bgColor.value : null;
                 this.engine.render();
-            }
-        });
+            });
+            bgColor.addEventListener('input', () => {
+                if (hasBg.checked) {
+                    clip.bgColor = bgColor.value;
+                    this.engine.render();
+                }
+            });
+        }
 
         const hasOutline = document.getElementById('propHasOutline');
         const outlineColor = document.getElementById('propOutlineColor');
-        hasOutline.addEventListener('change', () => {
-            clip.outlineColor = hasOutline.checked ? outlineColor.value : null;
-            this.engine.render();
-        });
-        outlineColor.addEventListener('input', () => {
-            if (hasOutline.checked) {
-                clip.outlineColor = outlineColor.value;
+        const rowOutlineW = document.getElementById('rowOutlineWidth');
+        if (hasOutline && outlineColor) {
+            hasOutline.addEventListener('change', () => {
+                clip.outlineColor = hasOutline.checked ? outlineColor.value : null;
+                if (rowOutlineW) rowOutlineW.style.display = hasOutline.checked ? 'flex' : 'none';
                 this.engine.render();
-            }
+            });
+            outlineColor.addEventListener('input', () => {
+                if (hasOutline.checked) {
+                    clip.outlineColor = outlineColor.value;
+                    this.engine.render();
+                }
+            });
+        }
+        this.bindInput('propOutlineWidth', 'valOutlineWidth', (v) => {
+            clip.outlineWidth = parseInt(v);
+            this.engine.render();
+            return `${v}px`;
         });
 
-        // Caption Style event bindings
-        const selStyle = document.getElementById('propCaptionStyle');
-        const rowHl = document.getElementById('rowHighlightColor');
-        if (selStyle) {
-            selStyle.addEventListener('change', (e) => {
-                clip.captionStyle = e.target.value === 'none' ? null : e.target.value;
-                if (rowHl) rowHl.style.display = (clip.captionStyle === 'karaoke' || clip.captionStyle === 'hormozi') ? 'flex' : 'none';
+        const hasShadow = document.getElementById('propHasShadow');
+        const shadowColor = document.getElementById('propShadowColor');
+        const groupShadow = document.getElementById('groupShadowControls');
+        if (hasShadow && shadowColor) {
+            hasShadow.addEventListener('change', () => {
+                const checked = hasShadow.checked;
+                clip.hasShadow = checked;
+                clip.hasGlow = checked;
+                clip.shadowColor = checked ? shadowColor.value : null;
+                clip.glowColor = checked ? shadowColor.value : null;
+                if (groupShadow) groupShadow.style.display = checked ? 'block' : 'none';
+                this.engine.render();
+            });
+            shadowColor.addEventListener('input', () => {
+                clip.shadowColor = shadowColor.value;
+                clip.glowColor = shadowColor.value;
                 this.engine.render();
             });
         }
+        this.bindInput('propShadowBlur', 'valShadowBlur', (v) => {
+            clip.shadowBlur = parseInt(v);
+            clip.glowBlur = parseInt(v);
+            this.engine.render();
+            return `${v}px`;
+        });
+
+        // Text Animation & Caption Style event bindings
+        const selAnim = document.getElementById('propTextAnim');
+        const rowAnimDur = document.getElementById('rowTextAnimDur');
+        const rowHl = document.getElementById('rowHighlightColor');
+        if (selAnim) {
+            selAnim.addEventListener('change', (e) => {
+                const val = e.target.value;
+                if (val === 'hormozi' || val === 'karaoke') {
+                    clip.captionStyle = val;
+                    clip.textAnim = 'none';
+                } else if (val === 'pop') {
+                    clip.captionStyle = 'pop';
+                    clip.textAnim = 'pop';
+                } else if (val === 'none') {
+                    clip.captionStyle = null;
+                    clip.textAnim = 'none';
+                } else {
+                    clip.captionStyle = null;
+                    clip.textAnim = val;
+                }
+
+                const isIntroAnim = ['typewriter', 'pop', 'slide_up', 'flip_in'].includes(val);
+                if (rowAnimDur) rowAnimDur.style.display = isIntroAnim ? 'flex' : 'none';
+                if (rowHl) rowHl.style.display = (val === 'karaoke' || val === 'hormozi') ? 'flex' : 'none';
+
+                this.engine.render();
+            });
+        }
+
+        this.bindInput('propTextAnimDur', 'valTextAnimDur', (v) => {
+            clip.textAnimDuration = parseFloat(v);
+            this.engine.render();
+            return `${parseFloat(v).toFixed(1)}s`;
+        });
+
         const hlPicker = document.getElementById('propHighlightColor');
         if (hlPicker) {
             hlPicker.addEventListener('input', (e) => {
@@ -1229,6 +1438,7 @@ class NovaCutInspector {
                 this.engine.render();
             });
         }
+
         const btnApplyAll = document.getElementById('btnApplyStyleToAllCaptions');
         if (btnApplyAll) {
             btnApplyAll.addEventListener('click', () => {
@@ -1240,14 +1450,22 @@ class NovaCutInspector {
                     c.bgColor = clip.bgColor;
                     c.outlineColor = clip.outlineColor;
                     c.outlineWidth = clip.outlineWidth;
-                    c.posY = clip.posY;
+                    c.hasShadow = clip.hasShadow;
+                    c.hasGlow = clip.hasGlow;
+                    c.shadowColor = clip.shadowColor;
+                    c.glowColor = clip.glowColor;
+                    c.shadowBlur = clip.shadowBlur;
+                    c.glowBlur = clip.glowBlur;
+                    c.textAnim = clip.textAnim;
+                    c.textAnimDuration = clip.textAnimDuration;
                     c.captionStyle = clip.captionStyle;
                     c.highlightColor = clip.highlightColor;
+                    c.posY = clip.posY;
                 });
                 this.engine.render();
-                btnApplyAll.innerHTML = `<span>✅ Tillämpades på ${textClips.length} undertexter!</span>`;
+                btnApplyAll.innerHTML = `<span>✅ Tillämpades på ${textClips.length} textklipp!</span>`;
                 setTimeout(() => {
-                    btnApplyAll.innerHTML = `<span>📑 Tillämpa stil på ALLA undertexter</span>`;
+                    btnApplyAll.innerHTML = `<span>📑 Tillämpa stil på ALLA textklipp</span>`;
                 }, 2000);
             });
         }
