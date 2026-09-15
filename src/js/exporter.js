@@ -219,44 +219,56 @@ class NovaCutExporter {
             if (clip.trackId === 'audio' && isAudioTrackMuted) continue;
             if ((clip.trackId === 'video' || clip.trackId === 'overlay') && isVideoTrackMuted) continue;
 
+            // Explicitly exclude non-audio elements (images, subtitles, text, adjustment, visualizers, stickers)
+            if (clip.type === 'image' || clip.type === 'text' || clip.type === 'subtitle' || 
+                clip.type === 'adjustment' || clip.isSticker || clip.demoPattern) {
+                continue;
+            }
+
             const isAudio = clip.type === 'audio' || clip.trackId === 'audio';
-            const isVideo = (clip.type === 'video' || clip.trackId === 'video' || clip.trackId === 'overlay') && !clip.isSticker && !clip.demoPattern;
+            const isVideo = clip.type === 'video';
 
-            if (isAudio || isVideo) {
-                let filePath = clip.filePath;
+            if (!isAudio && !isVideo) continue;
 
-                // Try resolving filePath from engine media elements or project media library
-                if (!filePath && clip.mediaId) {
-                    const el = engine.mediaElements?.get(clip.mediaId);
-                    if (el && el.src) {
-                        if (el.src.startsWith('file://')) {
-                            filePath = decodeURIComponent(el.src.replace(/^file:\/\//, ''));
-                        } else if (el.src.startsWith('/')) {
-                            filePath = el.src;
-                        }
-                    }
-                    if (!filePath && window.projectMediaLibrary?.has(clip.mediaId)) {
-                        filePath = window.projectMediaLibrary.get(clip.mediaId).path;
+            let filePath = clip.filePath;
+
+            // Try resolving filePath from engine media elements or project media library
+            if (!filePath && clip.mediaId) {
+                const el = engine.mediaElements?.get(clip.mediaId);
+                if (el && el.src) {
+                    if (el.src.startsWith('file://')) {
+                        filePath = decodeURIComponent(el.src.replace(/^file:\/\//, ''));
+                    } else if (el.src.startsWith('/')) {
+                        filePath = el.src;
                     }
                 }
+                if (!filePath && window.projectMediaLibrary?.has(clip.mediaId)) {
+                    filePath = window.projectMediaLibrary.get(clip.mediaId).path;
+                }
+            }
 
-                // If still missing, attempt locateMediaFile via IPC
-                if (!filePath && window.novaCut && typeof window.novaCut.locateMediaFile === 'function') {
-                    filePath = await window.novaCut.locateMediaFile(clip.title || clip.mediaName);
+            // If still missing, attempt locateMediaFile via IPC
+            if (!filePath && window.novaCut && typeof window.novaCut.locateMediaFile === 'function') {
+                filePath = await window.novaCut.locateMediaFile(clip.title || clip.mediaName);
+            }
+
+            if (filePath) {
+                const clean = filePath.replace(/^file:\/\//, '');
+                // Strictly exclude image files from audio stream mixing
+                if (/\.(png|jpe?g|webp|gif|bmp|svg|avif|tiff?)$/i.test(clean)) {
+                    continue;
                 }
 
-                if (filePath) {
-                    audioTracks.push({
-                        filePath: filePath.replace(/^file:\/\//, ''),
-                        startTime: Math.max(0, clip.startTime || 0),
-                        duration: Math.max(0.1, clip.duration || 1.0),
-                        sourceOffset: Math.max(0, clip.sourceOffset || 0),
-                        volume: clip.volume !== undefined ? clip.volume : 1.0,
-                        fadeIn: clip.fadeIn || 0,
-                        fadeOut: clip.fadeOut || 0,
-                        speed: clip.speed || 1.0
-                    });
-                }
+                audioTracks.push({
+                    filePath: clean,
+                    startTime: Math.max(0, clip.startTime || 0),
+                    duration: Math.max(0.1, clip.duration || 1.0),
+                    sourceOffset: Math.max(0, clip.sourceOffset || 0),
+                    volume: clip.volume !== undefined ? clip.volume : 1.0,
+                    fadeIn: clip.fadeIn || 0,
+                    fadeOut: clip.fadeOut || 0,
+                    speed: clip.speed || 1.0
+                });
             }
         }
 

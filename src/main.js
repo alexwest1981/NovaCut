@@ -542,7 +542,7 @@ ipcMain.handle('export:saveDirect', async (event, arrayBuffer, filePath) => {
 
 // Transcode Export via FFmpeg with Full Multi-Track Audio Mixing
 ipcMain.handle('export:transcode', async (event, options) => {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         const {
             inputPath,
             outputPath,
@@ -573,16 +573,45 @@ ipcMain.handle('export:transcode', async (event, options) => {
             extraAudioFlags = ['-b:a', '160k'];
         }
 
-        // Validate audio files on disk
+        // Validate audio files on disk and verify audio stream presence via ffprobe
         const validAudio = [];
         if (Array.isArray(audioTracks)) {
             for (const t of audioTracks) {
                 if (!t || !t.filePath) continue;
                 const clean = t.filePath.replace(/^file:\/\//, '');
-                if (fs.existsSync(clean)) {
-                    validAudio.push({ ...t, cleanPath: clean });
-                } else {
+                if (!fs.existsSync(clean)) {
                     console.warn('[NovaCut Export] Audio file not found on disk:', clean);
+                    continue;
+                }
+                // Reject images immediately
+                if (/\.(png|jpe?g|webp|gif|bmp|svg|avif|tiff?)$/i.test(clean)) {
+                    console.log('[NovaCut Export] Ignoring image file in audio mix:', clean);
+                    continue;
+                }
+
+                // Verify file has an audio stream via ffprobe
+                try {
+                    const hasAudio = await new Promise((res) => {
+                        const probe = spawn('ffprobe', [
+                            '-v', 'error',
+                            '-select_streams', 'a:0',
+                            '-show_entries', 'stream=codec_type',
+                            '-of', 'default=noprint_wrappers=1:nokey=1',
+                            clean
+                        ]);
+                        let probeOut = '';
+                        probe.stdout.on('data', d => { probeOut += d.toString(); });
+                        probe.on('close', code => res(code === 0 && probeOut.trim().includes('audio')));
+                        probe.on('error', () => res(false));
+                    });
+
+                    if (hasAudio) {
+                        validAudio.push({ ...t, cleanPath: clean });
+                    } else {
+                        console.log('[NovaCut Export] Media file has no audio stream, skipping from audio mix:', clean);
+                    }
+                } catch (probeErr) {
+                    console.warn('[NovaCut Export] ffprobe check failed for', clean, probeErr);
                 }
             }
         }
@@ -597,16 +626,16 @@ ipcMain.handle('export:transcode', async (event, options) => {
 
             if (validAudio.length === 1) {
                 const t = validAudio[0];
-                const delayMs = Math.round((t.startTime || 0) * 1000);
+                const delayMs = Math.max(0, Math.round((t.startTime || 0) * 1000));
                 const dur = Math.max(0.1, t.duration || duration);
                 const offset = Math.max(0, t.sourceOffset || 0);
-                const vol = t.volume !== undefined ? t.volume : 1.0;
+                const vol = t.volume !== undefined ? Number(t.volume) : 1.0;
 
-                let filter = `[1:a]atrim=start=${offset}:duration=${dur},asetpts=PTS-STARTPTS,aformat=channel_layouts=stereo:sample_rates=48000`;
+                let filter = `[1:a]atrim=start=${offset.toFixed(3)}:duration=${dur.toFixed(3)},asetpts=PTS-STARTPTS,aformat=channel_layouts=stereo:sample_rates=48000`;
                 if (delayMs > 0) filter += `,adelay=${delayMs}|${delayMs}`;
-                if (vol !== 1.0) filter += `,volume=${vol}`;
-                if (t.fadeIn > 0) filter += `,afade=t=in:ss=0:d=${t.fadeIn}`;
-                if (t.fadeOut > 0) filter += `,afade=t=out:st=${Math.max(0, dur - t.fadeOut)}:d=${t.fadeOut}`;
+                if (vol !== 1.0) filter += `,volume=${vol.toFixed(2)}`;
+                if (t.fadeIn > 0) filter += `,afade=t=in:ss=0:d=${Number(t.fadeIn).toFixed(3)}`;
+                if (t.fadeOut > 0) filter += `,afade=t=out:st=${Math.max(0, dur - Number(t.fadeOut)).toFixed(3)}:d=${Number(t.fadeOut).toFixed(3)}`;
                 filter += `[aout]`;
 
                 args.push('-filter_complex', filter);
@@ -617,16 +646,16 @@ ipcMain.handle('export:transcode', async (event, options) => {
 
                 validAudio.forEach((t, idx) => {
                     const inputIdx = idx + 1;
-                    const delayMs = Math.round((t.startTime || 0) * 1000);
+                    const delayMs = Math.max(0, Math.round((t.startTime || 0) * 1000));
                     const dur = Math.max(0.1, t.duration || duration);
                     const offset = Math.max(0, t.sourceOffset || 0);
-                    const vol = t.volume !== undefined ? t.volume : 1.0;
+                    const vol = t.volume !== undefined ? Number(t.volume) : 1.0;
 
-                    let f = `[${inputIdx}:a]atrim=start=${offset}:duration=${dur},asetpts=PTS-STARTPTS,aformat=channel_layouts=stereo:sample_rates=48000`;
+                    let f = `[${inputIdx}:a]atrim=start=${offset.toFixed(3)}:duration=${dur.toFixed(3)},asetpts=PTS-STARTPTS,aformat=channel_layouts=stereo:sample_rates=48000`;
                     if (delayMs > 0) f += `,adelay=${delayMs}|${delayMs}`;
-                    if (vol !== 1.0) f += `,volume=${vol}`;
-                    if (t.fadeIn > 0) f += `,afade=t=in:ss=0:d=${t.fadeIn}`;
-                    if (t.fadeOut > 0) f += `,afade=t=out:st=${Math.max(0, dur - t.fadeOut)}:d=${t.fadeOut}`;
+                    if (vol !== 1.0) f += `,volume=${vol.toFixed(2)}`;
+                    if (t.fadeIn > 0) f += `,afade=t=in:ss=0:d=${Number(t.fadeIn).toFixed(3)}`;
+                    if (t.fadeOut > 0) f += `,afade=t=out:st=${Math.max(0, dur - Number(t.fadeOut)).toFixed(3)}:d=${Number(t.fadeOut).toFixed(3)}`;
                     f += `[a${idx}]`;
 
                     filterParts.push(f);
@@ -662,9 +691,15 @@ ipcMain.handle('export:transcode', async (event, options) => {
             console.log(`[NovaCut] Starting FFmpeg export (${isRetry ? 'CPU Fallback' : currentVCodec}) with ${validAudio.length} audio tracks:`, args.join(' '));
 
             const proc = spawn('ffmpeg', args);
+            let stderrBuffer = '';
 
             proc.stderr.on('data', (data) => {
                 const str = data.toString();
+                stderrBuffer += str;
+                if (stderrBuffer.length > 20000) {
+                    stderrBuffer = stderrBuffer.slice(-20000);
+                }
+
                 const match = str.match(/time=(\d+):(\d+):(\d+\.\d+)/);
                 let percent = null;
                 if (match && duration > 0) {
@@ -687,13 +722,15 @@ ipcMain.handle('export:transcode', async (event, options) => {
                     } catch (_) {}
                     resolve({ success: true, outputPath });
                 } else if (!isRetry && currentVCodec.includes('nvenc')) {
-                    console.warn(`[NovaCut] NVENC failed with exit code ${code}, retrying with libx264 CPU...`);
+                    console.warn(`[NovaCut] NVENC failed with exit code ${code}, retrying with libx264 CPU... Stderr:\n${stderrBuffer.slice(-600)}`);
                     runFFmpeg('libx264', ['-preset', 'veryfast', '-pix_fmt', 'yuv420p', '-crf', '20'], true);
                 } else {
                     try {
                         if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
                     } catch (_) {}
-                    reject(new Error(`FFmpeg transcode failed with code ${code}`));
+                    console.error(`[NovaCut Export Error] FFmpeg transcode failed with code ${code}. Full stderr:\n${stderrBuffer}`);
+                    const errorDetail = stderrBuffer.trim().split('\n').filter(l => l.includes('Error') || l.includes('matches no streams') || l.includes('Invalid') || l.includes('failed')).slice(-3).join('; ');
+                    reject(new Error(`FFmpeg transcode failed with code ${code}${errorDetail ? ': ' + errorDetail : ''}`));
                 }
             });
 
@@ -705,6 +742,7 @@ ipcMain.handle('export:transcode', async (event, options) => {
                     try {
                         if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
                     } catch (_) {}
+                    console.error('[NovaCut Export Error] Process error:', err);
                     reject(err);
                 }
             });
