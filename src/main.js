@@ -540,7 +540,7 @@ ipcMain.handle('export:saveDirect', async (event, arrayBuffer, filePath) => {
     }
 });
 
-// Transcode Export via FFmpeg
+// Transcode Export via FFmpeg with Full Multi-Track Audio Mixing
 ipcMain.handle('export:transcode', async (event, options) => {
     return new Promise((resolve, reject) => {
         const {
@@ -551,11 +551,14 @@ ipcMain.handle('export:transcode', async (event, options) => {
             fps = 60,
             width = 1080,
             height = 1920,
-            duration = 5
+            duration = 5,
+            audioTracks = []
         } = options;
 
         let vcodec = 'h264_nvenc';
         let extraFlags = ['-preset', 'p4', '-pix_fmt', 'yuv420p'];
+        let acodec = 'aac';
+        let extraAudioFlags = ['-b:a', '192k'];
 
         if (codec === 'nvenc_hevc') {
             vcodec = 'hevc_nvenc';
@@ -563,59 +566,151 @@ ipcMain.handle('export:transcode', async (event, options) => {
         } else if (codec === 'cpu_h264') {
             vcodec = 'libx264';
             extraFlags = ['-preset', 'veryfast', '-pix_fmt', 'yuv420p', '-crf', '20'];
+        } else if (codec === 'webm') {
+            vcodec = 'libvpx-vp9';
+            extraFlags = ['-pix_fmt', 'yuv420p', '-crf', '26', '-b:v', bitrate || '0'];
+            acodec = 'libopus';
+            extraAudioFlags = ['-b:a', '160k'];
         }
 
-        const args = [
-            '-y',
-            '-i', inputPath,
-            '-c:v', vcodec,
-            ...extraFlags,
-            '-b:v', bitrate,
-            '-r', fps.toString(),
-            '-c:a', 'aac',
-            '-b:a', '192k',
-            '-movflags', '+faststart',
-            outputPath
-        ];
-
-        console.log('[NovaCut] Starting FFmpeg transcode:', args.join(' '));
-        const proc = spawn('ffmpeg', args);
-
-        proc.stderr.on('data', (data) => {
-            const str = data.toString();
-            const match = str.match(/time=(\d+):(\d+):(\d+\.\d+)/);
-            let percent = null;
-            if (match && duration > 0) {
-                const secs = parseInt(match[1]) * 3600 + parseInt(match[2]) * 60 + parseFloat(match[3]);
-                percent = Math.min(99, Math.round((secs / duration) * 100));
+        // Validate audio files on disk
+        const validAudio = [];
+        if (Array.isArray(audioTracks)) {
+            for (const t of audioTracks) {
+                if (!t || !t.filePath) continue;
+                const clean = t.filePath.replace(/^file:\/\//, '');
+                if (fs.existsSync(clean)) {
+                    validAudio.push({ ...t, cleanPath: clean });
+                } else {
+                    console.warn('[NovaCut Export] Audio file not found on disk:', clean);
+                }
             }
-            if (mainWindow) {
-                mainWindow.webContents.send('export:progress', {
-                    raw: str,
-                    percent,
-                    stage: 'transcoding'
+        }
+
+        const buildArgs = (selectedVCodec, selectedExtraFlags) => {
+            const args = ['-y', '-i', inputPath];
+
+            // Add audio inputs
+            validAudio.forEach(t => {
+                args.push('-i', t.cleanPath);
+            });
+
+            if (validAudio.length === 1) {
+                const t = validAudio[0];
+                const delayMs = Math.round((t.startTime || 0) * 1000);
+                const dur = Math.max(0.1, t.duration || duration);
+                const offset = Math.max(0, t.sourceOffset || 0);
+                const vol = t.volume !== undefined ? t.volume : 1.0;
+
+                let filter = `[1:a]atrim=start=${offset}:duration=${dur},asetpts=PTS-STARTPTS,aformat=channel_layouts=stereo:sample_rates=48000`;
+                if (delayMs > 0) filter += `,adelay=${delayMs}|${delayMs}`;
+                if (vol !== 1.0) filter += `,volume=${vol}`;
+                if (t.fadeIn > 0) filter += `,afade=t=in:ss=0:d=${t.fadeIn}`;
+                if (t.fadeOut > 0) filter += `,afade=t=out:st=${Math.max(0, dur - t.fadeOut)}:d=${t.fadeOut}`;
+                filter += `[aout]`;
+
+                args.push('-filter_complex', filter);
+                args.push('-map', '0:v', '-map', '[aout]');
+            } else if (validAudio.length > 1) {
+                const filterParts = [];
+                const amixInputs = [];
+
+                validAudio.forEach((t, idx) => {
+                    const inputIdx = idx + 1;
+                    const delayMs = Math.round((t.startTime || 0) * 1000);
+                    const dur = Math.max(0.1, t.duration || duration);
+                    const offset = Math.max(0, t.sourceOffset || 0);
+                    const vol = t.volume !== undefined ? t.volume : 1.0;
+
+                    let f = `[${inputIdx}:a]atrim=start=${offset}:duration=${dur},asetpts=PTS-STARTPTS,aformat=channel_layouts=stereo:sample_rates=48000`;
+                    if (delayMs > 0) f += `,adelay=${delayMs}|${delayMs}`;
+                    if (vol !== 1.0) f += `,volume=${vol}`;
+                    if (t.fadeIn > 0) f += `,afade=t=in:ss=0:d=${t.fadeIn}`;
+                    if (t.fadeOut > 0) f += `,afade=t=out:st=${Math.max(0, dur - t.fadeOut)}:d=${t.fadeOut}`;
+                    f += `[a${idx}]`;
+
+                    filterParts.push(f);
+                    amixInputs.push(`[a${idx}]`);
                 });
-            }
-        });
 
-        proc.on('close', (code) => {
-            try {
-                if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
-            } catch (_) {}
-
-            if (code === 0) {
-                resolve({ success: true, outputPath });
+                filterParts.push(`${amixInputs.join('')}amix=inputs=${validAudio.length}:duration=first:dropout_transition=0[aout]`);
+                args.push('-filter_complex', filterParts.join(';'));
+                args.push('-map', '0:v', '-map', '[aout]');
             } else {
-                reject(new Error(`FFmpeg transcode failed with code ${code}`));
+                args.push('-map', '0:v', '-an');
             }
-        });
 
-        proc.on('error', (err) => {
-            try {
-                if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
-            } catch (_) {}
-            reject(err);
-        });
+            args.push('-c:v', selectedVCodec, ...selectedExtraFlags);
+            if (bitrate && codec !== 'webm') args.push('-b:v', bitrate);
+            args.push('-r', fps.toString());
+            args.push('-t', duration.toString());
+
+            if (validAudio.length > 0) {
+                args.push('-c:a', acodec, ...extraAudioFlags);
+            }
+
+            if (codec !== 'webm') {
+                args.push('-movflags', '+faststart');
+            }
+
+            args.push(outputPath);
+            return args;
+        };
+
+        const runFFmpeg = (currentVCodec, currentFlags, isRetry = false) => {
+            const args = buildArgs(currentVCodec, currentFlags);
+            console.log(`[NovaCut] Starting FFmpeg export (${isRetry ? 'CPU Fallback' : currentVCodec}) with ${validAudio.length} audio tracks:`, args.join(' '));
+
+            const proc = spawn('ffmpeg', args);
+
+            proc.stderr.on('data', (data) => {
+                const str = data.toString();
+                const match = str.match(/time=(\d+):(\d+):(\d+\.\d+)/);
+                let percent = null;
+                if (match && duration > 0) {
+                    const secs = parseInt(match[1]) * 3600 + parseInt(match[2]) * 60 + parseFloat(match[3]);
+                    percent = Math.min(99, Math.round((secs / duration) * 100));
+                }
+                if (mainWindow) {
+                    mainWindow.webContents.send('export:progress', {
+                        raw: str,
+                        percent,
+                        stage: 'transcoding'
+                    });
+                }
+            });
+
+            proc.on('close', (code) => {
+                if (code === 0) {
+                    try {
+                        if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
+                    } catch (_) {}
+                    resolve({ success: true, outputPath });
+                } else if (!isRetry && currentVCodec.includes('nvenc')) {
+                    console.warn(`[NovaCut] NVENC failed with exit code ${code}, retrying with libx264 CPU...`);
+                    runFFmpeg('libx264', ['-preset', 'veryfast', '-pix_fmt', 'yuv420p', '-crf', '20'], true);
+                } else {
+                    try {
+                        if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
+                    } catch (_) {}
+                    reject(new Error(`FFmpeg transcode failed with code ${code}`));
+                }
+            });
+
+            proc.on('error', (err) => {
+                if (!isRetry && currentVCodec.includes('nvenc')) {
+                    console.warn(`[NovaCut] NVENC process error, retrying with libx264 CPU...`, err);
+                    runFFmpeg('libx264', ['-preset', 'veryfast', '-pix_fmt', 'yuv420p', '-crf', '20'], true);
+                } else {
+                    try {
+                        if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
+                    } catch (_) {}
+                    reject(err);
+                }
+            });
+        };
+
+        runFFmpeg(vcodec, extraFlags, false);
     });
 });
 

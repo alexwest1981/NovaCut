@@ -210,45 +210,64 @@ class NovaCutExporter {
         const totalDuration = Math.max(0.5, engine.duration || 5);
         const totalFrames = Math.ceil(totalDuration * fps);
 
-        // Mix Audio
-        let audioTrack = null;
-        try {
-            const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
-            if (AudioCtxClass) {
-                const audioCtx = new AudioCtxClass();
-                const dest = audioCtx.createMediaStreamDestination();
+        // Collect all timeline audio tracks to mix via FFmpeg
+        const audioTracks = [];
+        const isAudioTrackMuted = timeline.trackStates?.audio?.muted || false;
+        const isVideoTrackMuted = timeline.trackStates?.video?.muted || false;
 
-                // If media elements have audio, connect them to destination
-                if (engine.mediaElements && engine.mediaElements.size > 0) {
-                    engine.mediaElements.forEach(el => {
-                        try {
-                            if (el && typeof el.play === 'function' && !el._novacutAudioConnected) {
-                                const srcNode = audioCtx.createMediaElementSource(el);
-                                srcNode.connect(dest);
-                                srcNode.connect(audioCtx.destination);
-                                el._novacutAudioConnected = true;
-                            }
-                        } catch (_) {}
+        for (const clip of timeline.clips) {
+            if (clip.trackId === 'audio' && isAudioTrackMuted) continue;
+            if ((clip.trackId === 'video' || clip.trackId === 'overlay') && isVideoTrackMuted) continue;
+
+            const isAudio = clip.type === 'audio' || clip.trackId === 'audio';
+            const isVideo = (clip.type === 'video' || clip.trackId === 'video' || clip.trackId === 'overlay') && !clip.isSticker && !clip.demoPattern;
+
+            if (isAudio || isVideo) {
+                let filePath = clip.filePath;
+
+                // Try resolving filePath from engine media elements or project media library
+                if (!filePath && clip.mediaId) {
+                    const el = engine.mediaElements?.get(clip.mediaId);
+                    if (el && el.src) {
+                        if (el.src.startsWith('file://')) {
+                            filePath = decodeURIComponent(el.src.replace(/^file:\/\//, ''));
+                        } else if (el.src.startsWith('/')) {
+                            filePath = el.src;
+                        }
+                    }
+                    if (!filePath && window.projectMediaLibrary?.has(clip.mediaId)) {
+                        filePath = window.projectMediaLibrary.get(clip.mediaId).path;
+                    }
+                }
+
+                // If still missing, attempt locateMediaFile via IPC
+                if (!filePath && window.novaCut && typeof window.novaCut.locateMediaFile === 'function') {
+                    filePath = await window.novaCut.locateMediaFile(clip.title || clip.mediaName);
+                }
+
+                if (filePath) {
+                    audioTracks.push({
+                        filePath: filePath.replace(/^file:\/\//, ''),
+                        startTime: Math.max(0, clip.startTime || 0),
+                        duration: Math.max(0.1, clip.duration || 1.0),
+                        sourceOffset: Math.max(0, clip.sourceOffset || 0),
+                        volume: clip.volume !== undefined ? clip.volume : 1.0,
+                        fadeIn: clip.fadeIn || 0,
+                        fadeOut: clip.fadeOut || 0,
+                        speed: clip.speed || 1.0
                     });
                 }
-                const tracks = dest.stream.getAudioTracks();
-                if (tracks && tracks.length > 0) {
-                    audioTrack = tracks[0];
-                }
             }
-        } catch (e) {
-            console.warn('[Exporter] Web Audio mix error:', e);
         }
 
-        // Capture stream from canvas
+        console.log('[NovaCut Exporter] Prepared audio tracks for export:', audioTracks);
+
+        // Capture video stream from canvas
         const stream = canvas.captureStream(fps);
-        if (audioTrack) {
-            stream.addTrack(audioTrack);
-        }
 
-        let mimeType = 'video/webm;codecs=vp9,opus';
+        let mimeType = 'video/webm;codecs=vp9';
         if (!MediaRecorder.isTypeSupported(mimeType)) {
-            mimeType = 'video/webm;codecs=vp8,opus';
+            mimeType = 'video/webm;codecs=vp8';
         }
         if (!MediaRecorder.isTypeSupported(mimeType)) {
             mimeType = 'video/webm';
@@ -277,54 +296,43 @@ class NovaCutExporter {
             const arrayBuffer = await blob.arrayBuffer();
 
             if (savePath && window.novaCut) {
-                if (codec === 'webm') {
-                    // Direct WebM save
-                    this.statusText.textContent = 'Sparar WebM-fil...';
+                this.statusText.textContent = '⚡ Sparar temp-ström och förbereder ljudmixning & kodning...';
+                this.progressBar.style.width = '75%';
+                this.percentText.textContent = '75%';
+
+                const tempRes = await window.novaCut.saveTempExport(arrayBuffer);
+                if (!tempRes || !tempRes.tempPath) {
+                    alert('Kunde inte skapa temporär videofil inför kodning.');
+                    this.isExporting = false;
+                    return;
+                }
+
+                this.statusText.textContent = `⚡ Mixar ${audioTracks.length} ljudspår och renderar video med FFmpeg...`;
+
+                try {
+                    await window.novaCut.transcodeExport({
+                        inputPath: tempRes.tempPath,
+                        outputPath: savePath,
+                        codec: codec,
+                        bitrate: bitrate,
+                        fps: fps,
+                        width: width,
+                        height: height,
+                        duration: totalDuration,
+                        audioTracks: audioTracks
+                    });
+
                     this.progressBar.style.width = '100%';
                     this.percentText.textContent = '100%';
-
-                    const res = await window.novaCut.saveDirectExport(arrayBuffer, savePath);
-                    if (res && res.error) {
-                        alert('Fel vid sparning av video: ' + res.error);
-                        this.isExporting = false;
-                        return;
-                    }
-                    this.onExportComplete(savePath, 'WebM');
-                } else {
-                    // Hardware accelerated Transcode via FFmpeg (NVENC / HEVC / x264)
-                    this.statusText.textContent = '⚡ Sparar temp-ström och startar NVIDIA NVENC...';
-                    this.progressBar.style.width = '75%';
-                    this.percentText.textContent = '75%';
-
-                    const tempRes = await window.novaCut.saveTempExport(arrayBuffer);
-                    if (!tempRes || !tempRes.tempPath) {
-                        alert('Kunde inte skapa temporär videofil inför NVENC-kodning.');
-                        this.isExporting = false;
-                        return;
-                    }
-
-                    this.statusText.textContent = '⚡ NVIDIA NVENC hårdvaruacceleration kodar MP4...';
-
-                    try {
-                        await window.novaCut.transcodeExport({
-                            inputPath: tempRes.tempPath,
-                            outputPath: savePath,
-                            codec: codec,
-                            bitrate: bitrate,
-                            fps: fps,
-                            width: width,
-                            height: height,
-                            duration: totalDuration
-                        });
-
-                        this.progressBar.style.width = '100%';
-                        this.percentText.textContent = '100%';
-                        this.onExportComplete(savePath, codec.includes('hevc') ? 'MP4 (HEVC)' : 'MP4 (NVENC H.264)');
-                    } catch (err) {
-                        console.error('[Exporter] Transcode failed:', err);
-                        alert('Fel vid hårdvarukodning: ' + err.message);
-                        this.isExporting = false;
-                    }
+                    let label = 'MP4';
+                    if (codec.includes('hevc')) label = 'MP4 (HEVC)';
+                    else if (codec.includes('nvenc')) label = 'MP4 (NVENC H.264)';
+                    else if (codec === 'webm') label = 'WebM';
+                    this.onExportComplete(savePath, label);
+                } catch (err) {
+                    console.error('[Exporter] Transcode failed:', err);
+                    alert('Fel vid hårdvarukodning: ' + err.message);
+                    this.isExporting = false;
                 }
             } else {
                 // Web browser fallback download
