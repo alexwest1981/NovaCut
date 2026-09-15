@@ -310,17 +310,59 @@ class NovaCutEngine {
         this.updateTimecodeUI();
     }
 
+    getInterpolatedProperty(clip, propName, fallback = 0) {
+        if (!clip) return fallback;
+        if (!clip.keyframes || !clip.keyframes[propName] || clip.keyframes[propName].length === 0) {
+            return clip[propName] !== undefined ? clip[propName] : fallback;
+        }
+
+        const kfs = clip.keyframes[propName];
+        const localTime = Math.max(0, Math.min(clip.duration, this.currentTime - clip.startTime));
+
+        if (kfs.length === 1) {
+            return kfs[0].value;
+        }
+
+        kfs.sort((a, b) => a.time - b.time);
+
+        if (localTime <= kfs[0].time) {
+            return kfs[0].value;
+        }
+        if (localTime >= kfs[kfs.length - 1].time) {
+            return kfs[kfs.length - 1].value;
+        }
+
+        for (let i = 0; i < kfs.length - 1; i++) {
+            const k1 = kfs[i];
+            const k2 = kfs[i + 1];
+            if (localTime >= k1.time && localTime <= k2.time) {
+                const span = k2.time - k1.time;
+                if (span <= 0.0001) return k1.value;
+                const t = (localTime - k1.time) / span;
+                // Cosine smooth easing for silky animations
+                const easeT = 0.5 - 0.5 * Math.cos(t * Math.PI);
+                return k1.value + (k2.value - k1.value) * easeT;
+            }
+        }
+
+        return clip[propName] !== undefined ? clip[propName] : fallback;
+    }
+
     renderMediaClip(clip, width, height) {
         const { ctx } = this;
         let mediaEl = this.mediaElements.get(clip.mediaId);
 
         ctx.save();
 
-        const posX = (clip.posX || 0) + width / 2;
-        const posY = (clip.posY || 0) + height / 2;
-        const scale = clip.scale || 1.0;
-        const opacity = clip.opacity !== undefined ? clip.opacity : 1.0;
-        const rotation = (clip.rotation || 0) * Math.PI / 180;
+        const propPosX = this.getInterpolatedProperty(clip, 'posX', 0);
+        const propPosY = this.getInterpolatedProperty(clip, 'posY', 0);
+        const scale = this.getInterpolatedProperty(clip, 'scale', 1.0);
+        const opacity = this.getInterpolatedProperty(clip, 'opacity', 1.0);
+        const rotDeg = this.getInterpolatedProperty(clip, 'rotation', 0);
+
+        const posX = propPosX + width / 2;
+        const posY = propPosY + height / 2;
+        const rotation = rotDeg * Math.PI / 180;
 
         ctx.translate(posX, posY);
         ctx.rotate(rotation);
@@ -418,8 +460,21 @@ class NovaCutEngine {
         const { ctx } = this;
         ctx.save();
 
-        const x = (clip.posX || 0) + width / 2;
-        const y = (clip.posY || 0) + height / 2;
+        const propPosX = this.getInterpolatedProperty(clip, 'posX', 0);
+        const propPosY = this.getInterpolatedProperty(clip, 'posY', 0);
+        const scale = this.getInterpolatedProperty(clip, 'scale', 1.0);
+        const opacity = this.getInterpolatedProperty(clip, 'opacity', 1.0);
+        const rotDeg = this.getInterpolatedProperty(clip, 'rotation', 0);
+
+        const x = propPosX + width / 2;
+        const y = propPosY + height / 2;
+        const rotation = rotDeg * Math.PI / 180;
+
+        ctx.translate(x, y);
+        ctx.rotate(rotation);
+        ctx.scale(scale, scale);
+        ctx.globalAlpha = opacity;
+
         const fontSize = clip.fontSize || 64;
         const fontFamily = clip.fontFamily || 'sans-serif';
         const fontWeight = clip.bold ? 'bold ' : '600 ';
@@ -433,7 +488,7 @@ class NovaCutEngine {
         const lines = text.split('\n');
         const lineHeight = fontSize * 1.2;
         const totalHeight = lines.length * lineHeight;
-        const startY = y - (totalHeight / 2) + (lineHeight / 2);
+        const startY = -(totalHeight / 2) + (lineHeight / 2);
 
         // Background box if defined
         if (clip.bgColor) {
@@ -447,13 +502,13 @@ class NovaCutEngine {
             const boxW = maxW + padX * 2;
             const boxH = totalHeight + padY * 2;
 
-            let boxX = x - boxW / 2;
-            if (clip.align === 'left') boxX = x - padX;
-            else if (clip.align === 'right') boxX = x - maxW - padX;
+            let boxX = -boxW / 2;
+            if (clip.align === 'left') boxX = -padX;
+            else if (clip.align === 'right') boxX = -maxW - padX;
 
             ctx.fillStyle = clip.bgColor;
             ctx.beginPath();
-            ctx.roundRect(boxX, y - boxH / 2, boxW, boxH, 8);
+            ctx.roundRect(boxX, -boxH / 2, boxW, boxH, 8);
             ctx.fill();
         }
 
@@ -465,7 +520,7 @@ class NovaCutEngine {
             if (clip.outlineColor) {
                 ctx.strokeStyle = clip.outlineColor;
                 ctx.lineWidth = clip.outlineWidth || 6;
-                ctx.strokeText(line, x, lineY);
+                ctx.strokeText(line, 0, lineY);
             } else {
                 ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
                 ctx.shadowBlur = 12;
@@ -474,7 +529,7 @@ class NovaCutEngine {
             }
 
             ctx.fillStyle = clip.color || '#ffffff';
-            ctx.fillText(line, x, lineY);
+            ctx.fillText(line, 0, lineY);
         });
 
         ctx.restore();
@@ -482,9 +537,12 @@ class NovaCutEngine {
 
     getTextBounds(clip, width, height) {
         const { ctx } = this;
-        const x = (clip.posX || 0) + width / 2;
-        const y = (clip.posY || 0) + height / 2;
-        const fontSize = clip.fontSize || 64;
+        const propPosX = this.getInterpolatedProperty(clip, 'posX', 0);
+        const propPosY = this.getInterpolatedProperty(clip, 'posY', 0);
+        const scale = this.getInterpolatedProperty(clip, 'scale', 1.0);
+        const x = propPosX + width / 2;
+        const y = propPosY + height / 2;
+        const fontSize = (clip.fontSize || 64) * scale;
         const fontFamily = clip.fontFamily || 'sans-serif';
         const fontWeight = clip.bold ? 'bold ' : '600 ';
         const fontStyle = clip.italic ? 'italic ' : '';
@@ -500,10 +558,10 @@ class NovaCutEngine {
         });
         const lineHeight = fontSize * 1.2;
         const totalHeight = lines.length * lineHeight;
-        const padX = 24;
-        const padY = 16;
-        const boxW = Math.max(50, maxW) + padX * 2;
-        const boxH = Math.max(40, totalHeight) + padY * 2;
+        const padX = 24 * scale;
+        const padY = 16 * scale;
+        const boxW = Math.max(50 * scale, maxW) + padX * 2;
+        const boxH = Math.max(40 * scale, totalHeight) + padY * 2;
         ctx.restore();
 
         let left = x - boxW / 2;
@@ -532,9 +590,11 @@ class NovaCutEngine {
             return this.getTextBounds(clip, this.canvas.width, this.canvas.height);
         }
         if (clip.trackId === 'overlay' || clip.trackId === 'video' || clip.trackId === 'image') {
-            const x = (clip.posX || 0) + this.canvas.width / 2;
-            const y = (clip.posY || 0) + this.canvas.height / 2;
-            const scale = clip.scale || 1.0;
+            const propPosX = this.getInterpolatedProperty(clip, 'posX', 0);
+            const propPosY = this.getInterpolatedProperty(clip, 'posY', 0);
+            const scale = this.getInterpolatedProperty(clip, 'scale', 1.0);
+            const x = propPosX + this.canvas.width / 2;
+            const y = propPosY + this.canvas.height / 2;
             const mediaEl = this.mediaElements.get(clip.mediaId);
             const w = (mediaEl?.videoWidth || mediaEl?.naturalWidth || 600) * scale;
             const h = (mediaEl?.videoHeight || mediaEl?.naturalHeight || 400) * scale;
@@ -1197,6 +1257,10 @@ class NovaCutEngine {
         const totalEl = document.getElementById('totalTimecode');
         if (currentEl) currentEl.textContent = this.formatTimecode(this.currentTime);
         if (totalEl) totalEl.textContent = this.formatTimecode(this.duration);
+
+        if (window.inspector && typeof window.inspector.syncSlidersToCurrentTime === 'function') {
+            window.inspector.syncSlidersToCurrentTime();
+        }
     }
 
     formatTimecode(seconds) {

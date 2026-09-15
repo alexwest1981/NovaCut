@@ -226,6 +226,38 @@ class NovaCutTimeline {
 
         const durSpan = el.querySelector('.clip-duration');
         if (durSpan) durSpan.textContent = `${clip.duration.toFixed(1)}s`;
+
+        // Keyframes visual layer on timeline
+        let kfLayer = el.querySelector('.clip-keyframes-layer');
+        if (!kfLayer) {
+            kfLayer = document.createElement('div');
+            kfLayer.className = 'clip-keyframes-layer';
+            el.appendChild(kfLayer);
+        }
+        kfLayer.innerHTML = '';
+
+        if (clip.keyframes) {
+            const allTimes = new Set();
+            Object.values(clip.keyframes).forEach(kfs => {
+                if (Array.isArray(kfs)) {
+                    kfs.forEach(k => allTimes.add(Math.round(k.time * 100) / 100));
+                }
+            });
+
+            Array.from(allTimes).sort((a, b) => a - b).forEach(time => {
+                const marker = document.createElement('div');
+                marker.className = 'clip-keyframe-marker';
+                const pct = Math.max(0, Math.min(100, (time / clip.duration) * 100));
+                marker.style.left = `${pct}%`;
+                marker.title = `Keyframe vid ${time.toFixed(2)}s (Klicka för att hoppa hit)`;
+                marker.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.engine.seek(clip.startTime + time);
+                    this.selectClip(clip.id);
+                });
+                kfLayer.appendChild(marker);
+            });
+        }
     }
 
     selectClip(clipId) {

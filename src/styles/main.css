@@ -1434,6 +1434,98 @@ body {
     transform: translateX(-50%) translateY(0);
 }
 
+/* --- CapCut Pro: Keyframing Controls & Diamonds --- */
+.param-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.keyframe-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-left: auto;
+}
+
+.btn-keyframe {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 15px;
+    line-height: 1;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-keyframe:hover {
+    color: var(--accent);
+    transform: scale(1.18);
+}
+
+.btn-keyframe.active {
+    color: var(--accent);
+    text-shadow: 0 0 8px rgba(0, 212, 130, 0.8);
+}
+
+.btn-kf-nav {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 10px;
+    line-height: 1;
+    padding: 2px 4px;
+    border-radius: 3px;
+    transition: all 0.12s ease;
+}
+
+.btn-kf-nav:hover:not(:disabled) {
+    color: var(--text-primary);
+    background: var(--bg-surface-hover);
+}
+
+.btn-kf-nav:disabled {
+    opacity: 0.2;
+    cursor: default;
+}
+
+/* Timeline Keyframe Markers */
+.clip-keyframes-layer {
+    position: absolute;
+    bottom: 2px;
+    left: 0;
+    right: 0;
+    height: 9px;
+    pointer-events: none;
+}
+
+.clip-keyframe-marker {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: #00d482;
+    transform: translateX(-50%) rotate(45deg);
+    border: 1px solid #000;
+    box-shadow: 0 0 5px rgba(0, 212, 130, 0.9);
+    pointer-events: auto;
+    cursor: pointer;
+    z-index: 15;
+    transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.clip-keyframe-marker:hover {
+    transform: translateX(-50%) rotate(45deg) scale(1.4);
+    background: #ffffff;
+    box-shadow: 0 0 8px #ffffff;
+}
+
 /* --- CapCut Pro: Interactive Panel Resizers (Splitters) --- */
 .panel-resizer {
     background: transparent;

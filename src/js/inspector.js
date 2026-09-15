@@ -12,6 +12,8 @@ class NovaCutInspector {
     }
 
     update(clip) {
+        this.currentClip = clip;
+        this.activeKeyframeControls = [];
         if (!clip) {
             this.renderEmptyState();
             return;
@@ -63,10 +65,17 @@ class NovaCutInspector {
     renderMediaProperties(clip) {
         this.bodyEl.innerHTML = `
             <div class="inspector-section">
-                <div class="section-title">Transformering</div>
+                <div class="section-title">Transformering & Keyframing</div>
                 
                 <div class="param-row">
-                    <span class="param-label">Skala (Zoom)</span>
+                    <div class="param-label-row">
+                        <span class="param-label">Skala (Zoom)</span>
+                        <div class="keyframe-group">
+                            <button class="btn-kf-nav" id="btnKfPrev_scale" title="Föregående keyframe">◂</button>
+                            <button class="btn-keyframe" id="btnKf_scale" title="Lägg till/ta bort keyframe för Skala">◇</button>
+                            <button class="btn-kf-nav" id="btnKfNext_scale" title="Nästa keyframe">▸</button>
+                        </div>
+                    </div>
                     <div class="param-input-group">
                         <input type="range" class="slider-input" id="propScale" min="0.2" max="3.0" step="0.05" value="${clip.scale || 1.0}">
                         <span class="num-display" id="valScale">${(clip.scale || 1.0).toFixed(2)}x</span>
@@ -74,9 +83,16 @@ class NovaCutInspector {
                 </div>
 
                 <div class="param-row">
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                        <span class="param-label">Position X</span>
-                        <button class="btn-reset-pos" id="btnResetMediaPosX" title="Centrera X (0)">0</button>
+                    <div class="param-label-row">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span class="param-label">Position X</span>
+                            <button class="btn-reset-pos" id="btnResetMediaPosX" title="Centrera X (0)">0</button>
+                        </div>
+                        <div class="keyframe-group">
+                            <button class="btn-kf-nav" id="btnKfPrev_posX" title="Föregående keyframe">◂</button>
+                            <button class="btn-keyframe" id="btnKf_posX" title="Lägg till/ta bort keyframe för X">◇</button>
+                            <button class="btn-kf-nav" id="btnKfNext_posX" title="Nästa keyframe">▸</button>
+                        </div>
                     </div>
                     <div class="param-input-group">
                         <input type="range" class="slider-input" id="propPosX" min="-960" max="960" step="5" value="${clip.posX || 0}">
@@ -85,9 +101,16 @@ class NovaCutInspector {
                 </div>
 
                 <div class="param-row">
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                        <span class="param-label">Position Y</span>
-                        <button class="btn-reset-pos" id="btnResetMediaPosY" title="Centrera Y (0)">0</button>
+                    <div class="param-label-row">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span class="param-label">Position Y</span>
+                            <button class="btn-reset-pos" id="btnResetMediaPosY" title="Centrera Y (0)">0</button>
+                        </div>
+                        <div class="keyframe-group">
+                            <button class="btn-kf-nav" id="btnKfPrev_posY" title="Föregående keyframe">◂</button>
+                            <button class="btn-keyframe" id="btnKf_posY" title="Lägg till/ta bort keyframe för Y">◇</button>
+                            <button class="btn-kf-nav" id="btnKfNext_posY" title="Nästa keyframe">▸</button>
+                        </div>
                     </div>
                     <div class="param-input-group">
                         <input type="range" class="slider-input" id="propPosY" min="-540" max="540" step="5" value="${clip.posY || 0}">
@@ -96,7 +119,14 @@ class NovaCutInspector {
                 </div>
 
                 <div class="param-row">
-                    <span class="param-label">Rotation</span>
+                    <div class="param-label-row">
+                        <span class="param-label">Rotation</span>
+                        <div class="keyframe-group">
+                            <button class="btn-kf-nav" id="btnKfPrev_rotation" title="Föregående keyframe">◂</button>
+                            <button class="btn-keyframe" id="btnKf_rotation" title="Lägg till/ta bort keyframe för Rotation">◇</button>
+                            <button class="btn-kf-nav" id="btnKfNext_rotation" title="Nästa keyframe">▸</button>
+                        </div>
+                    </div>
                     <div class="param-input-group">
                         <input type="range" class="slider-input" id="propRotation" min="-180" max="180" step="1" value="${clip.rotation || 0}">
                         <span class="num-display" id="valRotation">${clip.rotation || 0}°</span>
@@ -104,7 +134,14 @@ class NovaCutInspector {
                 </div>
 
                 <div class="param-row">
-                    <span class="param-label">Opacitet</span>
+                    <div class="param-label-row">
+                        <span class="param-label">Opacitet</span>
+                        <div class="keyframe-group">
+                            <button class="btn-kf-nav" id="btnKfPrev_opacity" title="Föregående keyframe">◂</button>
+                            <button class="btn-keyframe" id="btnKf_opacity" title="Lägg till/ta bort keyframe för Opacitet">◇</button>
+                            <button class="btn-kf-nav" id="btnKfNext_opacity" title="Nästa keyframe">▸</button>
+                        </div>
+                    </div>
                     <div class="param-input-group">
                         <input type="range" class="slider-input" id="propOpacity" min="0" max="1" step="0.05" value="${clip.opacity !== undefined ? clip.opacity : 1.0}">
                         <span class="num-display" id="valOpacity">${Math.round((clip.opacity !== undefined ? clip.opacity : 1.0) * 100)}%</span>
@@ -126,11 +163,11 @@ class NovaCutInspector {
             </div>
         `;
 
-        this.bindInput('propScale', 'valScale', (v) => { clip.scale = parseFloat(v); return `${parseFloat(v).toFixed(2)}x`; });
-        this.bindInput('propPosX', 'valPosX', (v) => { clip.posX = parseInt(v); return v; });
-        this.bindInput('propPosY', 'valPosY', (v) => { clip.posY = parseInt(v); return v; });
-        this.bindInput('propRotation', 'valRotation', (v) => { clip.rotation = parseInt(v); return `${v}°`; });
-        this.bindInput('propOpacity', 'valOpacity', (v) => { clip.opacity = parseFloat(v); return `${Math.round(parseFloat(v)*100)}%`; });
+        this.bindKeyframeControl(clip, 'scale', 'propScale', 'valScale', (v) => `${v.toFixed(2)}x`);
+        this.bindKeyframeControl(clip, 'posX', 'propPosX', 'valPosX', (v) => Math.round(v));
+        this.bindKeyframeControl(clip, 'posY', 'propPosY', 'valPosY', (v) => Math.round(v));
+        this.bindKeyframeControl(clip, 'rotation', 'propRotation', 'valRotation', (v) => `${Math.round(v)}°`);
+        this.bindKeyframeControl(clip, 'opacity', 'propOpacity', 'valOpacity', (v) => `${Math.round(v * 100)}%`);
 
         const btnResetMediaX = document.getElementById('btnResetMediaPosX');
         if (btnResetMediaX) {
@@ -153,6 +190,8 @@ class NovaCutInspector {
             clip.speed = parseFloat(e.target.value);
             this.engine.render();
         });
+
+        this.syncSlidersToCurrentTime();
     }
 
     renderTextProperties(clip) {
@@ -267,9 +306,16 @@ class NovaCutInspector {
                 </div>
 
                 <div class="param-row">
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                        <span class="param-label">Position X</span>
-                        <button class="btn-reset-pos" id="btnResetPosX" title="Centrera X (0)">0</button>
+                    <div class="param-label-row">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span class="param-label">Position X</span>
+                            <button class="btn-reset-pos" id="btnResetPosX" title="Centrera X (0)">0</button>
+                        </div>
+                        <div class="keyframe-group">
+                            <button class="btn-kf-nav" id="btnKfPrev_posX" title="Föregående keyframe">◂</button>
+                            <button class="btn-keyframe" id="btnKf_posX" title="Lägg till/ta bort keyframe för X">◇</button>
+                            <button class="btn-kf-nav" id="btnKfNext_posX" title="Nästa keyframe">▸</button>
+                        </div>
                     </div>
                     <div class="param-input-group">
                         <input type="range" class="slider-input" id="propPosX" min="-960" max="960" step="5" value="${clip.posX || 0}">
@@ -278,9 +324,16 @@ class NovaCutInspector {
                 </div>
 
                 <div class="param-row">
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                        <span class="param-label">Position Y</span>
-                        <button class="btn-reset-pos" id="btnResetPosY" title="Centrera Y (0)">0</button>
+                    <div class="param-label-row">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span class="param-label">Position Y</span>
+                            <button class="btn-reset-pos" id="btnResetPosY" title="Centrera Y (0)">0</button>
+                        </div>
+                        <div class="keyframe-group">
+                            <button class="btn-kf-nav" id="btnKfPrev_posY" title="Föregående keyframe">◂</button>
+                            <button class="btn-keyframe" id="btnKf_posY" title="Lägg till/ta bort keyframe för Y">◇</button>
+                            <button class="btn-kf-nav" id="btnKfNext_posY" title="Nästa keyframe">▸</button>
+                        </div>
                     </div>
                     <div class="param-input-group">
                         <input type="range" class="slider-input" id="propPosY" min="-540" max="540" step="5" value="${clip.posY || 0}">
@@ -317,8 +370,8 @@ class NovaCutInspector {
         }
 
         this.bindInput('propFontSize', 'valFontSize', (v) => { clip.fontSize = parseInt(v); return `${v}px`; });
-        this.bindInput('propPosX', 'valPosX', (v) => { clip.posX = parseInt(v); return v; });
-        this.bindInput('propPosY', 'valPosY', (v) => { clip.posY = parseInt(v); return v; });
+        this.bindKeyframeControl(clip, 'posX', 'propPosX', 'valPosX', (v) => Math.round(v));
+        this.bindKeyframeControl(clip, 'posY', 'propPosY', 'valPosY', (v) => Math.round(v));
 
         const posMap = {
             'top-left': { posX: -550, posY: -380, align: 'left' },
@@ -420,6 +473,8 @@ class NovaCutInspector {
                 this.engine.render();
             }
         });
+
+        this.syncSlidersToCurrentTime();
     }
 
     renderEffectProperties(clip) {
@@ -511,9 +566,182 @@ class NovaCutInspector {
         const slY = document.getElementById('propPosY');
         const valY = document.getElementById('valPosY');
         if (slX) slX.value = posX;
-        if (valX) valX.textContent = posX;
+        if (valX) valX.textContent = Math.round(posX);
         if (slY) slY.value = posY;
-        if (valY) valY.textContent = posY;
+        if (valY) valY.textContent = Math.round(posY);
+
+        // If current clip has keyframes for posX or posY, update or add keyframe on canvas drag
+        if (this.currentClip && this.currentClip.keyframes && (this.currentClip.keyframes.posX || this.currentClip.keyframes.posY)) {
+            const localTime = Math.round(Math.max(0, Math.min(this.currentClip.duration, this.engine.currentTime - this.currentClip.startTime)) * 100) / 100;
+            if (this.currentClip.keyframes.posX) {
+                const kfX = this.currentClip.keyframes.posX.find(k => Math.abs(k.time - localTime) < 0.08);
+                if (kfX) kfX.value = posX;
+                else {
+                    this.currentClip.keyframes.posX.push({ time: localTime, value: posX });
+                    this.currentClip.keyframes.posX.sort((a, b) => a.time - b.time);
+                }
+            }
+            if (this.currentClip.keyframes.posY) {
+                const kfY = this.currentClip.keyframes.posY.find(k => Math.abs(k.time - localTime) < 0.08);
+                if (kfY) kfY.value = posY;
+                else {
+                    this.currentClip.keyframes.posY.push({ time: localTime, value: posY });
+                    this.currentClip.keyframes.posY.sort((a, b) => a.time - b.time);
+                }
+            }
+            this.timeline.renderClipDOM(this.currentClip);
+            this.syncSlidersToCurrentTime();
+        }
+    }
+
+    bindKeyframeControl(clip, propName, inputId, valId, formatter) {
+        const input = document.getElementById(inputId);
+        const valDisp = document.getElementById(valId);
+        const btnKf = document.getElementById(`btnKf_${propName}`);
+        const btnPrev = document.getElementById(`btnKfPrev_${propName}`);
+        const btnNext = document.getElementById(`btnKfNext_${propName}`);
+
+        if (!input) return;
+
+        if (!this.activeKeyframeControls) {
+            this.activeKeyframeControls = [];
+        }
+        this.activeKeyframeControls.push({ clip, propName, inputId, valId, formatter });
+
+        const getLocalTime = () => {
+            return Math.max(0, Math.min(clip.duration, this.engine.currentTime - clip.startTime));
+        };
+
+        // Slider input event (dragging or changing slider)
+        input.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            clip[propName] = val;
+            if (valDisp) valDisp.textContent = formatter ? formatter(val) : val;
+
+            const localTime = getLocalTime();
+            if (clip.keyframes && clip.keyframes[propName] && clip.keyframes[propName].length > 0) {
+                const existing = clip.keyframes[propName].find(k => Math.abs(k.time - localTime) < 0.08);
+                if (existing) {
+                    existing.value = val;
+                } else {
+                    clip.keyframes[propName].push({ time: Math.round(localTime * 100) / 100, value: val });
+                    clip.keyframes[propName].sort((a, b) => a.time - b.time);
+                }
+                this.timeline.renderClipDOM(clip);
+            }
+
+            this.syncSlidersToCurrentTime();
+            this.engine.render();
+        });
+
+        // Diamond button: Toggle keyframe
+        if (btnKf) {
+            btnKf.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const localTime = Math.round(getLocalTime() * 100) / 100;
+                clip.keyframes = clip.keyframes || {};
+                clip.keyframes[propName] = clip.keyframes[propName] || [];
+
+                const existingIdx = clip.keyframes[propName].findIndex(k => Math.abs(k.time - localTime) < 0.08);
+                if (existingIdx !== -1) {
+                    clip.keyframes[propName].splice(existingIdx, 1);
+                    if (clip.keyframes[propName].length === 0) {
+                        delete clip.keyframes[propName];
+                    }
+                    if (Object.keys(clip.keyframes).length === 0) {
+                        delete clip.keyframes;
+                    }
+                } else {
+                    const currentVal = parseFloat(input.value);
+                    clip.keyframes[propName].push({ time: localTime, value: currentVal });
+                    clip.keyframes[propName].sort((a, b) => a.time - b.time);
+                }
+
+                this.timeline.renderClipDOM(clip);
+                this.syncSlidersToCurrentTime();
+                this.engine.render();
+            });
+        }
+
+        // Previous keyframe nav
+        if (btnPrev) {
+            btnPrev.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const localTime = getLocalTime();
+                const kfs = (clip.keyframes && clip.keyframes[propName]) || [];
+                const prevKf = [...kfs].reverse().find(k => k.time < localTime - 0.08);
+                if (prevKf) {
+                    this.engine.seek(clip.startTime + prevKf.time);
+                }
+            });
+        }
+
+        // Next keyframe nav
+        if (btnNext) {
+            btnNext.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const localTime = getLocalTime();
+                const kfs = (clip.keyframes && clip.keyframes[propName]) || [];
+                const nextKf = kfs.find(k => k.time > localTime + 0.08);
+                if (nextKf) {
+                    this.engine.seek(clip.startTime + nextKf.time);
+                }
+            });
+        }
+    }
+
+    syncSlidersToCurrentTime() {
+        if (!this.currentClip || !this.activeKeyframeControls || this.activeKeyframeControls.length === 0) return;
+
+        const clip = this.currentClip;
+        const localTime = Math.max(0, Math.min(clip.duration, this.engine.currentTime - clip.startTime));
+
+        this.activeKeyframeControls.forEach(ctrl => {
+            if (ctrl.clip !== clip) return;
+            const { propName, inputId, valId, formatter } = ctrl;
+            const input = document.getElementById(inputId);
+            const valDisp = document.getElementById(valId);
+            const btnKf = document.getElementById(`btnKf_${propName}`);
+            const btnPrev = document.getElementById(`btnKfPrev_${propName}`);
+            const btnNext = document.getElementById(`btnKfNext_${propName}`);
+
+            if (!input) return;
+
+            const kfs = (clip.keyframes && clip.keyframes[propName]) || [];
+            const activeKf = kfs.find(k => Math.abs(k.time - localTime) < 0.08);
+
+            // Interpolated value
+            const currentVal = this.engine.getInterpolatedProperty(clip, propName, clip[propName] !== undefined ? clip[propName] : parseFloat(input.value));
+
+            // Only update input if user is not actively interacting with it
+            if (document.activeElement !== input) {
+                input.value = currentVal;
+                if (valDisp) {
+                    valDisp.textContent = formatter ? formatter(currentVal) : Math.round(currentVal);
+                }
+            }
+
+            if (btnKf) {
+                if (activeKf) {
+                    btnKf.textContent = '◆';
+                    btnKf.classList.add('active');
+                    btnKf.title = `Ta bort keyframe vid ${localTime.toFixed(2)}s`;
+                } else {
+                    btnKf.textContent = '◇';
+                    btnKf.classList.remove('active');
+                    btnKf.title = `Lägg till keyframe vid ${localTime.toFixed(2)}s`;
+                }
+            }
+
+            if (btnPrev) {
+                const prevKf = [...kfs].reverse().find(k => k.time < localTime - 0.08);
+                btnPrev.disabled = !prevKf;
+            }
+            if (btnNext) {
+                const nextKf = kfs.find(k => k.time > localTime + 0.08);
+                btnNext.disabled = !nextKf;
+            }
+        });
     }
 
     bindInput(inputId, displayId, updateFn) {
