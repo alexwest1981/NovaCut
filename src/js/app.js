@@ -143,6 +143,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const followBtn = document.getElementById('btnFollowPlayhead');
+    if (followBtn) {
+        followBtn.addEventListener('click', () => {
+            timeline.followPlayhead = !timeline.followPlayhead;
+            followBtn.classList.toggle('active', timeline.followPlayhead);
+            if (timeline.followPlayhead) {
+                timeline.ensurePlayheadVisible();
+            }
+            if (window.projectManager && typeof window.projectManager.showToast === 'function') {
+                window.projectManager.showToast(timeline.followPlayhead ? '🎯 Tidslinjen följer nu spelhuvudet' : '⏸️ Följ spelhuvud inaktiverat');
+            }
+        });
+    }
+
     const zoomSlider = document.getElementById('timelineZoomSlider');
     if (zoomSlider) {
         zoomSlider.addEventListener('input', (e) => {
@@ -875,6 +889,10 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (e.key.toLowerCase() === 'n') {
             e.preventDefault();
             snapBtn.click();
+        } else if (e.key.toLowerCase() === 'f') {
+            e.preventDefault();
+            const followBtn = document.getElementById('btnFollowPlayhead');
+            if (followBtn) followBtn.click();
         }
     });
 

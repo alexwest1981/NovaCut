@@ -8,6 +8,7 @@ class NovaCutTimeline {
         this.pixelsPerSecond = 60; // 60px = 1 second
         this.snapThreshold = 8;    // in pixels
         this.snappingEnabled = true;
+        this.followPlayhead = true;
 
         this.clips = [];
         this.selectedClipId = null;
@@ -820,6 +821,28 @@ class NovaCutTimeline {
     updatePlayheadPosition() {
         const x = this.engine.currentTime * this.pixelsPerSecond;
         this.playheadScrubber.style.left = `${x}px`;
+
+        // Follow Playhead when playing (auto-scroll)
+        if (this.followPlayhead && this.engine.isPlaying && !this.activeDrag && this.viewport) {
+            const scrollLeft = this.viewport.scrollLeft;
+            const clientWidth = this.viewport.clientWidth;
+            // Advance page when playhead reaches within 80px of right margin
+            if (x >= scrollLeft + clientWidth - 80) {
+                this.viewport.scrollLeft = Math.max(0, x - (clientWidth * 0.15));
+            } else if (x < scrollLeft) {
+                this.viewport.scrollLeft = Math.max(0, x - (clientWidth * 0.15));
+            }
+        }
+    }
+
+    ensurePlayheadVisible(paddingRatio = 0.15) {
+        if (!this.viewport) return;
+        const x = this.engine.currentTime * this.pixelsPerSecond;
+        const scrollLeft = this.viewport.scrollLeft;
+        const clientWidth = this.viewport.clientWidth;
+        if (x < scrollLeft || x > scrollLeft + clientWidth - 50) {
+            this.viewport.scrollLeft = Math.max(0, x - (clientWidth * paddingRatio));
+        }
     }
 
     getActiveClipsAt(timestamp) {
@@ -834,6 +857,50 @@ class NovaCutTimeline {
             const headers = document.getElementById('trackHeadersScrollable');
             if (headers) headers.scrollTop = viewport.scrollTop;
         });
+
+        // Horizontal mouse wheel scrolling & Ctrl+wheel zoom
+        const handleWheel = (e) => {
+            // Ctrl/Cmd + Wheel = Zoom in/out
+            if (e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+                const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
+                const newPPS = Math.round(this.pixelsPerSecond * zoomFactor);
+                this.setZoom(newPPS);
+                const zoomSlider = document.getElementById('timelineZoomSlider');
+                if (zoomSlider) zoomSlider.value = this.pixelsPerSecond;
+                return;
+            }
+
+            // Alt + Wheel = allow vertical scroll if lanes overflow vertically
+            if (e.altKey && viewport.scrollHeight > viewport.clientHeight) {
+                return;
+            }
+
+            // Sideways horizontal scrolling:
+            // Prefer deltaX if trackpad is used horizontally, otherwise use deltaY (mouse wheel)
+            let scrollDelta = 0;
+            if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+                scrollDelta = e.deltaX;
+            } else {
+                scrollDelta = e.deltaY;
+            }
+
+            if (scrollDelta !== 0) {
+                e.preventDefault();
+                viewport.scrollLeft += scrollDelta;
+            }
+        };
+
+        viewport.addEventListener('wheel', handleWheel, { passive: false });
+        timeRuler.addEventListener('wheel', handleWheel, { passive: false });
+        const timelinePanelEl = document.getElementById('timelinePanel');
+        if (timelinePanelEl) {
+            timelinePanelEl.addEventListener('wheel', (e) => {
+                if (!e.target.closest('select') && !e.target.closest('input[type="range"]')) {
+                    handleWheel(e);
+                }
+            }, { passive: false });
+        }
 
         // Ruler click / scrub
         timeRuler.addEventListener('mousedown', (e) => {
@@ -904,6 +971,13 @@ class NovaCutTimeline {
                 const scrollLeft = viewport.scrollLeft;
                 const clickX = e.clientX - rect.left + scrollLeft;
                 this.engine.seek(clickX / this.pixelsPerSecond);
+
+                // Auto-scroll when scrubbing near edges of viewport
+                if (e.clientX > rect.right - 50) {
+                    viewport.scrollLeft += 15;
+                } else if (e.clientX < rect.left + 50 && viewport.scrollLeft > 0) {
+                    viewport.scrollLeft = Math.max(0, viewport.scrollLeft - 15);
+                }
                 return;
             }
 

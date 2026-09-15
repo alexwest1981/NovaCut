@@ -407,7 +407,7 @@
     <div id="resizerTimeline" class="panel-resizer resizer-y" title="Dra för att ändra tidslinjens höjd (Dubbelklicka för standard)"></div>
 
     <!-- Bottom Multi-Track Timeline -->
-    <div class="timeline-panel" id="timelinePanel">
+    <div class="timeline-panel" id="timelinePanel" tabindex="0">
         <!-- Toolbar -->
         <div class="timeline-toolbar">
             <div class="timeline-tools-left">
@@ -443,6 +443,10 @@
             </div>
 
             <div class="timeline-tools-right">
+                <button id="btnFollowPlayhead" class="tool-btn active" title="Följ spelhuvud automatiskt vid uppspelning (F)">
+                    <span>🎯 Följ</span>
+                </button>
+                <div class="tool-divider"></div>
                 <div class="zoom-container">
                     <span style="font-size: 11px;">🔍</span>
                     <input type="range" id="timelineZoomSlider" min="20" max="200" value="60" style="width: 90px;" title="Zooma tidslinje">
