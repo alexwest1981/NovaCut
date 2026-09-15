@@ -46,6 +46,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Monitor Bar Tools
+    const btnCanvasSnap = document.getElementById('btnToggleCanvasSnap');
+    if (btnCanvasSnap) {
+        btnCanvasSnap.addEventListener('click', () => engine.toggleCanvasSnapping());
+    }
+
     const btnSafeZone = document.getElementById('btnToggleSafeZone');
     if (btnSafeZone) {
         btnSafeZone.addEventListener('click', () => engine.toggleSafeZone());

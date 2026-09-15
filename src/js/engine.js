@@ -13,6 +13,8 @@ class NovaCutEngine {
         this.fps = 30;
         this.aspectRatio = '16:9';
         this.showSafeZone = false;
+        this.canvasSnapping = true;
+        this.activeSnapGuides = [];
 
         this.masterVolume = 1.0;
         this.playbackRate = 1.0;
@@ -72,6 +74,16 @@ class NovaCutEngine {
         const btn = document.getElementById('btnToggleSafeZone');
         if (btn) {
             btn.classList.toggle('active', this.showSafeZone);
+        }
+        this.render();
+    }
+
+    toggleCanvasSnapping() {
+        this.canvasSnapping = !this.canvasSnapping;
+        const btn = document.getElementById('btnToggleCanvasSnap');
+        if (btn) {
+            btn.classList.toggle('active', this.canvasSnapping);
+            btn.textContent = this.canvasSnapping ? '🧲 Snappa text' : '🧲 Snapping: Av';
         }
         this.render();
     }
@@ -505,6 +517,21 @@ class NovaCutEngine {
                 centerY: y
             };
         }
+        if (clip.trackId === 'effect') {
+            const x = (clip.posX || 0) + this.canvas.width / 2;
+            const y = (clip.posY || 0) + this.canvas.height / 2;
+            const r = 100;
+            return {
+                left: x - r,
+                top: y - r,
+                width: r * 2,
+                height: r * 2,
+                right: x + r,
+                bottom: y + r,
+                centerX: x,
+                centerY: y
+            };
+        }
         return null;
     }
 
@@ -575,29 +602,14 @@ class NovaCutEngine {
                 const dx = pt.x - this.dragStartPos.x;
                 const dy = pt.y - this.dragStartPos.y;
 
-                let targetX = this.dragClipStart.posX + dx;
-                let targetY = this.dragClipStart.posY + dy;
+                const rawX = this.dragClipStart.posX + dx;
+                const rawY = this.dragClipStart.posY + dy;
 
-                // Smart magnetic snapping
-                const snapThreshold = 22;
-                this.snappedX = false;
-                this.snappedY = false;
+                const snapResult = this.calculateCanvasSnapping(this.dragTarget, rawX, rawY, e.altKey);
+                this.activeSnapGuides = snapResult.guides;
 
-                if (Math.abs(targetX) < snapThreshold) {
-                    targetX = 0;
-                    this.snappedX = true;
-                }
-                if (Math.abs(targetY) < snapThreshold) {
-                    targetY = 0;
-                    this.snappedY = true;
-                }
-                if (Math.abs(targetY - 380) < snapThreshold) {
-                    targetY = 380;
-                    this.snappedY = true;
-                }
-
-                this.dragTarget.posX = Math.round(targetX);
-                this.dragTarget.posY = Math.round(targetY);
+                this.dragTarget.posX = Math.round(snapResult.x);
+                this.dragTarget.posY = Math.round(snapResult.y);
 
                 if (window.inspector && typeof window.inspector.updatePositionInputs === 'function') {
                     window.inspector.updatePositionInputs(this.dragTarget.posX, this.dragTarget.posY);
@@ -614,7 +626,7 @@ class NovaCutEngine {
                 if (window.timeline) {
                     const activeClips = window.timeline.getActiveClipsAt(this.currentTime);
                     const isHovering = activeClips.some(c => {
-                        if (c.trackId === 'text' || (window.timeline.selectedClipId === c.id && c.trackId === 'overlay')) {
+                        if (c.trackId === 'text' || (window.timeline.selectedClipId === c.id && (c.trackId === 'overlay' || c.trackId === 'effect'))) {
                             const b = this.getClipBounds(c);
                             return b && pt.x >= b.left && pt.x <= b.right && pt.y >= b.top && pt.y <= b.bottom;
                         }
@@ -629,8 +641,7 @@ class NovaCutEngine {
             if (this.isDraggingClip) {
                 this.isDraggingClip = false;
                 this.dragTarget = null;
-                this.snappedX = false;
-                this.snappedY = false;
+                this.activeSnapGuides = [];
                 this.canvas.style.cursor = 'default';
                 this.render();
             }
@@ -640,6 +651,7 @@ class NovaCutEngine {
     startDraggingClip(clip, pt) {
         this.isDraggingClip = true;
         this.dragTarget = clip;
+        this.activeSnapGuides = [];
         this.dragStartPos = { x: pt.x, y: pt.y };
         this.dragClipStart = {
             posX: clip.posX || 0,
@@ -647,6 +659,107 @@ class NovaCutEngine {
         };
         this.canvas.style.cursor = 'grabbing';
         this.render();
+    }
+
+    calculateCanvasSnapping(clip, targetX, targetY, isAltPressed) {
+        // If snapping is turned off globally or Alt is held, allow free dragging
+        if (!this.canvasSnapping || isAltPressed) {
+            return { x: targetX, y: targetY, guides: [] };
+        }
+
+        // Motionleap style: Effects are ALWAYS placed with 100% freeform precision, NO SNAPPING!
+        if (clip.trackId === 'effect' || clip.isEffect || clip.overlayType) {
+            return { x: targetX, y: targetY, guides: [] };
+        }
+
+        const threshold = 14; // High precision snap window (~14 canvas pixels)
+        let snappedX = targetX;
+        let snappedY = targetY;
+        const guides = [];
+
+        // 1. Horizontal X Snap Targets
+        const xTargets = [
+            { val: 0, label: 'Mitten X (Centrerad)', color: '#00f2fe' },
+            { val: Math.round(-this.canvas.width / 6), label: 'Tredjedel Vänster', color: 'rgba(0, 242, 254, 0.75)' },
+            { val: Math.round(this.canvas.width / 6), label: 'Tredjedel Höger', color: 'rgba(0, 242, 254, 0.75)' }
+        ];
+
+        // 2. Vertical Y Snap Targets
+        const yTargets = [
+            { val: 0, label: 'Mitten Y (Centrerad)', color: '#00f2fe' },
+            { val: 380, label: 'Undertext / Captions (+380)', color: '#00f2fe' },
+            { val: -320, label: 'Topprubrik / Banner (-320)', color: '#00f2fe' },
+            { val: Math.round(-this.canvas.height / 6), label: 'Tredjedel Topp', color: 'rgba(0, 242, 254, 0.75)' },
+            { val: Math.round(this.canvas.height / 6), label: 'Tredjedel Botten', color: 'rgba(0, 242, 254, 0.75)' }
+        ];
+
+        // 3. Cross-Clip Alignment (Placera text på exakt samma ställe om och om igen!)
+        if (window.timeline && window.timeline.clips) {
+            window.timeline.clips.forEach(other => {
+                if (other.id !== clip.id && other.trackId === clip.trackId) {
+                    if (other.posX !== undefined) {
+                        xTargets.push({
+                            val: other.posX,
+                            label: `Matchar "${other.title || other.text || 'Text'}" (X: ${other.posX > 0 ? '+' : ''}${other.posX})`,
+                            color: '#fbbf24',
+                            isCrossClip: true
+                        });
+                    }
+                    if (other.posY !== undefined) {
+                        yTargets.push({
+                            val: other.posY,
+                            label: `Matchar "${other.title || other.text || 'Text'}" (Y: ${other.posY > 0 ? '+' : ''}${other.posY})`,
+                            color: '#fbbf24',
+                            isCrossClip: true
+                        });
+                    }
+                }
+            });
+        }
+
+        // Find closest X match
+        let bestDiffX = threshold + 1;
+        let bestSnapX = null;
+        for (const t of xTargets) {
+            const diff = Math.abs(targetX - t.val);
+            if (diff <= threshold && diff < bestDiffX) {
+                bestDiffX = diff;
+                bestSnapX = t;
+            }
+        }
+        if (bestSnapX !== null) {
+            snappedX = bestSnapX.val;
+            guides.push({
+                type: 'x',
+                canvasPos: this.canvas.width / 2 + bestSnapX.val,
+                label: bestSnapX.label,
+                color: bestSnapX.color,
+                isCrossClip: !!bestSnapX.isCrossClip
+            });
+        }
+
+        // Find closest Y match
+        let bestDiffY = threshold + 1;
+        let bestSnapY = null;
+        for (const t of yTargets) {
+            const diff = Math.abs(targetY - t.val);
+            if (diff <= threshold && diff < bestDiffY) {
+                bestDiffY = diff;
+                bestSnapY = t;
+            }
+        }
+        if (bestSnapY !== null) {
+            snappedY = bestSnapY.val;
+            guides.push({
+                type: 'y',
+                canvasPos: this.canvas.height / 2 + bestSnapY.val,
+                label: bestSnapY.label,
+                color: bestSnapY.color,
+                isCrossClip: !!bestSnapY.isCrossClip
+            });
+        }
+
+        return { x: snappedX, y: snappedY, guides };
     }
 
     renderSelectionGizmo(clip, width, height) {
@@ -658,24 +771,71 @@ class NovaCutEngine {
 
         ctx.save();
 
-        // 1. Center Snapping Guidelines
-        if (this.snappedX) {
-            ctx.strokeStyle = '#00f0ff';
-            ctx.lineWidth = 2.5;
-            ctx.setLineDash([8, 6]);
-            ctx.beginPath();
-            ctx.moveTo(width / 2, 0);
-            ctx.lineTo(width / 2, height);
-            ctx.stroke();
-        }
-        if (this.snappedY) {
-            ctx.strokeStyle = '#00f0ff';
-            ctx.lineWidth = 2.5;
-            ctx.setLineDash([8, 6]);
-            ctx.beginPath();
-            ctx.moveTo(0, height / 2);
-            ctx.lineTo(width, height / 2);
-            ctx.stroke();
+        // 1. Magnetic Snapping Guidelines & Floating Badges
+        if (this.activeSnapGuides && this.activeSnapGuides.length > 0) {
+            this.activeSnapGuides.forEach(guide => {
+                ctx.save();
+                ctx.strokeStyle = guide.color || '#00f2fe';
+                ctx.lineWidth = 2.0;
+                ctx.setLineDash([10, 6]);
+                ctx.shadowColor = guide.color || '#00f2fe';
+                ctx.shadowBlur = 8;
+
+                if (guide.type === 'x') {
+                    ctx.beginPath();
+                    ctx.moveTo(guide.canvasPos, 0);
+                    ctx.lineTo(guide.canvasPos, height);
+                    ctx.stroke();
+
+                    // Snap indicator badge at top
+                    ctx.setLineDash([]);
+                    ctx.shadowBlur = 0;
+                    ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, sans-serif';
+                    const text = `🧲 ${guide.label}`;
+                    const tw = ctx.measureText(text).width + 24;
+                    const badgeX = Math.max(12, Math.min(width - tw - 12, guide.canvasPos - tw / 2));
+                    ctx.fillStyle = 'rgba(11, 12, 16, 0.92)';
+                    ctx.strokeStyle = guide.color || '#00f2fe';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.roundRect(badgeX, 16, tw, 32, 6);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.fillStyle = guide.color || '#00f2fe';
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(text, badgeX + 12, 32);
+
+                } else if (guide.type === 'y') {
+                    ctx.beginPath();
+                    ctx.moveTo(0, guide.canvasPos);
+                    ctx.lineTo(width, guide.canvasPos);
+                    ctx.stroke();
+
+                    // Snap indicator badge on left
+                    ctx.setLineDash([]);
+                    ctx.shadowBlur = 0;
+                    ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, sans-serif';
+                    const text = `🧲 ${guide.label}`;
+                    const tw = ctx.measureText(text).width + 24;
+                    const badgeY = Math.max(12, Math.min(height - 44, guide.canvasPos - 16));
+                    ctx.fillStyle = 'rgba(11, 12, 16, 0.92)';
+                    ctx.strokeStyle = guide.color || '#00f2fe';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.roundRect(16, badgeY, tw, 32, 6);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.fillStyle = guide.color || '#00f2fe';
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(text, 28, badgeY + 16);
+                }
+
+                ctx.restore();
+            });
         }
 
         // 2. Bounding Box Outline

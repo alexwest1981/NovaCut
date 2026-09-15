@@ -1,25 +1,27 @@
 /* NovaCut - Timeline Styles */
 
 .timeline-panel {
-    height: 280px;
+    height: 272px;
     background-color: var(--bg-surface);
     border-top: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
     overflow: hidden;
     position: relative;
+    flex-shrink: 0;
 }
 
 /* Timeline Toolbar */
 .timeline-toolbar {
-    height: 38px;
+    height: 34px;
     background-color: var(--bg-surface-elevated);
     border-bottom: 1px solid var(--border-color);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 16px;
+    padding: 0 14px;
     z-index: 50;
+    flex-shrink: 0;
 }
 
 .timeline-tools-left {
@@ -32,7 +34,7 @@
     background: transparent;
     border: 1px solid transparent;
     color: var(--text-secondary);
-    height: 28px;
+    height: 26px;
     padding: 0 8px;
     border-radius: 5px;
     display: flex;
@@ -55,7 +57,7 @@
 
 .tool-divider {
     width: 1px;
-    height: 18px;
+    height: 16px;
     background: var(--border-color);
     margin: 0 4px;
 }
@@ -93,9 +95,9 @@
 }
 
 .track-headers-spacer {
-    height: 26px;
-    min-height: 26px;
-    max-height: 26px;
+    height: 24px;
+    min-height: 24px;
+    max-height: 24px;
     box-sizing: border-box;
     border-bottom: 1px solid var(--border-color);
     background: var(--timeline-ruler-bg);
@@ -110,9 +112,9 @@
 }
 
 .track-header {
-    height: 48px;
-    min-height: 48px;
-    max-height: 48px;
+    height: 42px;
+    min-height: 42px;
+    max-height: 42px;
     box-sizing: border-box;
     flex-shrink: 0;
     border-bottom: 1px solid var(--border-color);
@@ -247,9 +249,9 @@
 
 /* Ruler */
 .time-ruler {
-    height: 26px;
-    min-height: 26px;
-    max-height: 26px;
+    height: 24px;
+    min-height: 24px;
+    max-height: 24px;
     box-sizing: border-box;
     background: var(--timeline-ruler-bg);
     border-bottom: 1px solid var(--border-color);
@@ -268,9 +270,9 @@
 
 /* Track Lanes */
 .track-lane {
-    height: 48px;
-    min-height: 48px;
-    max-height: 48px;
+    height: 42px;
+    min-height: 42px;
+    max-height: 42px;
     box-sizing: border-box;
     flex-shrink: 0;
     border-bottom: 1px solid var(--border-color);
@@ -285,8 +287,8 @@
 /* Clips on Timeline */
 .timeline-clip {
     position: absolute;
-    top: 4px;
-    height: 40px;
+    top: 3px;
+    height: 35px;
     border-radius: 6px;
     color: #fff;
     font-size: 11px;
