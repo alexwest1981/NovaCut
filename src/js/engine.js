@@ -606,6 +606,10 @@ class NovaCutEngine {
             if (clip.borderRadius && !hasMask) {
                 ctx.restore();
             }
+        } else if (clip.isSticker && window.stickersManager) {
+            drawW = clip.stickerWidth || 240;
+            drawH = clip.stickerHeight || 160;
+            window.stickersManager.renderSticker(ctx, clip.stickerId, drawW, drawH, localTime);
         } else {
             // Generated Demo Pattern (e.g. Cyberpunk Grid & Moving Orb)
             this.renderProceduralDemo(clip, width, height);
@@ -1243,8 +1247,8 @@ class NovaCutEngine {
             const x = propPosX + this.canvas.width / 2;
             const y = propPosY + this.canvas.height / 2;
             const mediaEl = this.mediaElements.get(clip.mediaId);
-            const w = (mediaEl?.videoWidth || mediaEl?.naturalWidth || 600) * scale;
-            const h = (mediaEl?.videoHeight || mediaEl?.naturalHeight || 400) * scale;
+            const w = (clip.isSticker ? (clip.stickerWidth || 240) : (mediaEl?.videoWidth || mediaEl?.naturalWidth || 600)) * scale;
+            const h = (clip.isSticker ? (clip.stickerHeight || 160) : (mediaEl?.videoHeight || mediaEl?.naturalHeight || 400)) * scale;
             return {
                 left: x - w / 2,
                 top: y - h / 2,

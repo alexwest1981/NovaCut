@@ -71,6 +71,62 @@ class NovaCutSFX {
                 categoryLabel: 'Impact / Spänning',
                 duration: 1.40,
                 description: 'Stigande ton som bygger upp maximal spänning före en hook.'
+            },
+            {
+                id: 'vine-boom',
+                name: '🗿 Vine Boom (Meme)',
+                category: 'impact',
+                categoryLabel: 'Impact / Meme',
+                duration: 1.25,
+                description: 'Den legendariska virala meme-effekten med massiv mättad sub-bas.'
+            },
+            {
+                id: 'whoosh-fast',
+                name: '⚡ Whip Fast Swish',
+                category: 'transition',
+                categoryLabel: 'Whoosh / Klipp',
+                duration: 0.18,
+                description: 'Ultrasnabb pisk-effekt för blixtsnabba klipp och zoomar.'
+            },
+            {
+                id: 'click',
+                name: '🖱️ UI Mouse Click',
+                category: 'reaction',
+                categoryLabel: 'Klick / UI',
+                duration: 0.06,
+                description: 'Krispigt mekaniskt klick för knappar och pekare.'
+            },
+            {
+                id: 'keyboard',
+                name: '⌨️ Mechanical Key Tap',
+                category: 'retro',
+                categoryLabel: 'Retro / Tangentbord',
+                duration: 0.12,
+                description: 'Mekanisk switch-klick för skrivmaskinseffekt och kod.'
+            },
+            {
+                id: 'laser',
+                name: '🔫 Sci-Fi Laser Blaster',
+                category: 'retro',
+                categoryLabel: 'Retro / Sci-Fi',
+                duration: 0.24,
+                description: 'Retro arkad-laser för skoj, spel och actionklipp.'
+            },
+            {
+                id: 'tada',
+                name: '🎺 Fanfare / Tada Chime',
+                category: 'reaction',
+                categoryLabel: 'Reaktion / Vinst',
+                duration: 0.85,
+                description: 'Festlig tretons-fanfar för succéer och reveal-ögonblick.'
+            },
+            {
+                id: 'buzzer',
+                name: '❌ Fail Buzzer (Wrong)',
+                category: 'reaction',
+                categoryLabel: 'Reaktion / Fel',
+                duration: 0.45,
+                description: 'Dissonant tv-show felsignal för misslyckanden och memes.'
             }
         ];
 
@@ -261,6 +317,159 @@ class NovaCutSFX {
             osc.connect(gain);
             gain.connect(offlineCtx.destination);
             osc.start(0);
+
+        } else if (id === 'vine-boom') {
+            // Massive distorted sub-bass drop with punch
+            const osc = offlineCtx.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(110, 0);
+            osc.frequency.exponentialRampToValueAtTime(32, 0.22);
+            osc.frequency.linearRampToValueAtTime(24, duration);
+
+            const oscSub = offlineCtx.createOscillator();
+            oscSub.type = 'triangle';
+            oscSub.frequency.setValueAtTime(55, 0);
+            oscSub.frequency.exponentialRampToValueAtTime(20, 0.35);
+
+            // Distortion / overdrive curve
+            const waveShaper = offlineCtx.createWaveShaper();
+            const n_samples = 44100;
+            const curve = new Float32Array(n_samples);
+            const deg = Math.PI / 180;
+            const k = 45;
+            for (let i = 0; i < n_samples; ++i) {
+                const x = (i * 2) / n_samples - 1;
+                curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
+            }
+            waveShaper.curve = curve;
+            waveShaper.oversample = '2x';
+
+            const gain = offlineCtx.createGain();
+            gain.gain.setValueAtTime(0.95, 0);
+            gain.gain.exponentialRampToValueAtTime(0.001, duration);
+
+            osc.connect(waveShaper);
+            oscSub.connect(waveShaper);
+            waveShaper.connect(gain);
+            gain.connect(offlineCtx.destination);
+
+            osc.start(0);
+            oscSub.start(0);
+
+        } else if (id === 'whoosh-fast') {
+            // Fast whip whoosh
+            const bufferSize = totalFrames;
+            const noiseBuffer = offlineCtx.createBuffer(1, bufferSize, sampleRate);
+            const output = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                output[i] = Math.random() * 2 - 1;
+            }
+
+            const whiteNoise = offlineCtx.createBufferSource();
+            whiteNoise.buffer = noiseBuffer;
+
+            const filter = offlineCtx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.Q.setValueAtTime(4.0, 0);
+            filter.frequency.setValueAtTime(400, 0);
+            filter.frequency.exponentialRampToValueAtTime(3600, duration * 0.4);
+            filter.frequency.exponentialRampToValueAtTime(300, duration);
+
+            const gain = offlineCtx.createGain();
+            gain.gain.setValueAtTime(0.01, 0);
+            gain.gain.linearRampToValueAtTime(0.95, duration * 0.4);
+            gain.gain.exponentialRampToValueAtTime(0.001, duration);
+
+            whiteNoise.connect(filter);
+            filter.connect(gain);
+            gain.connect(offlineCtx.destination);
+            whiteNoise.start(0);
+
+        } else if (id === 'click') {
+            // UI mechanical click
+            const osc = offlineCtx.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(2200, 0);
+            osc.frequency.exponentialRampToValueAtTime(280, duration);
+
+            const gain = offlineCtx.createGain();
+            gain.gain.setValueAtTime(0.85, 0);
+            gain.gain.exponentialRampToValueAtTime(0.001, duration);
+
+            osc.connect(gain);
+            gain.connect(offlineCtx.destination);
+            osc.start(0);
+
+        } else if (id === 'keyboard') {
+            // Mechanical switch tap
+            const osc = offlineCtx.createOscillator();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(1400, 0);
+            osc.frequency.exponentialRampToValueAtTime(220, duration);
+
+            const gain = offlineCtx.createGain();
+            gain.gain.setValueAtTime(0.9, 0);
+            gain.gain.exponentialRampToValueAtTime(0.001, duration);
+
+            osc.connect(gain);
+            gain.connect(offlineCtx.destination);
+            osc.start(0);
+
+        } else if (id === 'laser') {
+            // Retro blaster laser
+            const osc = offlineCtx.createOscillator();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(2400, 0);
+            osc.frequency.exponentialRampToValueAtTime(110, duration);
+
+            const gain = offlineCtx.createGain();
+            gain.gain.setValueAtTime(0.8, 0);
+            gain.gain.exponentialRampToValueAtTime(0.001, duration);
+
+            osc.connect(gain);
+            gain.connect(offlineCtx.destination);
+            osc.start(0);
+
+        } else if (id === 'tada') {
+            // Fanfare 3-tone arpeggio (C5, E5, G5 + C6)
+            const notes = [
+                { f: 523.25, t: 0, d: 0.18 },
+                { f: 659.25, t: 0.14, d: 0.18 },
+                { f: 783.99, t: 0.28, d: 0.18 },
+                { f: 1046.50, t: 0.42, d: 0.42 }
+            ];
+
+            notes.forEach(note => {
+                const osc = offlineCtx.createOscillator();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(note.f, note.t);
+
+                const gain = offlineCtx.createGain();
+                gain.gain.setValueAtTime(0.7, note.t);
+                gain.gain.exponentialRampToValueAtTime(0.001, note.t + note.d);
+
+                osc.connect(gain);
+                gain.connect(offlineCtx.destination);
+                osc.start(note.t);
+                osc.stop(note.t + note.d + 0.01);
+            });
+
+        } else if (id === 'buzzer') {
+            // Dual dissonant fail buzzer
+            const freqs = [140, 196];
+            freqs.forEach(f => {
+                const osc = offlineCtx.createOscillator();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(f, 0);
+
+                const gain = offlineCtx.createGain();
+                gain.gain.setValueAtTime(0.6, 0);
+                gain.gain.exponentialRampToValueAtTime(0.001, duration);
+
+                osc.connect(gain);
+                gain.connect(offlineCtx.destination);
+                osc.start(0);
+            });
         }
 
         const renderedBuffer = await offlineCtx.startRendering();

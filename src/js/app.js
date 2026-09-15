@@ -24,6 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const transitions = new NovaCutTransitions(engine, timeline);
     window.transitions = transitions;
 
+    const stickersManager = new NovaCutStickers(timeline, engine);
+    window.stickersManager = stickersManager;
+
     // 2. Setup Top Bar & Transport Controls
     document.getElementById('btnPlayPause').addEventListener('click', () => engine.togglePlay());
     document.getElementById('btnPrevFrame').addEventListener('click', () => engine.stepFrame(-1));
