@@ -415,6 +415,167 @@ class NovaCutEngine {
         return (integral * duration) + sourceOffset;
     }
 
+    applyTransitionMath(type, p, isIntro, width, height, state) {
+        // 1. Mjuka & Toningar
+        if (type === 'dissolve') {
+            state.opacity *= p;
+        } else if (type === 'dip_black') {
+            state.overlayColor = '#000000';
+            state.overlayAlpha = Math.max(state.overlayAlpha, 1 - p);
+        } else if (type === 'dip_white' || type === 'flash') {
+            state.overlayColor = '#ffffff';
+            state.overlayAlpha = Math.max(state.overlayAlpha, (1 - p) * 0.95);
+        } else if (type === 'dip_color') {
+            state.overlayColor = '#ff8800';
+            state.overlayAlpha = Math.max(state.overlayAlpha, (1 - p) * 0.85);
+        } else if (type === 'blur_fade') {
+            state.opacity *= p;
+            state.blurAmount = Math.max(state.blurAmount, (1 - p) * 16);
+        } else if (type === 'fade_sepia') {
+            state.overlayColor = '#704214';
+            state.overlayAlpha = Math.max(state.overlayAlpha, (1 - p) * 0.75);
+            state.opacity *= Math.max(0.15, p);
+        } else if (type === 'soft_glow') {
+            state.overlayColor = '#ffeebb';
+            state.overlayAlpha = Math.max(state.overlayAlpha, (1 - p) * 0.9);
+            state.scale *= (1 + (1 - p) * 0.08);
+        } else if (type === 'lens_blur') {
+            state.opacity *= Math.max(0.1, p);
+            state.blurAmount = Math.max(state.blurAmount, (1 - p) * 22);
+            state.scale *= (1 + (1 - p) * 0.05);
+
+        // 2. Rörelse & Svep
+        } else if (type === 'slide_left') {
+            state.shiftX += (isIntro ? width : -width) * (1 - p);
+        } else if (type === 'slide_right') {
+            state.shiftX += (isIntro ? -width : width) * (1 - p);
+        } else if (type === 'slide_up') {
+            state.shiftY += (isIntro ? height : -height) * (1 - p);
+        } else if (type === 'slide_down') {
+            state.shiftY += (isIntro ? -height : height) * (1 - p);
+        } else if (type === 'whip_left') {
+            state.shiftX += (isIntro ? width * 1.35 : -width * 1.35) * (1 - p);
+            state.blurAmount = Math.max(state.blurAmount, (1 - p) * 8);
+        } else if (type === 'whip_right') {
+            state.shiftX += (isIntro ? -width * 1.35 : width * 1.35) * (1 - p);
+            state.blurAmount = Math.max(state.blurAmount, (1 - p) * 8);
+        } else if (type === 'whip_up') {
+            state.shiftY += (isIntro ? height * 1.35 : -height * 1.35) * (1 - p);
+            state.blurAmount = Math.max(state.blurAmount, (1 - p) * 8);
+        } else if (type === 'whip_down') {
+            state.shiftY += (isIntro ? -height * 1.35 : height * 1.35) * (1 - p);
+            state.blurAmount = Math.max(state.blurAmount, (1 - p) * 8);
+        } else if (type === 'smooth_push_left') {
+            state.shiftX += (isIntro ? width : -width) * (1 - p) * 0.85;
+            state.opacity *= (0.3 + 0.7 * p);
+        } else if (type === 'smooth_push_right') {
+            state.shiftX += (isIntro ? -width : width) * (1 - p) * 0.85;
+            state.opacity *= (0.3 + 0.7 * p);
+
+        // 3. Zoom & Skala
+        } else if (type === 'zoom_in') {
+            state.scale *= isIntro ? (0.65 + 0.35 * p) : (1.35 - 0.35 * p);
+            state.opacity *= p;
+        } else if (type === 'zoom_out') {
+            state.scale *= isIntro ? (1.35 - 0.35 * p) : (0.65 + 0.35 * p);
+            state.opacity *= p;
+        } else if (type === 'spin_zoom_cw') {
+            state.scale *= (0.5 + 0.5 * p);
+            state.rotDeg += (isIntro ? (1 - p) * 180 : -(1 - p) * 180);
+            state.opacity *= p;
+        } else if (type === 'spin_zoom_ccw') {
+            state.scale *= (0.5 + 0.5 * p);
+            state.rotDeg -= (isIntro ? (1 - p) * 180 : -(1 - p) * 180);
+            state.opacity *= p;
+        } else if (type === 'bounce_zoom') {
+            const b = Math.sin(p * Math.PI * 0.5);
+            state.scale *= (0.4 + 0.6 * b);
+            state.opacity *= p;
+        } else if (type === 'elastic_zoom') {
+            state.scale *= Math.max(0.2, (0.4 + 0.6 * p));
+            state.opacity *= Math.max(0, Math.min(1, p * 1.5));
+        } else if (type === 'swirl_zoom') {
+            state.scale *= (0.4 + 0.6 * p);
+            state.rotDeg += (1 - p) * 90;
+            state.opacity *= p;
+        } else if (type === 'cross_zoom') {
+            state.scale *= isIntro ? (0.4 + 0.6 * p) : (1.0 + (1 - p) * 0.6);
+            state.blurAmount = Math.max(state.blurAmount, (1 - p) * 10);
+            state.opacity *= p;
+
+        // 4. Glitch & Cyber
+        } else if (type === 'glitch') {
+            state.shiftX += (Math.random() - 0.5) * 35 * (1 - p);
+            state.shiftY += (Math.random() - 0.5) * 15 * (1 - p);
+            state.opacity *= (0.6 + 0.4 * p);
+            state.glitchActive = true;
+        } else if (type === 'rgb_split_trans') {
+            state.glitchActive = true;
+            state.shiftX += (Math.sin(p * 20) * 12) * (1 - p);
+            state.opacity *= Math.max(0.4, p);
+        } else if (type === 'scanline_glitch') {
+            state.shiftX += (Math.sin(p * 40) * 15) * (1 - p);
+            state.overlayColor = '#00ffff';
+            state.overlayAlpha = (1 - p) * 0.35;
+            state.glitchActive = true;
+        } else if (type === 'pixelate_trans') {
+            state.opacity *= p;
+            state.blurAmount = Math.max(state.blurAmount, (1 - p) * 14);
+        } else if (type === 'tv_noise') {
+            state.overlayColor = (Math.random() > 0.5 ? '#ffffff' : '#000000');
+            state.overlayAlpha = (1 - p) * 0.7;
+            state.glitchActive = true;
+        } else if (type === 'vcr_distortion') {
+            state.shiftX += (Math.sin(p * 15) * 25) * (1 - p);
+            state.overlayColor = '#ff0055';
+            state.overlayAlpha = (1 - p) * 0.25;
+        } else if (type === 'datamosh') {
+            state.shiftX += (Math.floor((1 - p) * 5) % 2 === 0 ? 20 : -20) * (1 - p);
+            state.glitchActive = true;
+            state.opacity *= (0.5 + 0.5 * p);
+        } else if (type === 'cyber_matrix') {
+            state.overlayColor = '#00ff66';
+            state.overlayAlpha = (1 - p) * 0.5;
+            state.glitchActive = true;
+
+        // 5. Ljus & Blixtar
+        } else if (type === 'light_leak_warm') {
+            state.overlayColor = '#ffaa33';
+            state.overlayAlpha = (1 - p) * 0.85;
+            state.scale *= (1 + (1 - p) * 0.05);
+        } else if (type === 'light_leak_cool') {
+            state.overlayColor = '#00e5ff';
+            state.overlayAlpha = (1 - p) * 0.85;
+        } else if (type === 'film_burn') {
+            state.overlayColor = '#ff3300';
+            state.overlayAlpha = (1 - p) * 0.9;
+            state.scale *= (1 + (1 - p) * 0.08);
+        } else if (type === 'anamorphic_flare') {
+            state.overlayColor = '#0088ff';
+            state.overlayAlpha = (1 - p) * 0.8;
+        } else if (type === 'sun_burst') {
+            state.overlayColor = '#fff5cc';
+            state.overlayAlpha = (1 - p) * 0.95;
+            state.scale *= (1 + (1 - p) * 0.06);
+        } else if (type === 'glow_flash') {
+            state.overlayColor = '#ffffff';
+            state.overlayAlpha = (1 - p) * 0.98;
+            state.blurAmount = (1 - p) * 8;
+        } else if (type === 'strobe_flash') {
+            state.overlayColor = '#ffffff';
+            state.overlayAlpha = (Math.floor(p * 10) % 2 === 0) ? (1 - p) * 0.9 : 0;
+        } else if (type === 'neon_pulse') {
+            state.overlayColor = '#d946ef';
+            state.overlayAlpha = (1 - p) * 0.75;
+
+        // 6. Formklipp & Wipes
+        } else if (type === 'wipe_left' || type === 'wipe_right' || type === 'wipe_up' || type === 'wipe_down' ||
+                   type === 'circle_wipe_in' || type === 'circle_wipe_out' || type === 'diamond_wipe' || type === 'split_doors') {
+            state.wipeType = type;
+            state.wipeP = p;
+        }
+    }
+
     renderMediaClip(clip, width, height) {
         const { ctx } = this;
         let mediaEl = this.mediaElements.get(clip.mediaId);
@@ -425,13 +586,21 @@ class NovaCutEngine {
         const propPosY = this.getInterpolatedProperty(clip, 'posY', 0);
         let scale = this.getInterpolatedProperty(clip, 'scale', 1.0);
         let opacity = this.getInterpolatedProperty(clip, 'opacity', 1.0);
-        const rotDeg = this.getInterpolatedProperty(clip, 'rotation', 0);
+        let rotDeg = this.getInterpolatedProperty(clip, 'rotation', 0);
 
-        let shiftX = 0;
-        let shiftY = 0;
-        let overlayColor = null;
-        let overlayAlpha = 0;
-        let glitchActive = false;
+        const transState = {
+            opacity,
+            scale,
+            shiftX: 0,
+            shiftY: 0,
+            rotDeg,
+            overlayColor: null,
+            overlayAlpha: 0,
+            glitchActive: false,
+            blurAmount: 0,
+            wipeType: null,
+            wipeP: 1
+        };
 
         const localTime = Math.max(0, Math.min(clip.duration, this.currentTime - clip.startTime));
 
@@ -441,32 +610,7 @@ class NovaCutEngine {
             if (localTime < dur) {
                 const rawP = Math.max(0, Math.min(1, localTime / dur));
                 const p = rawP * rawP * (3 - 2 * rawP); // smoothstep
-                const type = clip.transitionIn.type;
-
-                if (type === 'dissolve') {
-                    opacity *= p;
-                } else if (type === 'dip_black') {
-                    overlayColor = '#000000';
-                    overlayAlpha = Math.max(overlayAlpha, 1 - p);
-                } else if (type === 'dip_white' || type === 'flash') {
-                    overlayColor = '#ffffff';
-                    overlayAlpha = Math.max(overlayAlpha, (1 - p) * 0.95);
-                } else if (type === 'zoom_in') {
-                    scale *= (0.65 + 0.35 * p);
-                    opacity *= p;
-                } else if (type === 'zoom_out') {
-                    scale *= (1.35 - 0.35 * p);
-                    opacity *= p;
-                } else if (type === 'slide_left') {
-                    shiftX += width * (1 - p);
-                } else if (type === 'slide_right') {
-                    shiftX -= width * (1 - p);
-                } else if (type === 'glitch') {
-                    shiftX += (Math.random() - 0.5) * 35 * (1 - p);
-                    shiftY += (Math.random() - 0.5) * 15 * (1 - p);
-                    opacity *= (0.6 + 0.4 * p);
-                    glitchActive = true;
-                }
+                this.applyTransitionMath(clip.transitionIn.type, p, true, width, height, transState);
             }
         }
 
@@ -477,34 +621,18 @@ class NovaCutEngine {
             if (timeLeft < dur) {
                 const rawP = Math.max(0, Math.min(1, timeLeft / dur));
                 const p = rawP * rawP * (3 - 2 * rawP); // smoothstep
-                const type = clip.transitionOut.type;
-
-                if (type === 'dissolve') {
-                    opacity *= p;
-                } else if (type === 'dip_black') {
-                    overlayColor = '#000000';
-                    overlayAlpha = Math.max(overlayAlpha, 1 - p);
-                } else if (type === 'dip_white' || type === 'flash') {
-                    overlayColor = '#ffffff';
-                    overlayAlpha = Math.max(overlayAlpha, (1 - p) * 0.95);
-                } else if (type === 'zoom_in') {
-                    scale *= (1.35 - 0.35 * p);
-                    opacity *= p;
-                } else if (type === 'zoom_out') {
-                    scale *= (0.65 + 0.35 * p);
-                    opacity *= p;
-                } else if (type === 'slide_left') {
-                    shiftX -= width * (1 - p);
-                } else if (type === 'slide_right') {
-                    shiftX += width * (1 - p);
-                } else if (type === 'glitch') {
-                    shiftX += (Math.random() - 0.5) * 35 * (1 - p);
-                    shiftY += (Math.random() - 0.5) * 15 * (1 - p);
-                    opacity *= (0.6 + 0.4 * p);
-                    glitchActive = true;
-                }
+                this.applyTransitionMath(clip.transitionOut.type, p, false, width, height, transState);
             }
         }
+
+        opacity = transState.opacity;
+        scale = transState.scale;
+        rotDeg = transState.rotDeg;
+        const shiftX = transState.shiftX;
+        const shiftY = transState.shiftY;
+        const overlayColor = transState.overlayColor;
+        const overlayAlpha = transState.overlayAlpha;
+        const glitchActive = transState.glitchActive;
 
         const posX = propPosX + shiftX + width / 2;
         const posY = propPosY + shiftY + height / 2;
@@ -513,7 +641,7 @@ class NovaCutEngine {
         ctx.translate(posX, posY);
         ctx.rotate(rotation);
         ctx.scale(scale, scale);
-        ctx.globalAlpha = opacity;
+        ctx.globalAlpha = Math.max(0, Math.min(1, opacity));
 
         if (clip.blendMode) {
             ctx.globalCompositeOperation = clip.blendMode;
@@ -525,10 +653,51 @@ class NovaCutEngine {
         let drawW = width;
         let drawH = height;
 
-        // Clip Color Grading Filter
+        // Clip Color Grading Filter & Transition Blur
         const clipColorFilter = this.getClipColorFilter(clip);
-        if (clipColorFilter) {
-            ctx.filter = (ctx.filter && ctx.filter !== 'none') ? `${ctx.filter} ${clipColorFilter}` : clipColorFilter;
+        let finalFilter = clipColorFilter || '';
+        if (transState.blurAmount > 0) {
+            finalFilter = (finalFilter ? `${finalFilter} ` : '') + `blur(${Math.round(transState.blurAmount)}px)`;
+        }
+        if (finalFilter) {
+            ctx.filter = (ctx.filter && ctx.filter !== 'none') ? `${ctx.filter} ${finalFilter}` : finalFilter;
+        }
+
+        // Shape Wipe Clipping
+        let hasWipeClip = false;
+        if (transState.wipeType) {
+            ctx.save();
+            ctx.beginPath();
+            const wp = transState.wipeP;
+            if (transState.wipeType === 'wipe_left') {
+                const curW = width * wp;
+                ctx.rect(width / 2 - curW, -height / 2, curW, height);
+            } else if (transState.wipeType === 'wipe_right') {
+                const curW = width * wp;
+                ctx.rect(-width / 2, -height / 2, curW, height);
+            } else if (transState.wipeType === 'wipe_up') {
+                const curH = height * wp;
+                ctx.rect(-width / 2, height / 2 - curH, width, curH);
+            } else if (transState.wipeType === 'wipe_down') {
+                const curH = height * wp;
+                ctx.rect(-width / 2, -height / 2, width, curH);
+            } else if (transState.wipeType === 'circle_wipe_in' || transState.wipeType === 'circle_wipe_out') {
+                const rad = Math.hypot(width, height) * 0.75 * wp;
+                ctx.arc(0, 0, rad, 0, Math.PI * 2);
+            } else if (transState.wipeType === 'diamond_wipe') {
+                const size = Math.hypot(width, height) * 0.85 * wp;
+                ctx.moveTo(0, -size);
+                ctx.lineTo(size, 0);
+                ctx.lineTo(0, size);
+                ctx.lineTo(-size, 0);
+                ctx.closePath();
+            } else if (transState.wipeType === 'split_doors') {
+                const openW = (width / 2) * wp;
+                ctx.rect(-width / 2, -height / 2, openW, height);
+                ctx.rect(width / 2 - openW, -height / 2, openW, height);
+            }
+            ctx.clip();
+            hasWipeClip = true;
         }
 
         // Video Masking (Circle / Rectangle / Linear / Mirror)
@@ -661,6 +830,10 @@ class NovaCutEngine {
                 ctx.roundRect(-drawW / 2, -drawH / 2, drawW, drawH, round);
                 ctx.stroke();
             }
+            ctx.restore();
+        }
+
+        if (hasWipeClip) {
             ctx.restore();
         }
 
@@ -2341,6 +2514,251 @@ class NovaCutEngine {
                     ctx.arc(x, y, r, 0, Math.PI * 2);
                     ctx.fill();
                 }
+            }
+
+        } else if (type === 'vhs-damage') {
+            // 📺 Analog VCR Tracking Noise & Band Distortions
+            const t = this.currentTime;
+            const noiseY = (Math.sin(t * 11) * 0.5 + 0.5) * height;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
+            ctx.fillRect(0, noiseY, width, 22);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+            ctx.fillRect(0, (noiseY + 28) % height, width, 14);
+
+            // Jitter scanlines
+            for (let y = 0; y < height; y += 8) {
+                if ((y + Math.floor(t * 30)) % 16 === 0) {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+                    ctx.fillRect(0, y, width, 2);
+                }
+            }
+        } else if (type === 'beat-shake') {
+            // 🥁 Bass Drum / Beat Pulse Shake
+            const t = this.currentTime * 24;
+            const intensity = params.intensity || 1.0;
+            const shake = Math.sin(t) * Math.exp(-((t % 6) / 2)) * 18 * intensity;
+            ctx.save();
+            ctx.globalAlpha = 0.35;
+            ctx.drawImage(this.canvas, shake, 0);
+            ctx.restore();
+        } else if (type === 'vignette-warm') {
+            // 🌅 Amber Golden Hour Vignette
+            const rad = Math.max(width, height) * 0.72;
+            const vignette = ctx.createRadialGradient(width/2, height/2, rad * 0.35, width/2, height/2, rad);
+            vignette.addColorStop(0, 'transparent');
+            vignette.addColorStop(0.7, 'rgba(180, 80, 10, 0.35)');
+            vignette.addColorStop(1, 'rgba(40, 15, 0, 0.85)');
+            ctx.fillStyle = vignette;
+            ctx.fillRect(0, 0, width, height);
+        } else if (type === 'light-leaks') {
+            // 💡 Dynamic Organic Light Leaks
+            const t = this.currentTime * 0.7;
+            const leakX = width * (0.2 + Math.sin(t) * 0.25);
+            const leakY = height * (0.2 + Math.cos(t * 0.8) * 0.2);
+            const rad = Math.max(width, height) * 0.65;
+            const grad = ctx.createRadialGradient(leakX, leakY, 20, leakX, leakY, rad);
+            grad.addColorStop(0, 'rgba(255, 170, 40, 0.65)');
+            grad.addColorStop(0.5, 'rgba(255, 70, 20, 0.3)');
+            grad.addColorStop(1, 'transparent');
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen';
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, width, height);
+            ctx.restore();
+        } else if (type === 'anamorphic-flare') {
+            // 🔦 Horizontal Blue Anamorphic Flare
+            const t = this.currentTime * 0.5;
+            const flareY = height * (0.45 + Math.sin(t) * 0.15);
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen';
+            const grad = ctx.createLinearGradient(0, flareY - 30, 0, flareY + 30);
+            grad.addColorStop(0, 'transparent');
+            grad.addColorStop(0.5, 'rgba(0, 190, 255, 0.85)');
+            grad.addColorStop(1, 'transparent');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, flareY - 30, width, 60);
+
+            // Center hot star
+            const star = ctx.createRadialGradient(width * 0.5, flareY, 5, width * 0.5, flareY, 140);
+            star.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+            star.addColorStop(0.4, 'rgba(0, 220, 255, 0.5)');
+            star.addColorStop(1, 'transparent');
+            ctx.fillStyle = star;
+            ctx.fillRect(0, flareY - 140, width, 280);
+            ctx.restore();
+        } else if (type === 'prism-rainbow') {
+            // 🌈 Prism Glass Spectral Rainbow
+            const t = this.currentTime * 0.4;
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen';
+            ctx.translate(width * 0.3, height * 0.3);
+            ctx.rotate(0.3 + Math.sin(t) * 0.1);
+            const rainbow = ctx.createLinearGradient(0, 0, width * 0.6, 0);
+            rainbow.addColorStop(0, 'rgba(255, 0, 60, 0.35)');
+            rainbow.addColorStop(0.2, 'rgba(255, 140, 0, 0.35)');
+            rainbow.addColorStop(0.4, 'rgba(255, 240, 0, 0.35)');
+            rainbow.addColorStop(0.6, 'rgba(0, 255, 120, 0.35)');
+            rainbow.addColorStop(0.8, 'rgba(0, 180, 255, 0.35)');
+            rainbow.addColorStop(1, 'rgba(180, 0, 255, 0.35)');
+            ctx.fillStyle = rainbow;
+            ctx.fillRect(-width * 0.5, -height * 0.5, width * 1.5, 90);
+            ctx.restore();
+        } else if (type === 'laser-grid') {
+            // 🌐 80s Cyberpunk Perspective Grid
+            ctx.save();
+            ctx.strokeStyle = 'rgba(0, 240, 255, 0.45)';
+            ctx.lineWidth = 1.5;
+            const horizonY = height * 0.68;
+            for (let i = 0; i < 14; i++) {
+                const y = horizonY + Math.pow(i / 13, 2.2) * (height - horizonY);
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            }
+            const vanishingX = width * 0.5;
+            for (let x = -width * 0.5; x <= width * 1.5; x += width * 0.12) {
+                ctx.beginPath();
+                ctx.moveTo(vanishingX, horizonY);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+            ctx.restore();
+        } else if (type === 'crt-monitor') {
+            // 🖥️ Retro CRT Monitor Curve & Phosphor
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
+            for (let y = 0; y < height; y += 3) {
+                ctx.fillRect(0, y, width, 1.2);
+            }
+            const crtGrad = ctx.createRadialGradient(width/2, height/2, width * 0.4, width/2, height/2, width * 0.85);
+            crtGrad.addColorStop(0, 'transparent');
+            crtGrad.addColorStop(1, 'rgba(0, 0, 0, 0.75)');
+            ctx.fillStyle = crtGrad;
+            ctx.fillRect(0, 0, width, height);
+        } else if (type === 'halftone-dots') {
+            // 📰 Pop Art Halftone Dots
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            const spacing = 14;
+            for (let x = spacing/2; x < width; x += spacing) {
+                for (let y = spacing/2; y < height; y += spacing) {
+                    ctx.beginPath();
+                    ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        } else if (type === 'fog-mist') {
+            // 🌫️ Rolling Cinematic Fog & Mist
+            const t = this.currentTime * 0.3;
+            ctx.save();
+            ctx.globalAlpha = 0.28;
+            for (let i = 0; i < 4; i++) {
+                const fx = ((i * 0.35 + t * 0.1) % 1.4 - 0.2) * width;
+                const fy = height * (0.6 + i * 0.1);
+                const grad = ctx.createRadialGradient(fx, fy, 20, fx, fy, width * 0.5);
+                grad.addColorStop(0, 'rgba(230, 240, 255, 0.6)');
+                grad.addColorStop(0.7, 'rgba(200, 220, 245, 0.2)');
+                grad.addColorStop(1, 'transparent');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, height * 0.3, width, height * 0.7);
+            }
+            ctx.restore();
+        } else if (type === 'fire-embers') {
+            // 🔥 Rising Glowing Fire Embers
+            const count = params.count || 55;
+            const t = this.currentTime;
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen';
+            for (let i = 0; i < count; i++) {
+                const seedX = ((i * 73.1 + 19.3) % 1) * width;
+                const seedY = ((i * 41.7 + 83.2) % 1) * height;
+                const speed = 70 + ((i * 29.1) % 1) * 120;
+                const y = (seedY - t * speed + height) % height;
+                const x = seedX + Math.sin(t * 3.0 + i) * 20;
+                const r = 2.0 + ((i * 9.7) % 1) * 3.5;
+                const col = (i % 3 === 0) ? 'rgba(255, 90, 0, 0.85)' : (i % 3 === 1 ? 'rgba(255, 180, 0, 0.9)' : 'rgba(255, 30, 0, 0.8)');
+                ctx.fillStyle = col;
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+        } else if (type === 'night-vision') {
+            // 🟢 Military Green Phosphor Night Vision
+            const rad = Math.min(width, height) * 0.48;
+            ctx.save();
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.9)';
+            ctx.lineWidth = Math.max(width, height) * 0.5;
+            ctx.beginPath();
+            ctx.arc(width / 2, height / 2, rad + ctx.lineWidth / 2, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Reticle crosshair
+            ctx.strokeStyle = 'rgba(50, 255, 100, 0.5)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(width / 2 - 25, height / 2);
+            ctx.lineTo(width / 2 + 25, height / 2);
+            ctx.moveTo(width / 2, height / 2 - 25);
+            ctx.lineTo(width / 2, height / 2 + 25);
+            ctx.stroke();
+            ctx.restore();
+        } else if (type === 'thermal-vision') {
+            // 🌡️ Predator Thermal Overlay
+            ctx.save();
+            ctx.globalCompositeOperation = 'color-dodge';
+            ctx.fillStyle = 'rgba(255, 0, 120, 0.25)';
+            ctx.fillRect(0, 0, width, height);
+            ctx.restore();
+        } else if (type === 'matrix-rain') {
+            // 🟩 Matrix Code Rain
+            const t = this.currentTime;
+            ctx.fillStyle = 'rgba(0, 255, 70, 0.85)';
+            ctx.font = '700 14px monospace';
+            const cols = 26;
+            const colWidth = width / cols;
+            const chars = '0123456789ABCDEF$#@*';
+            for (let c = 0; c < cols; c++) {
+                const speed = 180 + ((c * 37.1) % 1) * 220;
+                const headY = (t * speed + c * 80) % (height + 200) - 100;
+                const ch = chars[Math.floor((t * 10 + c) % chars.length)];
+                ctx.fillText(ch, c * colWidth + 4, headY);
+                ctx.fillStyle = 'rgba(0, 255, 70, 0.35)';
+                for (let trail = 1; trail < 8; trail++) {
+                    const trailY = headY - trail * 18;
+                    if (trailY > 0 && trailY < height) {
+                        ctx.fillText(chars[(c + trail) % chars.length], c * colWidth + 4, trailY);
+                    }
+                }
+                ctx.fillStyle = 'rgba(0, 255, 70, 0.85)';
+            }
+        } else if (type === 'underwater') {
+            // 🌊 Underwater Caustic Ripples
+            const t = this.currentTime * 1.5;
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen';
+            ctx.strokeStyle = 'rgba(100, 220, 255, 0.35)';
+            ctx.lineWidth = 3.0;
+            for (let i = 0; i < 6; i++) {
+                ctx.beginPath();
+                for (let x = 0; x < width; x += 40) {
+                    const y = height * (0.2 + i * 0.14) + Math.sin(x * 0.02 + t + i) * 25 + Math.cos(x * 0.04 - t) * 15;
+                    if (x === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+            ctx.restore();
+        } else if (type === 'strobe-party') {
+            // ⚡ Rave Strobe & Color Pulse
+            const t = this.currentTime;
+            const flash = Math.floor(t * 8) % 2 === 0;
+            if (flash) {
+                ctx.save();
+                ctx.globalCompositeOperation = 'screen';
+                const colors = ['rgba(255, 255, 255, 0.4)', 'rgba(255, 0, 150, 0.3)', 'rgba(0, 255, 255, 0.3)'];
+                ctx.fillStyle = colors[Math.floor(t * 4) % colors.length];
+                ctx.fillRect(0, 0, width, height);
+                ctx.restore();
             }
         }
 

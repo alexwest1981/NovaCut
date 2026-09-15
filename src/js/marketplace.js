@@ -38,102 +38,155 @@ class NovaCutMarketplace {
 
     getDefaultPlugins() {
         return [
+            // ==========================================
+            // 🎥 25 LIVE OVERLAYS & PROCEDURAL FX
+            // ==========================================
             {
-                id: 'cyberpunk-neon',
-                name: 'Cyberpunk Neon',
-                version: '1.0.0',
+                id: 'vhs-retro',
+                name: "80s Retro VHS Cam",
+                version: '1.2.0',
                 author: 'NovaCut Team',
-                category: 'filter',
-                description: 'Elektrisk cyan & magenta neon-tint med ökad kontrast och glow.',
-                previewColor: '#00f0ff',
-                cssFilter: 'contrast(140%) saturate(160%) hue-rotate(180deg)',
+                category: 'overlay',
+                description: 'Analog videobandkänsla med scanlines, tidsstämpel och bandbrus.',
+                previewColor: '#ff007f',
+                cssFilter: 'contrast(115%) saturate(125%) sepia(20%)',
+                overlayType: 'vhs-retro',
                 params: [
-                    { id: 'intensity', label: 'Glow Intensity', type: 'slider', min: 0, max: 2, step: 0.1, default: 1.2 },
-                    { id: 'contrast', label: 'Kontrast', type: 'slider', min: 80, max: 200, step: 5, default: 140 }
+                    { id: 'noise', label: 'Scanline Täthet', type: 'slider', min: 0, max: 1, step: 0.05, default: 0.6 }
                 ]
             },
             {
-                id: 'vhs-retro',
-                name: '80s Retro VHS',
+                id: 'vhs-damage',
+                name: 'VCR Tracking & Glitch',
                 version: '1.0.0',
                 author: 'NovaCut Team',
                 category: 'overlay',
-                description: 'Analog videobandkänsla med scanlines och bandbrus.',
-                previewColor: '#ff007f',
-                cssFilter: 'contrast(115%) saturate(125%) sepia(20%)',
-                overlayType: 'vhs-scanlines',
+                description: 'Kraftigt analogt spårningsfel, brusband och bildflimmer.',
+                previewColor: '#f43f5e',
+                cssFilter: 'contrast(120%) hue-rotate(10deg)',
+                overlayType: 'vhs-damage',
                 params: [
-                    { id: 'noise', label: 'Scanline Density', type: 'slider', min: 0, max: 1, step: 0.05, default: 0.6 }
+                    { id: 'intensity', label: 'Störningsnivå', type: 'slider', min: 0.2, max: 2.0, step: 0.1, default: 1.0 }
                 ]
             },
             {
-                id: 'cinematic-warm',
-                name: 'Cinematic Golden Hour',
+                id: 'camera-shake',
+                name: 'Handheld Kamera Skak',
                 version: '1.0.0',
                 author: 'NovaCut Team',
-                category: 'filter',
-                description: 'Varma gyllene toner och klassisk vinjett i Kodak-stil.',
-                previewColor: '#ffaa00',
-                cssFilter: 'contrast(110%) saturate(120%) sepia(18%) hue-rotate(-10deg)',
-                overlayType: 'vignette',
+                category: 'overlay',
+                description: 'Organiskt handhållet kameraskak för dokumentär och actionkänsla.',
+                previewColor: '#eab308',
+                overlayType: 'camera-shake',
                 params: [
-                    { id: 'warmth', label: 'Värme', type: 'slider', min: 0, max: 50, step: 1, default: 18 },
-                    { id: 'contrast', label: 'Kontrast', type: 'slider', min: 90, max: 160, step: 5, default: 110 }
+                    { id: 'intensity', label: 'Skak-intensitet', type: 'slider', min: 0.2, max: 3.0, step: 0.1, default: 1.0 }
                 ]
             },
             {
-                id: 'noir-bw',
-                name: 'Noir Film Black & White',
+                id: 'beat-shake',
+                name: 'Beat-Skak & Bas-Bump',
                 version: '1.0.0',
-                author: 'NovaCut Community',
-                category: 'filter',
-                description: 'Dramatisk svartvit filmestetik med skarp kontrast och djup svärta.',
-                previewColor: '#71717a',
-                cssFilter: 'grayscale(100%) contrast(150%)',
+                author: 'NovaCut Team',
+                category: 'overlay',
+                description: 'Intensiv beat-skakning synkroniserad för bastrummor och drops.',
+                previewColor: '#ef4444',
+                cssFilter: 'contrast(110%)',
+                overlayType: 'beat-shake',
                 params: [
-                    { id: 'contrast', label: 'Kontrast', type: 'slider', min: 100, max: 200, step: 5, default: 150 }
+                    { id: 'intensity', label: 'Kraft', type: 'slider', min: 0.5, max: 2.5, step: 0.1, default: 1.2 }
+                ]
+            },
+            {
+                id: 'rgb-split',
+                name: 'RGB Chromatic Glitch',
+                version: '1.1.0',
+                author: 'NovaCut Team',
+                category: 'overlay',
+                description: 'Separerade färgkanaler (kromatisk aberration) med cyberkänsla.',
+                previewColor: '#06b6d4',
+                cssFilter: 'hue-rotate(15deg) contrast(110%)',
+                overlayType: 'rgb-split',
+                params: [
+                    { id: 'offset', label: 'Separationsavstånd', type: 'slider', min: 2, max: 24, step: 1, default: 8 }
+                ]
+            },
+            {
+                id: 'film-grain',
+                name: '35mm Analogt Filmkorn',
+                version: '1.2.0',
+                author: 'NovaCut Team',
+                category: 'overlay',
+                description: 'Fotokemiskt analogt filmkorn för äkta 35mm biokänsla.',
+                previewColor: '#78716c',
+                cssFilter: 'sepia(10%) contrast(108%)',
+                overlayType: 'film-grain',
+                params: [
+                    { id: 'count', label: 'Korntäthet', type: 'slider', min: 50, max: 400, step: 20, default: 220 }
+                ]
+            },
+            {
+                id: 'film-dust',
+                name: '16mm Filmdamm & Repor',
+                version: '1.1.0',
+                author: 'NovaCut Team',
+                category: 'overlay',
+                description: 'Autentiska dammpartiklar, hårstrån och analoga filmrepor.',
+                previewColor: '#a1a1aa',
+                cssFilter: 'sepia(18%)',
+                overlayType: 'dust-scratches',
+                params: [
+                    { id: 'count', label: 'Partikeltäthet', type: 'slider', min: 15, max: 120, step: 5, default: 50 }
+                ]
+            },
+            {
+                id: 'vignette-cinematic',
+                name: 'Filmisk Mjuk Vinjett',
+                version: '1.0.0',
+                author: 'NovaCut Team',
+                category: 'overlay',
+                description: 'Mjuka mörka kanter som drar fokus mot mitten av bilden.',
+                previewColor: '#27272a',
+                overlayType: 'vignette',
+                params: [
+                    { id: 'contrast', label: 'Fokus', type: 'slider', min: 50, max: 150, step: 5, default: 100 }
+                ]
+            },
+            {
+                id: 'vignette-warm',
+                name: 'Gyllene Vintage Vinjett',
+                version: '1.0.0',
+                author: 'NovaCut Team',
+                category: 'overlay',
+                description: 'Varm bärnstensfärgad vinjett i 70-talsstil.',
+                previewColor: '#b45309',
+                cssFilter: 'sepia(25%) contrast(110%)',
+                overlayType: 'vignette-warm',
+                params: [
+                    { id: 'warmth', label: 'Gyllene ton', type: 'slider', min: 10, max: 60, step: 2, default: 35 }
                 ]
             },
             {
                 id: 'rain-storm',
-                name: 'Regn & Storm (Rain)',
-                version: '1.1.0',
+                name: 'Filmiskt Regn & Storm',
+                version: '1.2.0',
                 author: 'NovaCut Team',
                 category: 'overlay',
-                description: 'Cinematiska regndroppar med anpassningsbar vind, fallhastighet och vattentjocklek.',
+                description: 'Cinematiska regndroppar med vind, vattentjocklek och vinkel.',
                 previewColor: '#38bdf8',
                 overlayType: 'rain',
                 params: [
-                    { id: 'count', label: 'Antal droppar', type: 'slider', min: 30, max: 400, step: 10, default: 160 },
-                    { id: 'speed', label: 'Hastighet', type: 'slider', min: 0.2, max: 2.5, step: 0.1, default: 1.0 },
-                    { id: 'wind', label: 'Vind / Vinkel', type: 'slider', min: -1.0, max: 1.0, step: 0.1, default: -0.25 },
-                    { id: 'length', label: 'Dropplängd', type: 'slider', min: 15, max: 80, step: 5, default: 40 },
-                    { id: 'thickness', label: 'Linjebredd', type: 'slider', min: 1.0, max: 4.0, step: 0.5, default: 1.8 }
-                ]
-            },
-            {
-                id: 'bokeh-glow',
-                name: 'Gyllene Bokeh (Bokeh Glow)',
-                version: '1.1.0',
-                author: 'NovaCut Team',
-                category: 'overlay',
-                description: 'Mjuka svävande ljusbubblor med gyllene gloria och subtil parallaxrörelse.',
-                previewColor: '#fbbf24',
-                overlayType: 'bokeh',
-                params: [
-                    { id: 'count', label: 'Antal bubblor', type: 'slider', min: 10, max: 60, step: 2, default: 26 },
-                    { id: 'size', label: 'Bubbeldiameter', type: 'slider', min: 25, max: 120, step: 5, default: 55 },
-                    { id: 'speed', label: 'Svävhastighet', type: 'slider', min: 0.1, max: 2.0, step: 0.1, default: 0.6 },
-                    { id: 'color', label: 'Färgton', type: 'color', default: '#ffcc33' }
+                    { id: 'count', label: 'Antal droppar', type: 'slider', min: 30, max: 350, step: 10, default: 140 },
+                    { id: 'speed', label: 'Hastighet', type: 'slider', min: 0.3, max: 2.5, step: 0.1, default: 1.0 },
+                    { id: 'wind', label: 'Vind / Vinkel', type: 'slider', min: -1.0, max: 1.0, step: 0.1, default: -0.25 }
                 ]
             },
             {
                 id: 'snow-blizzard',
-                name: 'Snöfall (Snow)',
-                version: '1.0.0',
+                name: 'Atmosfäriskt Snöfall',
+                version: '1.1.0',
                 author: 'NovaCut Team',
                 category: 'overlay',
-                description: 'Atmosfäriska snöflingor med realistiskt fall och mjuk horisontell svajning.',
+                description: 'Mjuka snöflingor med realistiskt fall och horisontell svajning.',
                 previewColor: '#e0f2fe',
                 overlayType: 'snow',
                 params: [
@@ -142,16 +195,524 @@ class NovaCutMarketplace {
                 ]
             },
             {
-                id: 'film-dust',
-                name: 'Filmdamm & Repor (Dust & Scratches)',
+                id: 'bokeh-glow',
+                name: 'Gyllene Bokeh Ljus',
+                version: '1.2.0',
+                author: 'NovaCut Team',
+                category: 'overlay',
+                description: 'Mjuka svävande ljusbubblor med gyllene gloria och lyster.',
+                previewColor: '#fbbf24',
+                overlayType: 'bokeh',
+                params: [
+                    { id: 'count', label: 'Antal bubblor', type: 'slider', min: 10, max: 60, step: 2, default: 28 },
+                    { id: 'size', label: 'Bubbeldiameter', type: 'slider', min: 25, max: 120, step: 5, default: 55 },
+                    { id: 'color', label: 'Färgton', type: 'color', default: '#ffcc33' }
+                ]
+            },
+            {
+                id: 'light-leaks',
+                name: 'Organiska Ljusläckor',
                 version: '1.0.0',
                 author: 'NovaCut Team',
                 category: 'overlay',
-                description: 'Autentiska 12 FPS dammpartiklar och analoga filmrepor för 16mm/35mm känsla.',
-                previewColor: '#a1a1aa',
-                overlayType: 'dust-scratches',
+                description: 'Mjuka solreflexer och ljusslöjor som rör sig i bildens kanter.',
+                previewColor: '#f97316',
+                overlayType: 'light-leaks',
                 params: [
-                    { id: 'count', label: 'Partikeltäthet', type: 'slider', min: 15, max: 120, step: 5, default: 45 }
+                    { id: 'speed', label: 'Rörelsehastighet', type: 'slider', min: 0.2, max: 2.0, step: 0.1, default: 0.7 }
+                ]
+            },
+            {
+                id: 'anamorphic-flare',
+                name: 'Anamorphic Blue Flare',
+                version: '1.0.0',
+                author: 'NovaCut Team',
+                category: 'overlay',
+                description: 'Klassisk horisontell Hollywood sci-fi linsöverstrålning i blått.',
+                previewColor: '#38bdf8',
+                overlayType: 'anamorphic-flare',
+                params: [
+                    { id: 'brightness', label: 'Ljusstyrka', type: 'slider', min: 50, max: 150, step: 5, default: 100 }
+                ]
+            },
+            {
+                id: 'prism-rainbow',
+                name: 'Prismatiska Regnbågsljus',
+                version: '1.0.0',
+                author: 'NovaCut Team',
+                category: 'overlay',
+                description: 'Spektrala regnbågsljusbrytningar genom optiskt glas.',
+                previewColor: '#a855f7',
+                overlayType: 'prism-rainbow',
+                params: [
+                    { id: 'speed', label: 'Rotation', type: 'slider', min: 0.2, max: 1.5, step: 0.1, default: 0.5 }
+                ]
+            },
+            {
+                id: 'laser-grid',
+                name: '80s Synthwave Grid',
+                version: '1.0.0',
+                author: 'NovaCut Team',
+                category: 'overlay',
+                description: 'Lysande cyan/magenta perspektiv-rutnät i botten av bilden.',
+                previewColor: '#06b6d4',
+                cssFilter: 'contrast(120%)',
+                overlayType: 'laser-grid',
+                params: [
+                    { id: 'intensity', label: 'Glow', type: 'slider', min: 0.5, max: 2.0, step: 0.1, default: 1.0 }
+                ]
+            },
+            {
+                id: 'crt-monitor',
+                name: 'Retro CRT Monitor',
+                version: '1.0.0',
+                author: 'NovaCut Team',
+                category: 'overlay',
+                description: 'Böjd bildrörs-effekt med fosforlinjer och hörnvinjett.',
+                previewColor: '#10b981',
+                overlayType: 'crt-monitor',
+                params: [
+                    { id: 'scanlines', label: 'Scanline-djup', type: 'slider', min: 0.3, max: 1.5, step: 0.1, default: 1.0 }
+                ]
+            },
+            {
+                id: 'halftone-dots',
+                name: 'Pop Art Halftone Raster',
+                version: '1.0.0',
+                author: 'NovaCut Team',
+                category: 'overlay',
+                description: 'Serietidnings- och tidningstrycksraster med mikroprickar.',
+                previewColor: '#f59e0b',
+                cssFilter: 'contrast(125%)',
+                overlayType: 'halftone-dots',
+                params: [
+                    { id: 'size', label: 'Rasterstorlek', type: 'slider', min: 8, max: 28, step: 2, default: 14 }
+                ]
+            },
+            {
+                id: 'fog-mist',
+                name: 'Filmiskt Dimlager & Rök',
+                version: '1.0.0',
+                author: 'NovaCut Team',
+                category: 'overlay',
+                description: 'Rullande stämningsfull morgondimma och mjuk rök i förgrunden.',
+                previewColor: '#cbd5e1',
+                overlayType: 'fog-mist',
+                params: [
+                    { id: 'speed', label: 'Vindhastighet', type: 'slider', min: 0.2, max: 1.5, step: 0.1, default: 0.5 }
+                ]
+            },
+            {
+                id: 'fire-embers',
+                name: 'Glödande Gnistor & Aska',
+                version: '1.0.0',
+                author: 'NovaCut Team',
+                category: 'overlay',
+                description: 'Uppåtstigande glödande eldpartiklar och flammande aska.',
+                previewColor: '#ea580c',
+                cssFilter: 'contrast(115%) saturate(120%)',
+                overlayType: 'fire-embers',
+                params: [
+                    { id: 'count', label: 'Antal gnistor', type: 'slider', min: 20, max: 150, step: 5, default: 55 }
+                ]
+            },
+            {
+                id: 'night-vision',
+                name: 'Militär Night Vision',
+                version: '1.0.0',
+                author: 'NovaCut Team',
+                category: 'overlay',
+                description: 'Grön monokrom mörkerkikare med sikte och sensorsbrus.',
+                previewColor: '#22c55e',
+                cssFilter: 'hue-rotate(90deg) saturate(180%) contrast(140%)',
+                overlayType: 'night-vision',
+                params: [
+                    { id: 'noise', label: 'Sensorbrus', type: 'slider', min: 0.5, max: 2.0, step: 0.1, default: 1.0 }
+                ]
+            },
+            {
+                id: 'thermal-vision',
+                name: 'Termisk Värmekamera',
+                version: '1.0.0',
+                author: 'NovaCut Team',
+                category: 'overlay',
+                description: 'Infraröd värmekamera med Predator-färgskala i magenta och gult.',
+                previewColor: '#ec4899',
+                cssFilter: 'invert(100%) hue-rotate(180deg) saturate(200%)',
+                overlayType: 'thermal-vision',
+                params: [
+                    { id: 'contrast', label: 'Värmekontrast', type: 'slider', min: 100, max: 220, step: 10, default: 150 }
+                ]
+            },
+            {
+                id: 'matrix-rain',
+                name: 'Matrix Digital Kodkaskad',
+                version: '1.0.0',
+                author: 'NovaCut Team',
+                category: 'overlay',
+                description: 'Klassiskt grönt digitalt regn med fallande cybertecken.',
+                previewColor: '#4ade80',
+                cssFilter: 'contrast(130%) hue-rotate(80deg)',
+                overlayType: 'matrix-rain',
+                params: [
+                    { id: 'speed', label: 'Fallhastighet', type: 'slider', min: 0.5, max: 2.5, step: 0.1, default: 1.0 }
+                ]
+            },
+            {
+                id: 'underwater',
+                name: 'Undervattens-Krusningar',
+                version: '1.0.0',
+                author: 'NovaCut Team',
+                category: 'overlay',
+                description: 'Solljuskaustik och skimrande vattenytor som reflekteras.',
+                previewColor: '#0284c7',
+                cssFilter: 'hue-rotate(180deg) saturate(130%)',
+                overlayType: 'underwater',
+                params: [
+                    { id: 'speed', label: 'Våghastighet', type: 'slider', min: 0.5, max: 2.5, step: 0.1, default: 1.2 }
+                ]
+            },
+            {
+                id: 'strobe-party',
+                name: 'Rave Strobe & Color Pulse',
+                version: '1.0.0',
+                author: 'NovaCut Team',
+                category: 'overlay',
+                description: 'Snabba färgstarka stroboskopblixtar i takt med musiken.',
+                previewColor: '#d946ef',
+                cssFilter: 'contrast(125%)',
+                overlayType: 'strobe-party',
+                params: [
+                    { id: 'tempo', label: 'Blixtfrekvens', type: 'slider', min: 1, max: 12, step: 1, default: 6 }
+                ]
+            },
+
+            // ==========================================
+            // 🎨 25 CINEMA LUTS & FÄRGGRADERINGSFILTER
+            // ==========================================
+            {
+                id: 'lut-teal-orange',
+                name: 'Teal & Orange Blockbuster',
+                version: '1.0.0',
+                author: 'NovaCut Cinema',
+                category: 'filter',
+                description: 'Hollywoods mest populära action-look med varma hudtoner och kalla skuggor.',
+                previewColor: '#0284c7',
+                cssFilter: 'contrast(125%) saturate(135%) hue-rotate(-15deg) sepia(15%)',
+                params: [
+                    { id: 'contrast', label: 'Kontrast', type: 'slider', min: 90, max: 160, step: 5, default: 125 }
+                ]
+            },
+            {
+                id: 'lut-kodak-portra',
+                name: 'Kodak Portra 400',
+                version: '1.0.0',
+                author: 'NovaCut Cinema',
+                category: 'filter',
+                description: 'Klassisk analog porträttfilm med mjuka hudtoner och subtil värme.',
+                previewColor: '#f59e0b',
+                cssFilter: 'contrast(106%) saturate(112%) sepia(12%) brightness(103%)',
+                params: [
+                    { id: 'warmth', label: 'Värme', type: 'slider', min: 0, max: 30, step: 1, default: 12 }
+                ]
+            },
+            {
+                id: 'lut-fuji-velvia',
+                name: 'Fuji Velvia 50',
+                version: '1.0.0',
+                author: 'NovaCut Cinema',
+                category: 'filter',
+                description: 'Extrem färgmättnad, djup himmel och fyllig natur för landskap.',
+                previewColor: '#10b981',
+                cssFilter: 'contrast(130%) saturate(155%) brightness(98%)',
+                params: [
+                    { id: 'saturation', label: 'Mättnad', type: 'slider', min: 100, max: 200, step: 5, default: 155 }
+                ]
+            },
+            {
+                id: 'cinematic-warm',
+                name: 'Cinematic Golden Hour',
+                version: '1.0.0',
+                author: 'NovaCut Cinema',
+                category: 'filter',
+                description: 'Varma gyllene solnedgångstoner med Kodak-inspirerad lyster.',
+                previewColor: '#ffaa00',
+                cssFilter: 'contrast(110%) saturate(120%) sepia(18%) hue-rotate(-10deg)',
+                params: [
+                    { id: 'warmth', label: 'Värme', type: 'slider', min: 0, max: 40, step: 1, default: 18 }
+                ]
+            },
+            {
+                id: 'cyberpunk-neon',
+                name: 'Cyberpunk Neon Tokyo',
+                version: '1.0.0',
+                author: 'NovaCut Cinema',
+                category: 'filter',
+                description: 'Elektrisk cyan & magenta neon-tint med ökad kontrast och glow.',
+                previewColor: '#00f0ff',
+                cssFilter: 'contrast(140%) saturate(160%) hue-rotate(180deg)',
+                params: [
+                    { id: 'contrast', label: 'Kontrast', type: 'slider', min: 100, max: 180, step: 5, default: 140 }
+                ]
+            },
+            {
+                id: 'noir-bw',
+                name: 'Film Noir High-Contrast B&W',
+                version: '1.0.0',
+                author: 'NovaCut Cinema',
+                category: 'filter',
+                description: 'Dramatisk svartvit filmestetik med skarp kontrast och djup svärta.',
+                previewColor: '#52525b',
+                cssFilter: 'grayscale(100%) contrast(165%) brightness(95%)',
+                params: [
+                    { id: 'contrast', label: 'Kontrast', type: 'slider', min: 100, max: 200, step: 5, default: 165 }
+                ]
+            },
+            {
+                id: 'lut-silver-gelatin',
+                name: 'Silver Gelatin Fine Art',
+                version: '1.0.0',
+                author: 'NovaCut Cinema',
+                category: 'filter',
+                description: 'Mjuk, finkänslig monokrom galleriton med silvriga högdagrar.',
+                previewColor: '#a1a1aa',
+                cssFilter: 'grayscale(100%) contrast(120%) sepia(8%)',
+                params: [
+                    { id: 'contrast', label: 'Kontrast', type: 'slider', min: 90, max: 150, step: 5, default: 120 }
+                ]
+            },
+            {
+                id: 'lut-matrix-green',
+                name: 'Matrix Cyber Green',
+                version: '1.0.0',
+                author: 'NovaCut Cinema',
+                category: 'filter',
+                description: 'Klassisk grön digital sci-fi-tint inspirerad av Matrix.',
+                previewColor: '#22c55e',
+                cssFilter: 'contrast(130%) hue-rotate(85deg) saturate(140%)',
+                params: [
+                    { id: 'greenTint', label: 'Grönt Djup', type: 'slider', min: 50, max: 120, step: 5, default: 85 }
+                ]
+            },
+            {
+                id: 'lut-nordic-cold',
+                name: 'Nordic Noir Cold',
+                version: '1.0.0',
+                author: 'NovaCut Cinema',
+                category: 'filter',
+                description: 'Kalla skandinaviska blå toner och melankolisk krispighet.',
+                previewColor: '#38bdf8',
+                cssFilter: 'contrast(115%) saturate(85%) hue-rotate(190deg) brightness(98%)',
+                params: [
+                    { id: 'coolness', label: 'Blå Kyla', type: 'slider', min: 150, max: 220, step: 5, default: 190 }
+                ]
+            },
+            {
+                id: 'lut-vintage-70s',
+                name: 'Vintage 70s Super 8',
+                version: '1.0.0',
+                author: 'NovaCut Cinema',
+                category: 'filter',
+                description: 'Bärnstensgula toner, mättade röda färger och analog nostalgi.',
+                previewColor: '#d97706',
+                cssFilter: 'sepia(45%) contrast(115%) saturate(110%) brightness(105%)',
+                params: [
+                    { id: 'sepia', label: 'Sepianivå', type: 'slider', min: 20, max: 70, step: 2, default: 45 }
+                ]
+            },
+            {
+                id: 'lut-bleach-bypass',
+                name: 'Bleach Bypass (Silver look)',
+                version: '1.0.0',
+                author: 'NovaCut Cinema',
+                category: 'filter',
+                description: 'Silveraktig hård kontrast och dämpad färgmättnad (Saving Private Ryan).',
+                previewColor: '#94a3b8',
+                cssFilter: 'contrast(150%) saturate(55%) brightness(102%)',
+                params: [
+                    { id: 'contrast', label: 'Hårdhet', type: 'slider', min: 120, max: 180, step: 5, default: 150 }
+                ]
+            },
+            {
+                id: 'lut-wes-anderson',
+                name: 'Wes Anderson Pastel',
+                version: '1.0.0',
+                author: 'NovaCut Cinema',
+                category: 'filter',
+                description: 'Sagoskimrande gula och rosa pastellfärger med mjuk kontrast.',
+                previewColor: '#f472b6',
+                cssFilter: 'contrast(95%) saturate(130%) sepia(18%) brightness(112%)',
+                params: [
+                    { id: 'pastel', label: 'Ljusstyrka', type: 'slider', min: 95, max: 130, step: 2, default: 112 }
+                ]
+            },
+            {
+                id: 'lut-technicolor',
+                name: 'Technicolor 3-Strip Classic',
+                version: '1.0.0',
+                author: 'NovaCut Cinema',
+                category: 'filter',
+                description: 'Gyllene Hollywoods guldålder med hyperlevande primärfärger.',
+                previewColor: '#ef4444',
+                cssFilter: 'contrast(135%) saturate(160%) brightness(97%)',
+                params: [
+                    { id: 'saturation', label: 'Färgprakt', type: 'slider', min: 120, max: 200, step: 5, default: 160 }
+                ]
+            },
+            {
+                id: 'lut-anime-sky',
+                name: 'Anime Radiant Sky (Shinkai)',
+                version: '1.0.0',
+                author: 'NovaCut Cinema',
+                category: 'filter',
+                description: 'Lysande himmelsblått och livfulla klara färger inspirerade av japansk anime.',
+                previewColor: '#60a5fa',
+                cssFilter: 'contrast(112%) saturate(145%) brightness(108%)',
+                params: [
+                    { id: 'vibrance', label: 'Lyster', type: 'slider', min: 110, max: 180, step: 5, default: 145 }
+                ]
+            },
+            {
+                id: 'lut-moonlight',
+                name: 'Deep Moonlight (Day-for-Night)',
+                version: '1.0.0',
+                author: 'NovaCut Cinema',
+                category: 'filter',
+                description: 'Mörkblå nattkänsla som förvandlar dagsljus till filmisk månskensnatt.',
+                previewColor: '#1e3a8a',
+                cssFilter: 'hue-rotate(210deg) saturate(110%) brightness(88%) contrast(120%)',
+                params: [
+                    { id: 'darkness', label: 'Mörker', type: 'slider', min: 70, max: 100, step: 2, default: 88 }
+                ]
+            },
+            {
+                id: 'lut-california-sunset',
+                name: 'California Sunset',
+                version: '1.0.0',
+                author: 'NovaCut Cinema',
+                category: 'filter',
+                description: 'Glödande aprikos- och persikotoner med stilla sommarvärme.',
+                previewColor: '#fb923c',
+                cssFilter: 'sepia(30%) saturate(140%) contrast(115%) hue-rotate(-15deg)',
+                params: [
+                    { id: 'glow', label: 'Solglöd', type: 'slider', min: 15, max: 45, step: 2, default: 30 }
+                ]
+            },
+            {
+                id: 'lut-polaroid-90s',
+                name: 'Faded 90s Polaroid',
+                version: '1.0.0',
+                author: 'NovaCut Cinema',
+                category: 'filter',
+                description: 'Matta lyfta skuggor, dämpade toner och vintage snapshot-känsla.',
+                previewColor: '#e2e8f0',
+                cssFilter: 'contrast(90%) brightness(115%) saturate(85%) sepia(15%)',
+                params: [
+                    { id: 'fade', label: 'Matt skugga', type: 'slider', min: 75, max: 105, step: 2, default: 90 }
+                ]
+            },
+            {
+                id: 'lut-horror-cold',
+                name: 'Horror Asylum Cold',
+                version: '1.0.0',
+                author: 'NovaCut Cinema',
+                category: 'filter',
+                description: 'Kall, ödslig och avmättad spänningskänsla för skräck och thriller.',
+                previewColor: '#475569',
+                cssFilter: 'saturate(40%) contrast(140%) brightness(90%) hue-rotate(170deg)',
+                params: [
+                    { id: 'desat', label: 'Bleknad', type: 'slider', min: 20, max: 70, step: 5, default: 40 }
+                ]
+            },
+            {
+                id: 'lut-coffee-cream',
+                name: 'Kaffe & Grädde Vintage',
+                version: '1.0.0',
+                author: 'NovaCut Cinema',
+                category: 'filter',
+                description: 'Mjuka varma bruna toner med behaglig kaffetonad kontrast.',
+                previewColor: '#78350f',
+                cssFilter: 'sepia(35%) contrast(108%) saturate(95%) brightness(106%)',
+                params: [
+                    { id: 'warmth', label: 'Kaffeton', type: 'slider', min: 20, max: 55, step: 2, default: 35 }
+                ]
+            },
+            {
+                id: 'lut-vaporwave',
+                name: 'Vaporwave Dream',
+                version: '1.0.0',
+                author: 'NovaCut Cinema',
+                category: 'filter',
+                description: 'Pastellrosa, lila och turkosa toner i drömsk 90s estetik.',
+                previewColor: '#c084fc',
+                cssFilter: 'hue-rotate(280deg) saturate(165%) contrast(120%)',
+                params: [
+                    { id: 'hue', label: 'Färgskiftning', type: 'slider', min: 240, max: 320, step: 5, default: 280 }
+                ]
+            },
+            {
+                id: 'lut-infrared',
+                name: 'Infrared Surreal Dream',
+                version: '1.0.0',
+                author: 'NovaCut Cinema',
+                category: 'filter',
+                description: 'Surrealistisk infraröd fotografering med vita löv och dramatisk himmel.',
+                previewColor: '#f43f5e',
+                cssFilter: 'invert(85%) hue-rotate(180deg) contrast(120%)',
+                params: [
+                    { id: 'invert', label: 'Infraröd styrka', type: 'slider', min: 60, max: 95, step: 2, default: 85 }
+                ]
+            },
+            {
+                id: 'lut-cross-process',
+                name: 'Cross-Process Lomo',
+                version: '1.0.0',
+                author: 'NovaCut Cinema',
+                category: 'filter',
+                description: 'Kemiskt framkallningsskifte i diafilm med färgskiftningar i cyan och gult.',
+                previewColor: '#84cc16',
+                cssFilter: 'contrast(140%) saturate(145%) hue-rotate(35deg)',
+                params: [
+                    { id: 'contrast', label: 'Skärpa & Kontrast', type: 'slider', min: 110, max: 170, step: 5, default: 140 }
+                ]
+            },
+            {
+                id: 'lut-gothic-crimson',
+                name: 'Gothic Crimson Ruby',
+                version: '1.0.0',
+                author: 'NovaCut Cinema',
+                category: 'filter',
+                description: 'Djup rubinröd accentuering med mörka vinröda skuggor.',
+                previewColor: '#881337',
+                cssFilter: 'contrast(135%) saturate(120%) hue-rotate(320deg) brightness(92%)',
+                params: [
+                    { id: 'ruby', label: 'Rubinton', type: 'slider', min: 290, max: 350, step: 5, default: 320 }
+                ]
+            },
+            {
+                id: 'lut-clean-commercial',
+                name: 'Clean Commercial Modern',
+                version: '1.0.0',
+                author: 'NovaCut Cinema',
+                category: 'filter',
+                description: 'Krispig neutral vitbalans och premiumglans för reklam och vlogs.',
+                previewColor: '#f8fafc',
+                cssFilter: 'contrast(108%) brightness(108%) saturate(115%)',
+                params: [
+                    { id: 'clarity', label: 'Krispighet', type: 'slider', min: 100, max: 130, step: 2, default: 108 }
+                ]
+            },
+            {
+                id: 'lut-emerald-forest',
+                name: 'Emerald Forest Deep Green',
+                version: '1.0.0',
+                author: 'NovaCut Cinema',
+                category: 'filter',
+                description: 'Djupa mossgröna toner och gyllene solreflexer för natur och skog.',
+                previewColor: '#059669',
+                cssFilter: 'contrast(120%) saturate(125%) hue-rotate(55deg)',
+                params: [
+                    { id: 'green', label: 'Smaragdton', type: 'slider', min: 30, max: 80, step: 5, default: 55 }
                 ]
             }
         ];
@@ -338,26 +899,47 @@ class NovaCutMarketplace {
         });
     }
 
-    renderEffectsTab() {
+    renderEffectsTab(category = 'all', searchQuery = '') {
         if (!this.effectsGrid) return;
         this.effectsGrid.innerHTML = '';
 
-        this.plugins.forEach(plugin => {
+        let filtered = this.plugins;
+        if (category !== 'all') {
+            filtered = filtered.filter(p => p.category === category);
+        }
+        if (searchQuery) {
+            const q = searchQuery.toLowerCase().trim();
+            filtered = filtered.filter(p => p.name.toLowerCase().includes(q) || (p.description && p.description.toLowerCase().includes(q)));
+        }
+
+        if (filtered.length === 0) {
+            this.effectsGrid.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 20px; font-size: 12px;">Inga effekter matchade "${searchQuery}"</div>`;
+            return;
+        }
+
+        filtered.forEach(plugin => {
             const item = document.createElement('div');
             item.className = 'plugin-card';
+            item.style.marginBottom = '6px';
+            const isOverlay = plugin.category === 'overlay';
+            const catLabel = isOverlay ? '🎥 Live FX Overlay' : '🎨 Cinema LUT Filter';
+
             item.innerHTML = `
-                <div style="padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <div style="width: 12px; height: 12px; border-radius: 50%; background: ${plugin.previewColor || '#ec4899'};"></div>
-                        <div>
-                            <div style="font-weight: 600; font-size: 12px;">${plugin.name}</div>
-                            <div style="font-size: 10px; color: var(--text-muted);">${plugin.category}</div>
+                <div style="padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                    <div style="display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;">
+                        <div style="width: 14px; height: 14px; border-radius: 4px; background: ${plugin.previewColor || '#ec4899'}; flex-shrink: 0; box-shadow: 0 0 8px ${plugin.previewColor || '#ec4899'}44;"></div>
+                        <div style="min-width: 0; flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="font-weight: 600; font-size: 12px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${plugin.name}</span>
+                                <span style="font-size: 9px; padding: 2px 5px; border-radius: 3px; background: ${isOverlay ? 'rgba(56, 189, 248, 0.15)' : 'rgba(244, 63, 94, 0.15)'}; color: ${isOverlay ? '#38bdf8' : '#fb7185'}; white-space: nowrap;">${catLabel}</span>
+                            </div>
+                            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${plugin.description}</div>
                         </div>
                     </div>
-                    <button class="btn-icon" title="Lägg till effektlager" style="color: var(--accent); font-size: 16px;">+</button>
+                    <button class="btn-primary btn-add-fx" style="font-size: 11px; padding: 5px 10px; border-radius: 4px; flex-shrink: 0; justify-content: center; height: auto;" title="Lägg till effektlager">+ Lägg till</button>
                 </div>
             `;
-            item.querySelector('button').addEventListener('click', () => {
+            item.querySelector('.btn-add-fx').addEventListener('click', () => {
                 this.addPluginToTimeline(plugin);
             });
             this.effectsGrid.appendChild(item);
@@ -389,6 +971,14 @@ class NovaCutMarketplace {
         if (window.inspector) {
             window.inspector.update(clip);
         }
+
+        if (this.engine) {
+            this.engine.render();
+        }
+
+        if (window.novaCutToast) {
+            window.novaCutToast(`🪄 "${plugin.name}" tillagd på effektspåret vid ${playheadTime.toFixed(1)}s!`);
+        }
     }
 
     setupEventListeners() {
@@ -401,13 +991,34 @@ class NovaCutMarketplace {
             });
         }
 
-        // Category Chips
-        document.querySelectorAll('.category-chips .chip').forEach(chip => {
+        // Marketplace Category Chips
+        document.querySelectorAll('#tab-marketplace .category-chips .chip').forEach(chip => {
             chip.addEventListener('click', () => {
-                document.querySelectorAll('.category-chips .chip').forEach(c => c.classList.remove('active'));
+                document.querySelectorAll('#tab-marketplace .category-chips .chip').forEach(c => c.classList.remove('active'));
                 chip.classList.add('active');
                 this.activeCategory = chip.dataset.cat;
                 this.renderMarketplace();
+            });
+        });
+
+        // Effects Tab Filter Chips & Search
+        const fxSearchInput = document.getElementById('effectsSearchInput');
+        let activeFxCategory = 'all';
+        let activeFxQuery = '';
+
+        if (fxSearchInput) {
+            fxSearchInput.addEventListener('input', (e) => {
+                activeFxQuery = e.target.value;
+                this.renderEffectsTab(activeFxCategory, activeFxQuery);
+            });
+        }
+
+        document.querySelectorAll('.fx-cat-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                document.querySelectorAll('.fx-cat-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                activeFxCategory = chip.getAttribute('data-cat') || 'all';
+                this.renderEffectsTab(activeFxCategory, activeFxQuery);
             });
         });
 

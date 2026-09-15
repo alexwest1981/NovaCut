@@ -137,11 +137,13 @@
                     </div>
 
                     <div class="category-chips">
-                        <div class="chip active transition-chip" data-cat="all">Alla</div>
-                        <div class="chip transition-chip" data-cat="soft">Mjuka</div>
-                        <div class="chip transition-chip" data-cat="motion">Rörelse</div>
-                        <div class="chip transition-chip" data-cat="light">Ljus</div>
-                        <div class="chip transition-chip" data-cat="glitch">Glitch</div>
+                        <div class="chip active transition-chip" data-cat="all">Alla (50)</div>
+                        <div class="chip transition-chip" data-cat="soft">Mjuka (8)</div>
+                        <div class="chip transition-chip" data-cat="motion">Rörelse (10)</div>
+                        <div class="chip transition-chip" data-cat="zoom">Zoom (8)</div>
+                        <div class="chip transition-chip" data-cat="glitch">Glitch (8)</div>
+                        <div class="chip transition-chip" data-cat="light">Ljus (8)</div>
+                        <div class="chip transition-chip" data-cat="wipe">Wipes (8)</div>
                     </div>
 
                     <p style="font-size: 10px; color: var(--text-muted); margin: 0;">Klicka eller dra en övergång direkt till ett klipp i tidslinjen.</p>
@@ -154,8 +156,20 @@
 
             <!-- Tab 3: Built-in Effects & Filter Layers -->
             <div id="tab-effects" class="tab-content">
-                <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <div class="section-title" style="margin-top: 2px;">🎥 Live Videoeffekter</div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <span class="section-title" style="margin: 0;">🎬 Videoeffekter & LUTs (50 st)</span>
+                    </div>
+
+                    <input type="text" id="effectsSearchInput" class="search-input" placeholder="🔍 Sök bland 50 effekter & Cinema LUTs..." style="width: 100%; box-sizing: border-box; padding: 7px 10px; font-size: 11px; margin: 2px 0;">
+
+                    <div class="category-chips effects-category-chips" style="margin-bottom: 2px;">
+                        <div class="chip active fx-cat-chip" data-cat="all">Alla (50)</div>
+                        <div class="chip fx-cat-chip" data-cat="overlay">🎥 Live Overlays (25)</div>
+                        <div class="chip fx-cat-chip" data-cat="filter">🎨 Cinema LUTs (25)</div>
+                    </div>
+
+                    <div class="section-title" style="margin-top: 4px; font-size: 11px;">⚡ Snabbval Live FX</div>
                     <div class="live-fx-grid" id="liveFxGrid">
                         <div class="live-fx-card" data-fx="vhs-retro" title="Lägg till VHS 1995 Retro Cam på tidslinjen">
                             <div class="fx-icon">📼</div>
@@ -169,6 +183,13 @@
                             <div class="fx-meta">
                                 <div class="fx-title">Kamera Skak</div>
                                 <div class="fx-desc">Handheld Jitter</div>
+                            </div>
+                        </div>
+                        <div class="live-fx-card" data-fx="beat-shake" title="Lägg till Beat-Skak på tidslinjen">
+                            <div class="fx-icon">🥁</div>
+                            <div class="fx-meta">
+                                <div class="fx-title">Beat-Skak</div>
+                                <div class="fx-desc">Bas & Drop Bump</div>
                             </div>
                         </div>
                         <div class="live-fx-card" data-fx="rgb-split" title="Lägg till RGB Split / Glitch på tidslinjen">
@@ -199,10 +220,17 @@
                                 <div class="fx-desc">Vattenstrimmor</div>
                             </div>
                         </div>
+                        <div class="live-fx-card" data-fx="light-leaks" title="Lägg till Organiska Ljusläckor på tidslinjen">
+                            <div class="fx-icon">💡</div>
+                            <div class="fx-meta">
+                                <div class="fx-title">Ljusläckor</div>
+                                <div class="fx-desc">Solsken & Flare</div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="section-title">🎨 Färgfilter & LUTs</div>
-                    <div id="effectsGrid" style="display: flex; flex-direction: column; gap: 8px;">
+                    <div class="section-title" style="margin-top: 6px; font-size: 11px;">📦 Komplett Effektbibliotek</div>
+                    <div id="effectsGrid" style="display: flex; flex-direction: column; gap: 6px; max-height: 360px; overflow-y: auto; padding-right: 4px;">
                         <!-- Effects rendered dynamically -->
                     </div>
                 </div>
