@@ -65,6 +65,17 @@ Detta dokument beskriver sprintplanen för **NovaCut**, en modern, blixtsnabb oc
 * **Video Masking:** Cirkelmask (perfekt för Facecam / Reaktionsvideos), Rektangulär mask (Crop / Split screen), Linjär mask (Wipe), Spegelmask samt Invertera mask.
 * **Interaktiv Mask-Gizmo:** Cyan-streckad kontur på canvasen som visar maskens exakta position och storlek.
 
-### Sprint 12: Chroma Key & Green Screen (Kommande sprint)
-* **Grönskärms-Chroma Key:** Pipettverktyg för att plocka bakgrundsfärg, färgkontroller för tolerans (Similarity), kantmjukhet (Smoothness) och spilldämpning (Spill Reduction).
-* **Transparent Kompositering:** Full realtidsklippning mot underliggande videospår på tidslinjen.
+### Sprint 12: Chroma Key & Green Screen
+* **Grönskärms-Chroma Key:** Pipettverktyg (`startColorPicker`) för att sampla färg direkt från canvas med muspekaren.
+* **Färgkontroller & Algoritmer:** Euklidisk RGB-färgavståndsmätning, ställbar tolerans (Similarity), kantmjukhet (Smoothness/Alpha Falloff) och spilldämpning (Spill Suppression för grön/blå reflektion på kläder och hud).
+* **Transparent Kompositering:** Högpresterande offscreen pixel-processing med `willReadFrequently` och realtidsklippning mot underliggande spår.
+
+### Sprint 13: Text Animationer & Kinetic Typography (Kommande sprint)
+* **Text Motion Presets:** In/Ut/Loop-animationer för text och undertexter (Skrivmaskin / Typewriter, Pop/Bounce In, Slide Up, Zoom Pulse, Neon Glow Pulse, Cyber Glitch).
+* **Typografi & Skuggor:** Text Stroke (konturlinje), Glow/Skugga med anpassningsbar blur & färg, bakgrundsbricka (Rounded Tag).
+* **Inspektor-integration:** Kategori-väljare för textanimationer med tidsinställning och förhandsvisning.
+
+### Sprint 14: Picture-in-Picture (PiP) & Multi-Track Reaktionslayouter
+* **Reaktions- & Gaminglayouter:** 1-klicks förinställningar för Facecam (cirkel/rektangel i hörnet), Split Screen 50/50 (vertikal & horisontell) och Grid Collage.
+* **Smart Spårhantering:** Automatisk placering och skalning av spår V1/V2/V3 med synkroniserad uppspelning.
+
