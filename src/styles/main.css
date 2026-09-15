@@ -2198,6 +2198,92 @@ body {
     text-overflow: ellipsis;
 }
 
+/* --- CapCut Pro: Color Grading & Video Masking (Sprint 11) --- */
+.color-presets-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.btn-color-preset {
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    border-radius: 6px;
+    padding: 6px 4px;
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.btn-color-preset:hover {
+    background: var(--bg-surface-hover);
+    color: var(--text-primary);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn-color-preset.active {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 8px rgba(0, 212, 130, 0.3);
+}
+
+/* Special Gradients for Color Sliders */
+.slider-temp::-webkit-slider-runnable-track {
+    background: linear-gradient(90deg, #38bdf8 0%, #374151 50%, #f59e0b 100%) !important;
+}
+
+.slider-tint::-webkit-slider-runnable-track {
+    background: linear-gradient(90deg, #22c55e 0%, #374151 50%, #ec4899 100%) !important;
+}
+
+.mask-type-tabs {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+    margin-bottom: 12px;
+}
+
+.btn-mask-tab {
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 2px;
+    font-size: 10px;
+    cursor: pointer;
+    text-align: center;
+    color: var(--text-secondary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    transition: all 0.15s ease;
+}
+
+.btn-mask-tab:hover {
+    background: var(--bg-surface-hover);
+    color: var(--text-primary);
+}
+
+.btn-mask-tab.active {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 8px rgba(0, 212, 130, 0.25);
+}
+
+.btn-mask-tab .mask-icon {
+    font-size: 14px;
+}
+
+
 
 
 

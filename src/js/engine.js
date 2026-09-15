@@ -525,6 +525,19 @@ class NovaCutEngine {
         let drawW = width;
         let drawH = height;
 
+        // Clip Color Grading Filter
+        const clipColorFilter = this.getClipColorFilter(clip);
+        if (clipColorFilter) {
+            ctx.filter = (ctx.filter && ctx.filter !== 'none') ? `${ctx.filter} ${clipColorFilter}` : clipColorFilter;
+        }
+
+        // Video Masking (Circle / Rectangle / Linear / Mirror)
+        const hasMask = clip.mask && clip.mask.type && clip.mask.type !== 'none';
+        if (hasMask) {
+            ctx.save();
+            this.applyClipMask(ctx, clip.mask, width, height);
+        }
+
         if (mediaEl && mediaEl.tagName === 'VIDEO') {
             const isVideoMuted = window.timeline?.trackStates?.[clip.trackId]?.muted || false;
             mediaEl.volume = isVideoMuted ? 0 : Math.min(1.0, this.getClipAudioVolume(clip, localTime, []));
@@ -565,6 +578,14 @@ class NovaCutEngine {
             this.renderProceduralDemo(clip, width, height);
         }
 
+        // Close Mask Clip Path
+        if (hasMask) {
+            ctx.restore();
+        }
+
+        // Color Grading Overlays (Warm/Cold Temperature, Tint, Vignette)
+        this.renderClipColorGradingOverlays(ctx, clip, drawW, drawH);
+
         // Render transition glitch RGB chromatic shift
         if (glitchActive && mediaEl) {
             ctx.save();
@@ -584,6 +605,159 @@ class NovaCutEngine {
         }
 
         ctx.restore();
+    }
+
+    getClipColorFilter(clip) {
+        const filters = [];
+
+        // Brightness / Exposure (-50% to +50%)
+        if (clip.brightness !== undefined && clip.brightness !== 0) {
+            filters.push(`brightness(${Math.round(100 + clip.brightness)}%)`);
+        }
+        // Contrast (50% to 200%)
+        if (clip.contrast !== undefined && clip.contrast !== 100) {
+            filters.push(`contrast(${Math.round(clip.contrast)}%)`);
+        }
+        // Saturation (0% to 200%)
+        if (clip.saturation !== undefined && clip.saturation !== 100) {
+            filters.push(`saturate(${Math.round(clip.saturation)}%)`);
+        }
+        // Custom preset filters (e.g. Noir, Vintage, Cyberpunk, Sunset)
+        if (clip.colorPreset === 'noir') {
+            filters.push('grayscale(100%) contrast(140%) brightness(95%)');
+        } else if (clip.colorPreset === 'teal_orange') {
+            filters.push('contrast(120%) saturate(115%)');
+        } else if (clip.colorPreset === 'cyberpunk') {
+            filters.push('hue-rotate(290deg) contrast(130%) saturate(140%)');
+        } else if (clip.colorPreset === 'vintage') {
+            filters.push('sepia(35%) contrast(110%) saturate(85%) brightness(105%)');
+        } else if (clip.colorPreset === 'sunset') {
+            filters.push('sepia(25%) saturate(135%) contrast(115%)');
+        }
+
+        return filters.length > 0 ? filters.join(' ') : '';
+    }
+
+    renderClipColorGradingOverlays(ctx, clip, drawW, drawH) {
+        // Temperature (Warm / Cold)
+        if (clip.temperature && Math.abs(clip.temperature) > 1) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'color';
+            if (clip.temperature > 0) {
+                // Warm Golden Amber
+                ctx.fillStyle = 'rgb(255, 160, 20)';
+                ctx.globalAlpha = Math.min(0.45, (clip.temperature / 100) * 0.38);
+            } else {
+                // Cold Cyan / Blue
+                ctx.fillStyle = 'rgb(30, 160, 255)';
+                ctx.globalAlpha = Math.min(0.45, (Math.abs(clip.temperature) / 100) * 0.38);
+            }
+            ctx.fillRect(-drawW / 2, -drawH / 2, drawW, drawH);
+            ctx.restore();
+        }
+
+        // Tint (Green / Magenta)
+        if (clip.tint && Math.abs(clip.tint) > 1) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'color';
+            if (clip.tint > 0) {
+                // Magenta
+                ctx.fillStyle = 'rgb(255, 40, 180)';
+                ctx.globalAlpha = Math.min(0.4, (clip.tint / 100) * 0.3);
+            } else {
+                // Green
+                ctx.fillStyle = 'rgb(40, 255, 100)';
+                ctx.globalAlpha = Math.min(0.4, (Math.abs(clip.tint) / 100) * 0.3);
+            }
+            ctx.fillRect(-drawW / 2, -drawH / 2, drawW, drawH);
+            ctx.restore();
+        }
+
+        // Vignette
+        if (clip.vignette && clip.vignette > 0) {
+            ctx.save();
+            const rad = Math.max(drawW, drawH) * 0.65;
+            const grad = ctx.createRadialGradient(0, 0, rad * 0.3, 0, 0, rad);
+            grad.addColorStop(0, 'transparent');
+            grad.addColorStop(1, `rgba(0, 0, 0, ${Math.min(0.9, (clip.vignette / 100) * 0.85)})`);
+            ctx.fillStyle = grad;
+            ctx.fillRect(-drawW / 2, -drawH / 2, drawW, drawH);
+            ctx.restore();
+        }
+    }
+
+    applyClipMask(ctx, mask, drawW, drawH) {
+        if (!mask || !mask.type || mask.type === 'none') return;
+
+        const type = mask.type;
+        const inverted = !!mask.inverted;
+
+        if (type === 'circle') {
+            const size = mask.size !== undefined ? mask.size : Math.min(drawW, drawH) * 0.7;
+            const r = Math.max(10, size / 2);
+            const cx = mask.x || 0;
+            const cy = mask.y || 0;
+
+            ctx.beginPath();
+            if (inverted) {
+                ctx.rect(-drawW, -drawH, drawW * 2, drawH * 2);
+                ctx.arc(cx, cy, r, 0, Math.PI * 2, true);
+                ctx.clip('evenodd');
+            } else {
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.clip();
+            }
+        } else if (type === 'rectangle') {
+            const mw = mask.width !== undefined ? mask.width : drawW * 0.75;
+            const mh = mask.height !== undefined ? mask.height : drawH * 0.75;
+            const cx = mask.x || 0;
+            const cy = mask.y || 0;
+            const cr = mask.roundness || 0;
+
+            ctx.beginPath();
+            if (inverted) {
+                ctx.rect(-drawW, -drawH, drawW * 2, drawH * 2);
+                if (typeof ctx.roundRect === 'function') {
+                    ctx.roundRect(cx - mw / 2, cy - mh / 2, mw, mh, cr);
+                } else {
+                    ctx.rect(cx - mw / 2, cy - mh / 2, mw, mh);
+                }
+                ctx.clip('evenodd');
+            } else {
+                if (typeof ctx.roundRect === 'function') {
+                    ctx.roundRect(cx - mw / 2, cy - mh / 2, mw, mh, cr);
+                } else {
+                    ctx.rect(cx - mw / 2, cy - mh / 2, mw, mh);
+                }
+                ctx.clip();
+            }
+        } else if (type === 'linear') {
+            const angle = (mask.rotation || 0) * Math.PI / 180;
+            const pos = mask.pos || 0;
+            const diag = Math.sqrt(drawW * drawW + drawH * drawH);
+
+            ctx.beginPath();
+            ctx.save();
+            ctx.rotate(angle);
+            if (inverted) {
+                ctx.rect(-diag, pos, diag * 2, diag);
+            } else {
+                ctx.rect(-diag, -diag + pos, diag * 2, diag);
+            }
+            ctx.restore();
+            ctx.clip();
+        } else if (type === 'mirror') {
+            const size = mask.size !== undefined ? mask.size : 200;
+            const half = size / 2;
+            ctx.beginPath();
+            if (inverted) {
+                ctx.rect(-drawW, -drawH, drawW * 2, drawH - half);
+                ctx.rect(-drawW, half, drawW * 2, drawH);
+            } else {
+                ctx.rect(-drawW, -half, drawW * 2, size);
+            }
+            ctx.clip();
+        }
     }
 
     renderProceduralDemo(clip, width, height) {
@@ -1220,6 +1394,58 @@ class NovaCutEngine {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(pillText, bounds.centerX, pillY + pillH / 2);
+
+        // 5. Active Video Mask Outline
+        if (clip.mask && clip.mask.type && clip.mask.type !== 'none') {
+            ctx.save();
+            ctx.setLineDash([8, 6]);
+            ctx.strokeStyle = '#00f2fe';
+            ctx.lineWidth = 2.0;
+            ctx.shadowColor = 'rgba(0, 242, 254, 0.75)';
+            ctx.shadowBlur = 8;
+
+            const m = clip.mask;
+            const mcx = bounds.centerX + (m.x || 0);
+            const mcy = bounds.centerY + (m.y || 0);
+
+            if (m.type === 'circle') {
+                const r = (m.size !== undefined ? m.size : Math.min(bounds.width, bounds.height) * 0.7) / 2;
+                ctx.beginPath();
+                ctx.arc(mcx, mcy, r, 0, Math.PI * 2);
+                ctx.stroke();
+            } else if (m.type === 'rectangle') {
+                const mw = m.width !== undefined ? m.width : bounds.width * 0.75;
+                const mh = m.height !== undefined ? m.height : bounds.height * 0.75;
+                ctx.beginPath();
+                if (typeof ctx.roundRect === 'function') {
+                    ctx.roundRect(mcx - mw / 2, mcy - mh / 2, mw, mh, m.roundness || 0);
+                } else {
+                    ctx.rect(mcx - mw / 2, mcy - mh / 2, mw, mh);
+                }
+                ctx.stroke();
+            } else if (m.type === 'linear') {
+                const angle = (m.rotation || 0) * Math.PI / 180;
+                const pos = m.pos || 0;
+                ctx.beginPath();
+                ctx.save();
+                ctx.translate(mcx, mcy);
+                ctx.rotate(angle);
+                ctx.moveTo(-bounds.width, pos);
+                ctx.lineTo(bounds.width, pos);
+                ctx.restore();
+                ctx.stroke();
+            } else if (m.type === 'mirror') {
+                const size = m.size !== undefined ? m.size : 200;
+                const half = size / 2;
+                ctx.beginPath();
+                ctx.moveTo(mcx - bounds.width / 2, mcy - half);
+                ctx.lineTo(mcx + bounds.width / 2, mcy - half);
+                ctx.moveTo(mcx - bounds.width / 2, mcy + half);
+                ctx.lineTo(mcx + bounds.width / 2, mcy + half);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
 
         ctx.restore();
     }

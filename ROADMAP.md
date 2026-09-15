@@ -18,7 +18,8 @@ Detta dokument beskriver sprintplanen för **NovaCut**, en modern, blixtsnabb oc
 | **Sprint 8** | **Auto-Captions & Virala Undertexter** | ✅ Klar | Automatisk textgenerering och animerade ordstilar (Hormozi, Pop, Karaoke highlight). |
 | **Sprint 9** | **Export Presets för Sociala Medier** | ✅ Klar | 1-klicks export med optimerade NVENC/VAAPI-profiler för TikTok, Reels, Shorts och 4K, live GPU-detektering och MP4-transkodning. |
 | **Sprint 10** | **Video Transitions & Visuella FX** | ✅ Klar | Övergångar mellan klipp (Zoom In/Out, Whip Pan, Dissolve, Glitch, Dip to Black) och live videoeffekter (VHS Retro, Camera Shake, RGB Split, 35mm Grain). |
-| **Sprint 11** | **Color Grading & Maskering** | 🚀 Nästa sprint | Färgkorrigering (Temperatur, Tint, Mättnad, Kontrast, HSL), och Maskering (Rektangel, Cirkel/Facecam, Linjär Split-screen med Feather). |
+| **Sprint 11** | **Color Grading & Maskering** | ✅ Klar | Färgkorrigering (Temperatur, Tint, Mättnad, Kontrast, Vignette, LUTs) och Maskering (Cirkel/Facecam, Rektangel, Linjär, Spegel, Invertera). |
+| **Sprint 12** | **Chroma Key & Green Screen** | 🚀 Nästa sprint | Färgpipett för grön/blåskärm, tolerans/similarity, spill suppression och transparent kompositering över bakgrundsspår. |
 
 ---
 
@@ -58,6 +59,12 @@ Detta dokument beskriver sprintplanen för **NovaCut**, en modern, blixtsnabb oc
 * **Inspektorkontroll:** Interaktiva dropdowns för In/Ut-övergångar med millisekunds-exakta sliders för varaktighet.
 * **Live Visuella FX:** VHS Retro '95 OSD, Handheld Camera Shake, RGB Split Glitch, 35mm Film Grain, Gyllene Bokeh, Filmiskt Regn.
 
-### Sprint 11: Color Grading & Maskering (Kommande sprint)
-* **Färgkorrigering:** Temperatur (varm/kall), Tint (grön/magenta), Mättnad, Kontrast och Exponering.
-* **Video Masking:** Cirkelmask (Facecam / Reaktion), Rektangulär mask (Crop / Split screen), Linjär mask (Wipe), Invertering och Kantutjämning (Feather).
+### Sprint 11: Color Grading & Maskering
+* **Färgkorrigering:** Temperatur (varm/kall fototoning), Tint (grön/magenta), Mättnad, Kontrast, Exponering och Vignette.
+* **Film-LUTs & Snabbstilar:** Naturlig, Teal & Orange, Warm Sunset, Cyberpunk, Noir B&W och Vintage 35mm.
+* **Video Masking:** Cirkelmask (perfekt för Facecam / Reaktionsvideos), Rektangulär mask (Crop / Split screen), Linjär mask (Wipe), Spegelmask samt Invertera mask.
+* **Interaktiv Mask-Gizmo:** Cyan-streckad kontur på canvasen som visar maskens exakta position och storlek.
+
+### Sprint 12: Chroma Key & Green Screen (Kommande sprint)
+* **Grönskärms-Chroma Key:** Pipettverktyg för att plocka bakgrundsfärg, färgkontroller för tolerans (Similarity), kantmjukhet (Smoothness) och spilldämpning (Spill Reduction).
+* **Transparent Kompositering:** Full realtidsklippning mot underliggande videospår på tidslinjen.

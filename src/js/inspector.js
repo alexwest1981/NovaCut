@@ -361,6 +361,175 @@ class NovaCutInspector {
                     </div>
                 </div>
             </div>
+
+            <!-- Color Grading & Färgkorrigering Section -->
+            <div class="inspector-section">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <div class="section-title" style="margin-bottom: 0;">🎨 Färgkorrigering & LUTs</div>
+                    <button class="btn-secondary" id="btnResetColorGrading" style="font-size: 10px; padding: 2px 6px; cursor: pointer;">Återställ</button>
+                </div>
+
+                <div class="color-presets-row" id="colorPresetsRow">
+                    <button class="btn-color-preset ${(!clip.colorPreset || clip.colorPreset === 'natural') ? 'active' : ''}" data-preset="natural">Naturlig</button>
+                    <button class="btn-color-preset ${clip.colorPreset === 'teal_orange' ? 'active' : ''}" data-preset="teal_orange">Teal & Orange</button>
+                    <button class="btn-color-preset ${clip.colorPreset === 'sunset' ? 'active' : ''}" data-preset="sunset">Warm Sunset</button>
+                    <button class="btn-color-preset ${clip.colorPreset === 'cyberpunk' ? 'active' : ''}" data-preset="cyberpunk">Cyberpunk</button>
+                    <button class="btn-color-preset ${clip.colorPreset === 'noir' ? 'active' : ''}" data-preset="noir">Noir B&W</button>
+                    <button class="btn-color-preset ${clip.colorPreset === 'vintage' ? 'active' : ''}" data-preset="vintage">Vintage 35mm</button>
+                </div>
+
+                <div class="param-row">
+                    <span class="param-label">Temperatur</span>
+                    <div class="param-input-group">
+                        <input type="range" class="slider-input slider-temp" id="propColorTemp" min="-100" max="100" step="2" value="${clip.temperature || 0}">
+                        <span class="num-display" id="valColorTemp">${clip.temperature || 0}</span>
+                    </div>
+                </div>
+
+                <div class="param-row">
+                    <span class="param-label">Tint</span>
+                    <div class="param-input-group">
+                        <input type="range" class="slider-input slider-tint" id="propColorTint" min="-100" max="100" step="2" value="${clip.tint || 0}">
+                        <span class="num-display" id="valColorTint">${clip.tint || 0}</span>
+                    </div>
+                </div>
+
+                <div class="param-row">
+                    <span class="param-label">Mättnad</span>
+                    <div class="param-input-group">
+                        <input type="range" class="slider-input" id="propColorSat" min="0" max="200" step="5" value="${clip.saturation !== undefined ? clip.saturation : 100}">
+                        <span class="num-display" id="valColorSat">${clip.saturation !== undefined ? clip.saturation : 100}%</span>
+                    </div>
+                </div>
+
+                <div class="param-row">
+                    <span class="param-label">Kontrast</span>
+                    <div class="param-input-group">
+                        <input type="range" class="slider-input" id="propColorContrast" min="50" max="200" step="5" value="${clip.contrast !== undefined ? clip.contrast : 100}">
+                        <span class="num-display" id="valColorContrast">${clip.contrast !== undefined ? clip.contrast : 100}%</span>
+                    </div>
+                </div>
+
+                <div class="param-row">
+                    <span class="param-label">Exponering</span>
+                    <div class="param-input-group">
+                        <input type="range" class="slider-input" id="propColorBrightness" min="-50" max="50" step="2" value="${clip.brightness || 0}">
+                        <span class="num-display" id="valColorBrightness">${clip.brightness || 0}</span>
+                    </div>
+                </div>
+
+                <div class="param-row">
+                    <span class="param-label">Vignette</span>
+                    <div class="param-input-group">
+                        <input type="range" class="slider-input" id="propColorVignette" min="0" max="100" step="5" value="${clip.vignette || 0}">
+                        <span class="num-display" id="valColorVignette">${clip.vignette || 0}%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Video Masking Section -->
+            <div class="inspector-section">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <div class="section-title" style="margin-bottom: 0;">🎭 Videomaskering (Masks)</div>
+                    <button class="btn-secondary" id="btnResetMask" style="font-size: 10px; padding: 2px 6px; cursor: pointer;">Återställ</button>
+                </div>
+
+                <div class="mask-type-tabs" id="maskTypeTabs">
+                    <button class="btn-mask-tab ${(!clip.mask || clip.mask.type === 'none') ? 'active' : ''}" data-mask="none">
+                        <span class="mask-icon">🚫</span>
+                        <span>Ingen</span>
+                    </button>
+                    <button class="btn-mask-tab ${clip.mask?.type === 'circle' ? 'active' : ''}" data-mask="circle">
+                        <span class="mask-icon">⚪</span>
+                        <span>Cirkel</span>
+                    </button>
+                    <button class="btn-mask-tab ${clip.mask?.type === 'rectangle' ? 'active' : ''}" data-mask="rectangle">
+                        <span class="mask-icon">▭</span>
+                        <span>Rektangel</span>
+                    </button>
+                    <button class="btn-mask-tab ${clip.mask?.type === 'linear' ? 'active' : ''}" data-mask="linear">
+                        <span class="mask-icon">╱</span>
+                        <span>Linjär</span>
+                    </button>
+                    <button class="btn-mask-tab ${clip.mask?.type === 'mirror' ? 'active' : ''}" data-mask="mirror">
+                        <span class="mask-icon">⫸⫷</span>
+                        <span>Spegel</span>
+                    </button>
+                </div>
+
+                <!-- Circle Mask Controls -->
+                <div id="maskGroupCircle" style="display: ${clip.mask?.type === 'circle' ? 'block' : 'none'};">
+                    <div class="param-row">
+                        <span class="param-label">Diameter</span>
+                        <div class="param-input-group">
+                            <input type="range" class="slider-input" id="propMaskCircleSize" min="100" max="1400" step="20" value="${clip.mask?.size || 500}">
+                            <span class="num-display" id="valMaskCircleSize">${clip.mask?.size || 500}px</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rectangle Mask Controls -->
+                <div id="maskGroupRect" style="display: ${clip.mask?.type === 'rectangle' ? 'block' : 'none'};">
+                    <div class="param-row">
+                        <span class="param-label">Bredd</span>
+                        <div class="param-input-group">
+                            <input type="range" class="slider-input" id="propMaskRectW" min="100" max="1920" step="20" value="${clip.mask?.width || 800}">
+                            <span class="num-display" id="valMaskRectW">${clip.mask?.width || 800}px</span>
+                        </div>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">Höjd</span>
+                        <div class="param-input-group">
+                            <input type="range" class="slider-input" id="propMaskRectH" min="100" max="1920" step="20" value="${clip.mask?.height || 600}">
+                            <span class="num-display" id="valMaskRectH">${clip.mask?.height || 600}px</span>
+                        </div>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">Hörnradie</span>
+                        <div class="param-input-group">
+                            <input type="range" class="slider-input" id="propMaskRectRound" min="0" max="200" step="5" value="${clip.mask?.roundness || 0}">
+                            <span class="num-display" id="valMaskRectRound">${clip.mask?.roundness || 0}px</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Linear Mask Controls -->
+                <div id="maskGroupLinear" style="display: ${clip.mask?.type === 'linear' ? 'block' : 'none'};">
+                    <div class="param-row">
+                        <span class="param-label">Vinkel</span>
+                        <div class="param-input-group">
+                            <input type="range" class="slider-input" id="propMaskLinearRot" min="0" max="360" step="5" value="${clip.mask?.rotation || 0}">
+                            <span class="num-display" id="valMaskLinearRot">${clip.mask?.rotation || 0}°</span>
+                        </div>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-label">Position</span>
+                        <div class="param-input-group">
+                            <input type="range" class="slider-input" id="propMaskLinearPos" min="-600" max="600" step="10" value="${clip.mask?.pos || 0}">
+                            <span class="num-display" id="valMaskLinearPos">${clip.mask?.pos || 0}px</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mirror Mask Controls -->
+                <div id="maskGroupMirror" style="display: ${clip.mask?.type === 'mirror' ? 'block' : 'none'};">
+                    <div class="param-row">
+                        <span class="param-label">Spaltbredd</span>
+                        <div class="param-input-group">
+                            <input type="range" class="slider-input" id="propMaskMirrorSize" min="50" max="800" step="10" value="${clip.mask?.size || 300}">
+                            <span class="num-display" id="valMaskMirrorSize">${clip.mask?.size || 300}px</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="param-row" id="rowMaskInvert" style="display: ${clip.mask && clip.mask.type !== 'none' ? 'flex' : 'none'}; margin-top: 6px;">
+                    <span class="param-label">Invertera</span>
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer;">
+                        <input type="checkbox" id="propMaskInvert" ${clip.mask?.inverted ? 'checked' : ''}>
+                        <span style="color: var(--text-muted);">Invertera maskområde</span>
+                    </label>
+                </div>
+            </div>
         `;
 
         this.bindKeyframeControl(clip, 'scale', 'propScale', 'valScale', (v) => `${v.toFixed(2)}x`);
@@ -386,6 +555,171 @@ class NovaCutInspector {
             this.engine.render();
             return `${parseFloat(v).toFixed(1)}s`;
         });
+
+        // Color Grading Presets
+        const colorPresetRow = document.getElementById('colorPresetsRow');
+        if (colorPresetRow) {
+            colorPresetRow.querySelectorAll('.btn-color-preset').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const preset = btn.getAttribute('data-preset');
+                    clip.colorPreset = preset;
+                    colorPresetRow.querySelectorAll('.btn-color-preset').forEach(b => b.classList.toggle('active', b === btn));
+                    this.engine.render();
+                });
+            });
+        }
+
+        // Color Sliders
+        this.bindInput('propColorTemp', 'valColorTemp', (v) => {
+            clip.temperature = parseFloat(v);
+            this.engine.render();
+            return v;
+        });
+        this.bindInput('propColorTint', 'valColorTint', (v) => {
+            clip.tint = parseFloat(v);
+            this.engine.render();
+            return v;
+        });
+        this.bindInput('propColorSat', 'valColorSat', (v) => {
+            clip.saturation = parseFloat(v);
+            this.engine.render();
+            return `${v}%`;
+        });
+        this.bindInput('propColorContrast', 'valColorContrast', (v) => {
+            clip.contrast = parseFloat(v);
+            this.engine.render();
+            return `${v}%`;
+        });
+        this.bindInput('propColorBrightness', 'valColorBrightness', (v) => {
+            clip.brightness = parseFloat(v);
+            this.engine.render();
+            return v;
+        });
+        this.bindInput('propColorVignette', 'valColorVignette', (v) => {
+            clip.vignette = parseFloat(v);
+            this.engine.render();
+            return `${v}%`;
+        });
+
+        // Reset Color Grading
+        const btnResetColor = document.getElementById('btnResetColorGrading');
+        if (btnResetColor) {
+            btnResetColor.addEventListener('click', () => {
+                delete clip.colorPreset;
+                delete clip.temperature;
+                delete clip.tint;
+                delete clip.saturation;
+                delete clip.contrast;
+                delete clip.brightness;
+                delete clip.vignette;
+                this.render(clip);
+                this.engine.render();
+            });
+        }
+
+        // Mask Type Tabs
+        const maskTabs = document.getElementById('maskTypeTabs');
+        const grpCircle = document.getElementById('maskGroupCircle');
+        const grpRect = document.getElementById('maskGroupRect');
+        const grpLinear = document.getElementById('maskGroupLinear');
+        const grpMirror = document.getElementById('maskGroupMirror');
+        const rowInvert = document.getElementById('rowMaskInvert');
+
+        if (maskTabs) {
+            maskTabs.querySelectorAll('.btn-mask-tab').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const type = btn.getAttribute('data-mask');
+                    maskTabs.querySelectorAll('.btn-mask-tab').forEach(b => b.classList.toggle('active', b === btn));
+
+                    if (type === 'none') {
+                        delete clip.mask;
+                        if (grpCircle) grpCircle.style.display = 'none';
+                        if (grpRect) grpRect.style.display = 'none';
+                        if (grpLinear) grpLinear.style.display = 'none';
+                        if (grpMirror) grpMirror.style.display = 'none';
+                        if (rowInvert) rowInvert.style.display = 'none';
+                    } else {
+                        clip.mask = clip.mask || {};
+                        clip.mask.type = type;
+                        if (type === 'circle' && !clip.mask.size) clip.mask.size = 500;
+                        if (type === 'rectangle') {
+                            if (!clip.mask.width) clip.mask.width = 800;
+                            if (!clip.mask.height) clip.mask.height = 600;
+                        }
+                        if (grpCircle) grpCircle.style.display = type === 'circle' ? 'block' : 'none';
+                        if (grpRect) grpRect.style.display = type === 'rectangle' ? 'block' : 'none';
+                        if (grpLinear) grpLinear.style.display = type === 'linear' ? 'block' : 'none';
+                        if (grpMirror) grpMirror.style.display = type === 'mirror' ? 'block' : 'none';
+                        if (rowInvert) rowInvert.style.display = 'flex';
+                    }
+
+                    this.engine.render();
+                });
+            });
+        }
+
+        // Mask Invert
+        const chkInvert = document.getElementById('propMaskInvert');
+        if (chkInvert) {
+            chkInvert.addEventListener('change', (e) => {
+                if (clip.mask) clip.mask.inverted = e.target.checked;
+                this.engine.render();
+            });
+        }
+
+        // Mask Sliders
+        this.bindInput('propMaskCircleSize', 'valMaskCircleSize', (v) => {
+            if (!clip.mask) clip.mask = { type: 'circle' };
+            clip.mask.size = parseFloat(v);
+            this.engine.render();
+            return `${v}px`;
+        });
+        this.bindInput('propMaskRectW', 'valMaskRectW', (v) => {
+            if (!clip.mask) clip.mask = { type: 'rectangle' };
+            clip.mask.width = parseFloat(v);
+            this.engine.render();
+            return `${v}px`;
+        });
+        this.bindInput('propMaskRectH', 'valMaskRectH', (v) => {
+            if (!clip.mask) clip.mask = { type: 'rectangle' };
+            clip.mask.height = parseFloat(v);
+            this.engine.render();
+            return `${v}px`;
+        });
+        this.bindInput('propMaskRectRound', 'valMaskRectRound', (v) => {
+            if (!clip.mask) clip.mask = { type: 'rectangle' };
+            clip.mask.roundness = parseFloat(v);
+            this.engine.render();
+            return `${v}px`;
+        });
+        this.bindInput('propMaskLinearRot', 'valMaskLinearRot', (v) => {
+            if (!clip.mask) clip.mask = { type: 'linear' };
+            clip.mask.rotation = parseFloat(v);
+            this.engine.render();
+            return `${v}°`;
+        });
+        this.bindInput('propMaskLinearPos', 'valMaskLinearPos', (v) => {
+            if (!clip.mask) clip.mask = { type: 'linear' };
+            clip.mask.pos = parseFloat(v);
+            this.engine.render();
+            return `${v}px`;
+        });
+        this.bindInput('propMaskMirrorSize', 'valMaskMirrorSize', (v) => {
+            if (!clip.mask) clip.mask = { type: 'mirror' };
+            clip.mask.size = parseFloat(v);
+            this.engine.render();
+            return `${v}px`;
+        });
+
+        // Reset Mask Button
+        const btnResetMask = document.getElementById('btnResetMask');
+        if (btnResetMask) {
+            btnResetMask.addEventListener('click', () => {
+                delete clip.mask;
+                this.render(clip);
+                this.engine.render();
+            });
+        }
 
         const selInType = document.getElementById('propTransInType');
         const rowInDur = document.getElementById('rowTransInDur');
