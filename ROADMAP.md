@@ -83,12 +83,23 @@ Detta dokument beskriver sprintplanen för **NovaCut**, en modern, blixtsnabb oc
 * **Typografi, Skugga & Glow:** Konturtjocklek (1-24px), Skugga & Neon Glow med anpassningsbar färg och blurradie (0-50px).
 * **Batch-tillämpning:** Applicera stil och animationer på samtliga text- och undertextklipp med ett klick.
 
-### Sprint 14: Picture-in-Picture (PiP) & Multi-Track Reaktionslayouter (Kommande sprint)
-* **Reaktions- & Gaminglayouter:** 1-klicks förinställningar för Facecam (cirkel/rektangel i hörnet), Split Screen 50/50 (vertikal & horisontell) och Grid Collage.
-* **Smart Spårhantering:** Automatisk placering och skalning av spår V1/V2/V3 med synkroniserad uppspelning.
+### Sprint 14: Picture-in-Picture (PiP) & Multi-Track Reaktionslayouter
+* **PiP- & Reaktionsförinställningar:**
+  - 🎮 **Gaming Facecam (Nere Höger):** Skalad till 0.32x med 16px rundade hörn, accentram och mjuk kastskugga.
+  - 🎙️ **Facecam (Uppe Höger):** Perfekt hörnposition för vloggar och handledningar.
+  - ⚪ **Reaction Bubble (Cirkel-PiP):** Cirkulärt maskerad facecam med 5px ram.
+  - 📱 **TikTok Split (Topp 50% / Botten 50%):** Automatisk placering och centrerad beskärning för TikTok/Shorts 9:16 reaktionsklipp.
+  - ⛶ **Fullskärmsåterställning:** 1-klick för att nollställa till standard 100% video.
+* **Dubbelspårs Smart Layout:** 1-klicks knapp ("⚡ Synka V1 + V2 till TikTok Split") som automatiskt placerar V2 (Overlay) i övre halvan och V1 (Huvudvideo) i undre halvan.
+* **Kantlinjer & Skuggor:** Ställbar ramtjocklek (1-20px), hörnradie (0-100px) samt kastskugga som lyfter fram facecamen över bakgrundsvideon.
 
-### Sprint 15: Ljud- och Memebibliotek (SFX & Stickers)
-* **Inbyggt Ljudeffektbibliotek (SFX):** Whoosh, Pop, Ding, Kamera-klick, Glitch, Cinematic Boom, Vine Boom.
-* **Meme Overlays & Stickers:** Samling av animerade stickers och transparenter för virala klipp.
+### Sprint 15: Ljud- och Memebibliotek (SFX & Stickers) (Kommande sprint)
+* **Inbyggt Ljudeffektbibliotek (SFX):** Whoosh, Pop, Ding, Kamera-klick, Cyber Glitch, Cinematic Boom, Vine Boom med 1-klicks insättning på tidslinjen.
+* **Meme Overlays & Stickers:** Samling av animerade stickers, emojis och transparenter för virala klipp.
+
+### Sprint 16: Beat Detection & Automatisk Klippning
+* **Ljudanalys & Beat Markers:** Automatisk transient- och beat-detektering på bakgrundsmusik.
+* **Auto-Cut till Takten:** Skapa klippunkter i takt med musiken för action- och musikmontage.
+
 
 
