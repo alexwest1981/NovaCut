@@ -548,3 +548,147 @@ ipcMain.handle('export:transcode', async (event, options) => {
     });
 });
 
+// Whisper AI Speech-to-Text Transcription Handler
+ipcMain.handle('captions:transcribe', async (event, options = {}) => {
+    const { filePath, audioBuffer, language = 'auto', maxLen = 32 } = options;
+    const whisperBin = path.join(__dirname, '..', 'bin', 'whisper-cli');
+    const modelPath = path.join(__dirname, '..', 'models', 'ggml-tiny.bin');
+
+    if (!fs.existsSync(whisperBin)) {
+        return { success: false, error: 'whisper-cli binär saknas i bin/' };
+    }
+    if (!fs.existsSync(modelPath)) {
+        return { success: false, error: 'Whisper-modell (ggml-tiny.bin) saknas i models/' };
+    }
+
+    const tempDir = os.tmpdir();
+    const tempId = `transcribe-${Date.now()}`;
+    const tempWav = path.join(tempDir, `${tempId}.wav`);
+    const tempJsonBase = path.join(tempDir, `${tempId}_out`);
+    const tempJson = `${tempJsonBase}.json`;
+
+    try {
+        // Step 1: Prepare 16kHz mono WAV for Whisper
+        if (filePath) {
+            let srcPath = filePath;
+            if (srcPath.startsWith('file://')) srcPath = decodeURIComponent(srcPath.replace('file://', ''));
+            if (!fs.existsSync(srcPath)) {
+                return { success: false, error: `Filen hittades inte: ${srcPath}` };
+            }
+            // Extract audio via FFmpeg
+            await new Promise((resolve, reject) => {
+                const ff = spawn('ffmpeg', [
+                    '-y',
+                    '-i', srcPath,
+                    '-vn',
+                    '-ar', '16000',
+                    '-ac', '1',
+                    '-c:a', 'pcm_s16le',
+                    tempWav
+                ]);
+                ff.on('close', (code) => code === 0 ? resolve() : reject(new Error(`FFmpeg audio extract failed (code ${code})`)));
+                ff.on('error', reject);
+            });
+        } else if (audioBuffer) {
+            const buf = Buffer.from(audioBuffer, 'base64');
+            const tempRaw = path.join(tempDir, `${tempId}_raw.wav`);
+            fs.writeFileSync(tempRaw, buf);
+            // Ensure 16kHz mono 16-bit PCM
+            await new Promise((resolve, reject) => {
+                const ff = spawn('ffmpeg', [
+                    '-y',
+                    '-i', tempRaw,
+                    '-ar', '16000',
+                    '-ac', '1',
+                    '-c:a', 'pcm_s16le',
+                    tempWav
+                ]);
+                ff.on('close', (code) => {
+                    try { fs.unlinkSync(tempRaw); } catch(_) {}
+                    code === 0 ? resolve() : reject(new Error(`FFmpeg format conversion failed (code ${code})`));
+                });
+                ff.on('error', reject);
+            });
+        } else {
+            return { success: false, error: 'Varken filePath eller audioBuffer angavs.' };
+        }
+
+        // Step 2: Run whisper-cli
+        const whisperArgs = [
+            '-m', modelPath,
+            '-f', tempWav,
+            '-oj',
+            '-of', tempJsonBase,
+            '-sow',
+            '-wt', '0.01'
+        ];
+        if (language && language !== 'auto') {
+            whisperArgs.push('-l', language);
+        } else {
+            whisperArgs.push('-l', 'auto');
+        }
+        if (maxLen && maxLen > 0) {
+            whisperArgs.push('-ml', maxLen.toString());
+        }
+
+        console.log('[NovaCut Whisper] Running:', whisperBin, whisperArgs.join(' '));
+        await new Promise((resolve, reject) => {
+            const proc = spawn(whisperBin, whisperArgs);
+            let stderrStr = '';
+            proc.stderr.on('data', (d) => { stderrStr += d.toString(); });
+            proc.on('close', (code) => {
+                if (code === 0) resolve();
+                else reject(new Error(`whisper-cli avslutades med kod ${code}: ${stderrStr}`));
+            });
+            proc.on('error', reject);
+        });
+
+        if (!fs.existsSync(tempJson)) {
+            return { success: false, error: 'Transkriberingsresultat kunde inte skapas.' };
+        }
+
+        const rawResult = JSON.parse(fs.readFileSync(tempJson, 'utf8'));
+        const detectedLang = rawResult.result?.language || language;
+        const segments = (rawResult.transcription || []).map(seg => {
+            let startSec = 0;
+            let endSec = 0;
+            if (seg.timestamps && seg.timestamps.from && seg.timestamps.to) {
+                const parseTs = (ts) => {
+                    const parts = ts.split(':');
+                    if (parts.length === 3) {
+                        return parseFloat(parts[0]) * 3600 + parseFloat(parts[1]) * 60 + parseFloat(parts[2]);
+                    }
+                    return 0;
+                };
+                startSec = parseTs(seg.timestamps.from);
+                endSec = parseTs(seg.timestamps.to);
+            } else if (seg.offsets) {
+                startSec = (seg.offsets.from || 0) / 1000;
+                endSec = (seg.offsets.to || 0) / 1000;
+            }
+
+            return {
+                text: (seg.text || '').trim(),
+                startTime: startSec,
+                endTime: endSec,
+                duration: Math.max(0.6, endSec - startSec)
+            };
+        }).filter(s => s.text.length > 0);
+
+        // Cleanup temporary files
+        try { if (fs.existsSync(tempWav)) fs.unlinkSync(tempWav); } catch (_) {}
+        try { if (fs.existsSync(tempJson)) fs.unlinkSync(tempJson); } catch (_) {}
+
+        return {
+            success: true,
+            language: detectedLang,
+            segments
+        };
+    } catch (err) {
+        console.error('[NovaCut Whisper] Error:', err);
+        try { if (fs.existsSync(tempWav)) fs.unlinkSync(tempWav); } catch (_) {}
+        try { if (fs.existsSync(tempJson)) fs.unlinkSync(tempJson); } catch (_) {}
+        return { success: false, error: err.message };
+    }
+});
+

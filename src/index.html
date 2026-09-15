@@ -833,11 +833,39 @@
                 <div class="caption-setup-group">
                     <label class="param-label" style="margin-bottom: 6px; display: block; font-weight: 600;">1. Källa för tal & manus</label>
                     <select id="captionSourceSelect" class="select-compact" style="width: 100%; padding: 8px 10px; margin-bottom: 8px;">
+                        <option value="whisper-auto" selected>🎙️ Lyssna av video/ljud med Whisper AI (100% Automatiskt)</option>
                         <option value="demo-hook">🔥 Viral Hook (Svenska) - "Det här enkla tricket förändrade hur jag skapar videos..."</option>
                         <option value="demo-story">📖 Storytime (Svenska) - "Vänta till slutet för att se vad som faktiskt hände..."</option>
                         <option value="demo-tech">🚀 Tech Creator (Engelska) - "The secret to viral videos is fast cuts and animated captions..."</option>
                         <option value="manual-script">✏️ Skriv eller klistra in eget manus...</option>
                     </select>
+
+                    <div id="whisperConfigBox" style="display: block; background: #141724; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-top: 8px;">
+                        <div style="display: flex; gap: 12px; margin-bottom: 8px;">
+                            <div style="flex: 2;">
+                                <label class="param-label" style="font-size: 11px; margin-bottom: 4px; display: block;">Välj Klipp / Ljudkälla</label>
+                                <select id="whisperClipSelect" class="select-compact" style="width: 100%;">
+                                    <!-- Populated dynamically with timeline clips -->
+                                </select>
+                            </div>
+                            <div style="flex: 1;">
+                                <label class="param-label" style="font-size: 11px; margin-bottom: 4px; display: block;">Talspråk</label>
+                                <select id="whisperLangSelect" class="select-compact" style="width: 100%;">
+                                    <option value="auto" selected>Auto-Detect</option>
+                                    <option value="sv">Svenska</option>
+                                    <option value="en">Engelska</option>
+                                    <option value="no">Norska</option>
+                                    <option value="da">Danska</option>
+                                    <option value="de">Tyska</option>
+                                    <option value="es">Spanska</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="font-size: 10px; color: #00d482; display: flex; align-items: center; gap: 6px;">
+                            <span>⚡</span>
+                            <span><strong>Whisper AI redo:</strong> Lokal modell (ggml-tiny.bin) – körs blixtsnabbt & offline på Linux.</span>
+                        </div>
+                    </div>
                     
                     <div id="customScriptBox" style="display: none; margin-top: 8px;">
                         <textarea id="customScriptText" class="form-textarea" style="width: 100%; height: 70px;" placeholder="Skriv din text här. Meningar delas automatiskt upp i virala undertextblock..."></textarea>

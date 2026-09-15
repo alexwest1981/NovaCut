@@ -403,17 +403,44 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Auto-Captions Controller (Sprint 8)
+    // Auto-Captions Controller (Sprint 8 & Whisper AI Upgrade)
     const btnOpenCaptions = document.getElementById('btnOpenAutoCaptions');
     const captionsModal = document.getElementById('autoCaptionsModal');
     const btnCloseCaptions = document.getElementById('btnCloseAutoCaptionsModal');
     const btnCancelCaptions = document.getElementById('btnCancelAutoCaptions');
     const sourceSelect = document.getElementById('captionSourceSelect');
     const customScriptBox = document.getElementById('customScriptBox');
+    const whisperConfigBox = document.getElementById('whisperConfigBox');
+    const whisperClipSelect = document.getElementById('whisperClipSelect');
+    const whisperLangSelect = document.getElementById('whisperLangSelect');
     const btnGenerateCaptions = document.getElementById('btnGenerateAutoCaptions');
 
     if (btnOpenCaptions && captionsModal) {
+        const populateWhisperClips = () => {
+            if (!whisperClipSelect) return;
+            whisperClipSelect.innerHTML = '';
+
+            const mediaClips = timeline.clips.filter(c => c.trackId === 'video' || c.trackId === 'audio' || c.trackId === 'overlay');
+            if (mediaClips.length === 0) {
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.textContent = '(Inga video- eller ljudklipp på tidslinjen än)';
+                whisperClipSelect.appendChild(opt);
+                return;
+            }
+
+            mediaClips.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                const isSel = (timeline.selectedClipId === c.id);
+                opt.selected = isSel;
+                opt.textContent = `${c.title || 'Klipp'} (${c.trackId.toUpperCase()} • ${c.duration.toFixed(1)}s)`;
+                whisperClipSelect.appendChild(opt);
+            });
+        };
+
         btnOpenCaptions.addEventListener('click', () => {
+            populateWhisperClips();
             captionsModal.classList.add('active');
         });
 
@@ -424,9 +451,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (btnCloseCaptions) btnCloseCaptions.addEventListener('click', closeCaptionsModal);
         if (btnCancelCaptions) btnCancelCaptions.addEventListener('click', closeCaptionsModal);
 
-        if (sourceSelect && customScriptBox) {
+        if (sourceSelect) {
             sourceSelect.addEventListener('change', () => {
-                customScriptBox.style.display = (sourceSelect.value === 'manual-script') ? 'block' : 'none';
+                const val = sourceSelect.value;
+                if (whisperConfigBox) whisperConfigBox.style.display = (val === 'whisper-auto') ? 'block' : 'none';
+                if (customScriptBox) customScriptBox.style.display = (val === 'manual-script') ? 'block' : 'none';
+                if (val === 'whisper-auto') populateWhisperClips();
             });
         }
 
@@ -472,32 +502,12 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         if (btnGenerateCaptions) {
-            btnGenerateCaptions.addEventListener('click', () => {
-                const source = sourceSelect ? sourceSelect.value : 'demo-hook';
+            btnGenerateCaptions.addEventListener('click', async () => {
+                const source = sourceSelect ? sourceSelect.value : 'whisper-auto';
                 const activeCard = document.querySelector('.caption-style-card.active');
                 const chosenStyle = activeCard ? activeCard.dataset.style : 'hormozi';
                 const wordsPerClip = document.getElementById('captionWordsPerClip')?.value || 'short';
                 const positionMode = document.getElementById('captionPositionSelect')?.value || 'lower-third';
-
-                let phrases = [];
-                if (source === 'manual-script') {
-                    const customText = document.getElementById('customScriptText')?.value || '';
-                    if (customText.trim()) {
-                        const words = customText.trim().split(/\s+/);
-                        const chunkSize = (wordsPerClip === 'single') ? 2 : (wordsPerClip === 'short') ? 4 : 6;
-                        for (let i = 0; i < words.length; i += chunkSize) {
-                            phrases.push(words.slice(i, i + chunkSize).join(' '));
-                        }
-                    }
-                } else if (demoScripts[source]) {
-                    phrases = demoScripts[source];
-                } else {
-                    phrases = demoScripts['demo-hook'];
-                }
-
-                if (phrases.length === 0) {
-                    phrases = demoScripts['demo-hook'];
-                }
 
                 // Style presets
                 const styleConfig = {
@@ -543,6 +553,118 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const currentStyle = styleConfig[chosenStyle] || styleConfig.hormozi;
                 const posY = (positionMode === 'center') ? 0 : 340;
+
+                // Handle Whisper Auto Mode
+                if (source === 'whisper-auto') {
+                    const chosenClipId = whisperClipSelect?.value;
+                    const targetClip = timeline.clips.find(c => c.id === chosenClipId) ||
+                                       timeline.clips.find(c => c.trackId === 'video' || c.trackId === 'audio');
+
+                    if (!targetClip) {
+                        alert('Ingen videofil eller ljudfil hittades på tidslinjen att lyssna av.\n\nImportera en MP4/WAV/MP3 via "📁 Media" först.');
+                        return;
+                    }
+
+                    const mediaEl = engine.mediaElements.get(targetClip.mediaId);
+                    const mediaSrc = mediaEl ? mediaEl.src : null;
+
+                    if (!mediaSrc && !targetClip.isSfx) {
+                        alert('Klippet har ingen kopplad mediefil på disk (t.ex. procedurgenererat testklipp).\n\nImportera en riktig video- eller ljudfil för att köra Whisper-taligenkänning.');
+                        return;
+                    }
+
+                    const origBtnText = btnGenerateCaptions.innerHTML;
+                    btnGenerateCaptions.disabled = true;
+                    btnGenerateCaptions.innerHTML = '<span>🎙️ Whisper lyssnar av tal i videon...</span>';
+
+                    try {
+                        const lang = whisperLangSelect?.value || 'auto';
+                        let res = null;
+
+                        if (window.novaCut && typeof window.novaCut.transcribeAudio === 'function') {
+                            res = await window.novaCut.transcribeAudio({
+                                filePath: mediaSrc,
+                                language: lang,
+                                maxLen: (wordsPerClip === 'single') ? 14 : (wordsPerClip === 'short') ? 28 : 50
+                            });
+                        }
+
+                        if (!res || !res.success || !res.segments || res.segments.length === 0) {
+                            console.warn('Whisper result:', res);
+                            alert(`Whisper kunde inte identifiera något tydligt tal i klippet (${res?.error || 'Inga röstsegment detekterades'}).`);
+                            btnGenerateCaptions.disabled = false;
+                            btnGenerateCaptions.innerHTML = origBtnText;
+                            return;
+                        }
+
+                        // Remove existing text clips
+                        const existingTextClips = timeline.clips.filter(c => c.trackId === 'text');
+                        existingTextClips.forEach(c => timeline.removeClip(c.id));
+
+                        let firstClipId = null;
+                        res.segments.forEach((seg, idx) => {
+                            const clip = {
+                                trackId: 'text',
+                                title: seg.text.slice(0, 16),
+                                type: 'text',
+                                text: seg.text,
+                                startTime: targetClip.startTime + seg.startTime,
+                                duration: seg.duration,
+                                fontSize: currentStyle.fontSize,
+                                fontFamily: currentStyle.fontFamily,
+                                bold: currentStyle.bold,
+                                color: currentStyle.color,
+                                bgColor: currentStyle.bgColor || null,
+                                outlineColor: currentStyle.outlineColor || null,
+                                outlineWidth: currentStyle.outlineWidth || 6,
+                                captionStyle: currentStyle.captionStyle,
+                                highlightColor: currentStyle.highlightColor || null,
+                                posX: 0,
+                                posY: posY
+                            };
+
+                            timeline.addClip(clip);
+                            if (idx === 0) firstClipId = clip.id;
+                        });
+
+                        closeCaptionsModal();
+                        engine.seek(targetClip.startTime);
+                        if (firstClipId) timeline.selectClip(firstClipId);
+                        engine.render();
+
+                        if (window.projectManager && typeof window.projectManager.showToast === 'function') {
+                            window.projectManager.showToast(`✨ ${res.segments.length} undertexter skapades med Whisper AI (${res.language?.toUpperCase() || 'AUTO'})!`);
+                        }
+                    } catch (err) {
+                        console.error('Whisper transcription error:', err);
+                        alert(`Fel vid taligenkänning: ${err.message}`);
+                    } finally {
+                        btnGenerateCaptions.disabled = false;
+                        btnGenerateCaptions.innerHTML = origBtnText;
+                    }
+                    return;
+                }
+
+                // Fallback / Script Mode
+                let phrases = [];
+                if (source === 'manual-script') {
+                    const customText = document.getElementById('customScriptText')?.value || '';
+                    if (customText.trim()) {
+                        const words = customText.trim().split(/\s+/);
+                        const chunkSize = (wordsPerClip === 'single') ? 2 : (wordsPerClip === 'short') ? 4 : 6;
+                        for (let i = 0; i < words.length; i += chunkSize) {
+                            phrases.push(words.slice(i, i + chunkSize).join(' '));
+                        }
+                    }
+                } else if (demoScripts[source]) {
+                    phrases = demoScripts[source];
+                } else {
+                    phrases = demoScripts['demo-hook'];
+                }
+
+                if (phrases.length === 0) {
+                    phrases = demoScripts['demo-hook'];
+                }
 
                 // Remove existing text clips to prevent overlap
                 const existingTextClips = timeline.clips.filter(c => c.trackId === 'text');

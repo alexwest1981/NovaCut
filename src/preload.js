@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('novaCut', {
     saveProject: (projectData) => ipcRenderer.invoke('project:save', projectData),
     loadProject: (id) => ipcRenderer.invoke('project:load', id),
     deleteProject: (id) => ipcRenderer.invoke('project:delete', id),
-    openProjectFile: () => ipcRenderer.invoke('project:openFile')
+    openProjectFile: () => ipcRenderer.invoke('project:openFile'),
+    transcribeAudio: (options) => ipcRenderer.invoke('captions:transcribe', options)
 });
 
