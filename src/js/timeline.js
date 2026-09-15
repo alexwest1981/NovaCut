@@ -317,6 +317,176 @@ class NovaCutTimeline {
         this.engine.render();
     }
 
+    /**
+     * Finds target clip under playhead for quick Q/W trimming.
+     */
+    getTargetClipForRipple(playheadTime) {
+        if (this.selectedClipId) {
+            const sel = this.clips.find(c => c.id === this.selectedClipId);
+            if (sel && playheadTime >= sel.startTime - 0.05 && playheadTime <= sel.startTime + sel.duration + 0.05) {
+                return sel;
+            }
+        }
+        // Check video track first, then any active track
+        const onVideo = this.clips.find(c => c.trackId === 'video' && playheadTime >= c.startTime && playheadTime < (c.startTime + c.duration));
+        if (onVideo) return onVideo;
+
+        return this.clips.find(c => playheadTime >= c.startTime && playheadTime < (c.startTime + c.duration)) || null;
+    }
+
+    /**
+     * Ripple Delete: Removes selected clip and shifts all subsequent clips left
+     * to eliminate the gap.
+     */
+    rippleDeleteSelectedClip() {
+        if (!this.selectedClipId) return;
+        const index = this.clips.findIndex(c => c.id === this.selectedClipId);
+        if (index === -1) return;
+        const clip = this.clips[index];
+        if (this.trackStates[clip.trackId]?.locked) return;
+
+        const clipStart = clip.startTime;
+        const clipDur = clip.duration;
+        const trackId = clip.trackId;
+
+        const domEl = document.getElementById(`dom-${this.selectedClipId}`);
+        if (domEl) domEl.remove();
+        this.clips.splice(index, 1);
+        this.selectedClipId = null;
+
+        // Shift subsequent clips on this track
+        this.clips.forEach(c => {
+            if (c.trackId === trackId && c.startTime >= clipStart) {
+                c.startTime = Math.max(0, c.startTime - clipDur);
+            }
+        });
+
+        if (window.inspector) {
+            window.inspector.update(null);
+        }
+
+        this.renderAllClips();
+        this.recalculateProjectDuration();
+        this.engine.render();
+
+        if (window.projectManager && typeof window.projectManager.showToast === 'function') {
+            window.projectManager.showToast('⚡ Ripple Delete utförd (tomrum stängt)');
+        }
+    }
+
+    /**
+     * Q Hotkey: Ripple Trim Start
+     * Trims from clip start up to playhead and shifts succeeding clips left.
+     */
+    rippleTrimStart() {
+        const playheadTime = this.engine.currentTime;
+        const clip = this.getTargetClipForRipple(playheadTime);
+        if (!clip) return;
+        if (this.trackStates[clip.trackId]?.locked) return;
+
+        const clipEnd = clip.startTime + clip.duration;
+        if (playheadTime <= clip.startTime + 0.05 || playheadTime >= clipEnd - 0.05) {
+            return;
+        }
+
+        const delta = playheadTime - clip.startTime;
+        const oldStart = clip.startTime;
+
+        // Trim clip head
+        clip.duration -= delta;
+        clip.sourceOffset = (clip.sourceOffset || 0) + delta;
+
+        // Shift subsequent clips on same track
+        this.clips.forEach(c => {
+            if (c.id !== clip.id && c.trackId === clip.trackId && c.startTime >= clipEnd - 0.01) {
+                c.startTime = Math.max(0, c.startTime - delta);
+            }
+        });
+
+        this.selectClip(clip.id);
+        this.renderAllClips();
+        this.recalculateProjectDuration();
+        this.engine.seek(oldStart); // Set playhead at the edit seam
+        this.engine.render();
+
+        if (window.projectManager && typeof window.projectManager.showToast === 'function') {
+            window.projectManager.showToast(`⇤ Trimmat start (-${delta.toFixed(1)}s, Q)`);
+        }
+    }
+
+    /**
+     * W Hotkey: Ripple Trim End
+     * Trims from playhead to clip end and shifts succeeding clips left.
+     */
+    rippleTrimEnd() {
+        const playheadTime = this.engine.currentTime;
+        const clip = this.getTargetClipForRipple(playheadTime);
+        if (!clip) return;
+        if (this.trackStates[clip.trackId]?.locked) return;
+
+        const clipEnd = clip.startTime + clip.duration;
+        if (playheadTime <= clip.startTime + 0.05 || playheadTime >= clipEnd - 0.05) {
+            return;
+        }
+
+        const delta = clipEnd - playheadTime;
+
+        // Trim clip tail
+        clip.duration = playheadTime - clip.startTime;
+
+        // Shift subsequent clips on same track
+        this.clips.forEach(c => {
+            if (c.id !== clip.id && c.trackId === clip.trackId && c.startTime >= clipEnd - 0.01) {
+                c.startTime = Math.max(0, c.startTime - delta);
+            }
+        });
+
+        this.selectClip(clip.id);
+        this.renderAllClips();
+        this.recalculateProjectDuration();
+        this.engine.seek(playheadTime);
+        this.engine.render();
+
+        if (window.projectManager && typeof window.projectManager.showToast === 'function') {
+            window.projectManager.showToast(`⇥ Trimmat slut (-${delta.toFixed(1)}s, W)`);
+        }
+    }
+
+    /**
+     * Close all gaps on tracks
+     */
+    closeGaps(targetTrackId = null) {
+        let movedCount = 0;
+        const tracksToProcess = targetTrackId ? [targetTrackId] : this.tracks.map(t => t.id);
+
+        tracksToProcess.forEach(tId => {
+            if (this.trackStates[tId]?.locked) return;
+            const trackClips = this.clips.filter(c => c.trackId === tId).sort((a, b) => a.startTime - b.startTime);
+            let expectedStart = 0;
+
+            trackClips.forEach(clip => {
+                if (Math.abs(clip.startTime - expectedStart) > 0.05) {
+                    clip.startTime = expectedStart;
+                    movedCount++;
+                }
+                expectedStart = clip.startTime + clip.duration;
+            });
+        });
+
+        if (movedCount > 0) {
+            this.renderAllClips();
+            this.recalculateProjectDuration();
+            this.engine.render();
+            if (window.projectManager && typeof window.projectManager.showToast === 'function') {
+                window.projectManager.showToast(`🧲 ${movedCount} klipp flyttades och tomrum stängdes!`);
+            }
+        } else {
+            if (window.projectManager && typeof window.projectManager.showToast === 'function') {
+                window.projectManager.showToast('Inga tomrum hittades.');
+            }
+        }
+    }
+
     updatePlayheadPosition() {
         const x = this.engine.currentTime * this.pixelsPerSecond;
         this.playheadScrubber.style.left = `${x}px`;

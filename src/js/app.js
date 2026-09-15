@@ -106,6 +106,26 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btnSplitClip').addEventListener('click', () => timeline.splitSelectedClip());
     document.getElementById('btnDeleteClip').addEventListener('click', () => timeline.deleteSelectedClip());
 
+    const btnTrimStartQ = document.getElementById('btnTrimStartQ');
+    if (btnTrimStartQ) {
+        btnTrimStartQ.addEventListener('click', () => timeline.rippleTrimStart());
+    }
+
+    const btnTrimEndW = document.getElementById('btnTrimEndW');
+    if (btnTrimEndW) {
+        btnTrimEndW.addEventListener('click', () => timeline.rippleTrimEnd());
+    }
+
+    const btnRippleDelete = document.getElementById('btnRippleDelete');
+    if (btnRippleDelete) {
+        btnRippleDelete.addEventListener('click', () => timeline.rippleDeleteSelectedClip());
+    }
+
+    const btnCloseGaps = document.getElementById('btnCloseGaps');
+    if (btnCloseGaps) {
+        btnCloseGaps.addEventListener('click', () => timeline.closeGaps());
+    }
+
     const snapBtn = document.getElementById('btnSnappingToggle');
     if (snapBtn) {
         snapBtn.addEventListener('click', () => {
@@ -487,6 +507,15 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (e.key.toLowerCase() === 's' || (e.ctrlKey && e.key.toLowerCase() === 'b')) {
             e.preventDefault();
             timeline.splitSelectedClip();
+        } else if (e.key.toLowerCase() === 'q') {
+            e.preventDefault();
+            timeline.rippleTrimStart();
+        } else if (e.key.toLowerCase() === 'w') {
+            e.preventDefault();
+            timeline.rippleTrimEnd();
+        } else if (e.shiftKey && (e.key === 'Delete' || e.key === 'Backspace')) {
+            e.preventDefault();
+            timeline.rippleDeleteSelectedClip();
         } else if (e.key === 'Delete' || e.key === 'Backspace') {
             e.preventDefault();
             timeline.deleteSelectedClip();

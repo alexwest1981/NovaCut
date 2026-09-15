@@ -1,132 +1,49 @@
-# 🗺️ NovaCut – Modulär Utvecklingsfärdplan (Sprint Roadmap)
+# 🗺️ NovaCut – Officiell Roadmap
 
-Denna roadmap bryter ner NovaCuts utveckling i **fokuserade, lätthanterliga mikro-sprintar**. Varje sprint är fristående, testbar och tillför direkt värde för content creators på Linux.
-
----
-
-## Översikt över Sprintar
-
-```
-[Fas 1: Kreatörens Verktygslåda]
-  Sprint 1: Ljudeffektsbibliotek (SFX Pack) för snabba klipp
-  Sprint 2: 1-klicks Export-profiler (TikTok, Shorts, Reels, YouTube)
-  Sprint 3: Textanimationer (In/Out Motion Presets)
-
-[Fas 2: Snabbklippning & Flöde]
-  Sprint 4: Snabbredigering (Ripple Delete, Q/W Trim, Magnetisk tidslinje)
-  Sprint 5: Keyframing V1 (Dynamiska zoomar & Ken Burns-panorering)
-  Sprint 6: Smart Ljud-ducking (Automatisk sänkning av musik vid tal)
-
-[Fas 3: Avancerade Virala Effekter]
-  Sprint 7: Klippövergångar (Transitions: Zoom Blur, Glitch, Whip Pan)
-  Sprint 8: Hastighetskurvor & Speed Ramping (Velocity Edits)
-  Sprint 9: Auto-Captions V1 (Lokal Whisper AI tal-till-text)
-```
+Detta dokument beskriver sprintplanen för **NovaCut**, en modern, blixtsnabb och öppen videoeditor för Linux med CapCut-liknande arbetsflöden optimerade för content creators (TikTok, YouTube Shorts, Reels och YouTube).
 
 ---
 
-## 🚀 Fas 1: Kreatörens Verktygslåda (Grunden för Retention)
+## 🏁 Sprintöversikt & Status
 
-### 🔊 Sprint 1: Ljudeffektsbibliotek (SFX Pack) för Social Media
-* **Mål:** Ge kreatörer omedelbar tillgång till de viktigaste ljudeffekterna som används i 99% av alla virala klipp.
-* **Funktioner:**
-  - Inbyggt bibliotek med royaltyfria CC0-ljudeffekter:
-    - *Whoosh / Swish* (för text- & bildbyten)
-    - *Pop / Bubble* (när text dyker upp)
-    - *Camera Shutter* (skärmdump/ögonblick)
-    - *Bell / Ding* (notis, tips, poäng)
-    - *Record Scratch* (komisk paus)
-    - *Glitch / Static* (klippbyte/effekt)
-    - *Bass Drop / Impact* (dramatisk hook)
-  - Förhandslyssning i fliken **Ljud** med play/pause-knapp före placering.
-  - 1-klicks-placering direkt vid tidslinjens markör på ljudspåret.
-  - Inkluderar även CapCut Pro Studio GUI (Monitor-bar, säkra zoner, spårlåsning & muting, neon laser-spelhuvud).
-* **Status:** ✅ *Slutförd (Sprint 1)*
+| Sprint | Fokusområde | Status | Nyckelleveranser |
+| :--- | :--- | :---: | :--- |
+| **Sprint 1** | **WYSIWYG & Canvasinteraktion** | ✅ Klar | Interaktiv drag-and-drop på canvas, 9 snabbpositioner, magnetiska stödlinjer (snapping), säkra zoner för TikTok/Shorts. |
+| **Sprint 2** | **Välkomsthub & Projekthantering** | ✅ Klar | CapCut-liknande projektöversikt vid appstart, sparade projekt, bildförhållanden (16:9, 9:16, 1:1, 4:5), öppna från disk. |
+| **Sprint 3** | **Dynamisk Upplösning & Widescreen** | ✅ Klar | Flexibla resizable splitters, monitor zoom (Fit, 50-200%), dynamisk tidslinjebredd, 21:9 Ultrawide och 4:3-stöd. |
+| **Sprint 4** | **Snabbredigering & Ripple Editing** | 🚀 Pågår | Ripple Delete (`Shift+Delete`), `Q`/`W`-snabbtrimning vid spelhuvud, automatisk luckstängning (Close Gaps). |
+| **Sprint 5** | **Keyframing (Animation & Rörelse)** | 📅 Nästa | Diamantknappar för keyframes på skala, position, rotation, opacitet med mjuk interpolation. |
+| **Sprint 6** | **Speed Ramping & Hastighetskurvor** | 📅 Planerad | Kurvbaserad hastighet (0.1x–10x), kurvmallar (Flash, Montage, Bullet-time, Hero). |
+| **Sprint 7** | **Ljudredigering & Auto-Ducking** | 📅 Planerad | Fade In/Out-handtag på ljudklipp, automatisk volymsänkning av musik vid tal (auto-ducking). |
+| **Sprint 8** | **Auto-Captions & Virala Undertexter** | 📅 Planerad | Automatisk textgenerering och animerade ordstilar (Hormozi, Pop, Karaoke highlight). |
+| **Sprint 9** | **Export Presets för Sociala Medier** | 📅 Planerad | 1-klicks export med optimerade NVENC/VAAPI-profiler för TikTok, Reels, Shorts och 4K. |
 
 ---
 
-### 📱 Sprint 2: 1-klicks Export-profiler (TikTok, Reels, Shorts, YouTube)
-* **Mål:** Ta bort all teknisk friktion vid export så användaren slipper gissa bitrates, codecs och pixelformat.
-* **Funktioner:**
-  - Färdiga snabbprofiler i Export-modalen:
-    - 📱 **TikTok / Reels / Shorts:** 1080×1920 (9:16), 60 FPS, optimerad H.264 VBR för mobilkomprimering.
-    - 📺 **YouTube Widescreen:** 1920×1080 (16:9), 60 FPS, hög bitrate.
-    - ⚡ **Instagram Post / Kvadrat:** 1080×1080 (1:1), 30 FPS.
-    - 🎬 **YouTube 4K Master:** 3840×2160, maximal kvalitet via NVENC/VAAPI.
-  - Beräknad filstorlek och framstegsindikator med återstående tid under rendering.
-  - "Öppna målmapp"-knapp efter lyckad export.
-* **Status:** 📋 Planerad
+## 🛠️ Detaljerade Sprintmål
 
----
+### Sprint 4: Snabbredigering & Ripple Editing (Aktuell sprint)
+* **Q-Trim (Ripple Start):** Tryck på `Q` för att trimma bort allt från klippets start fram till spelhuvudet och dra ihop tidslinjen direkt utan tomrum.
+* **W-Trim (Ripple End):** Tryck på `W` för att trimma bort allt från spelhuvudet fram till klippets slut och dra ihop efterföljande klipp.
+* **Ripple Delete (`Shift+Delete`):** Ta bort markerat klipp och förskjut alla efterföljande klipp åt vänster så att ingen tom lucka uppstår.
+* **Stäng Tomrum (Close Gaps):** 1-klicks-knapp i tidslinjens verktygsfält för att automatiskt eliminera alla tomma mellanrum på spåret.
 
-### ✨ Sprint 3: Textanimationer & Motion Presets (In / Out)
-* **Mål:** Få text och titlar att röra sig dynamiskt istället för att bara dyka upp plötsligt.
-* **Funktioner:**
-  - Animationsval i Inspektorn för textklipp:
-    - **In-animationer:** *Pop Up (Zoom in)*, *Slide Up (glid upp)*, *Fade In*, *Typewriter (skrivmaskin)*, *Bounce*.
-    - **Ut-animationer:** *Fade Out*, *Slide Down*, *Zoom Out*.
-  - Reglage för animationens längd (0.1s – 1.0s).
-  - Canvas-rendering i realtid med 60 FPS.
-* **Status:** 📋 Planerad
+### Sprint 5: Keyframing
+* Diamantformade knappar bredvid Skala, Position, Rotation och Opacitet i Inspektorn.
+* Visuella keyframe-diamanter direkt på klippet i tidslinjen.
+* Linjär och mjuk Bezier-interpolering mellan nyckelbildrutor i uppspelningsmotorn.
 
----
+### Sprint 6: Speed Ramping
+* Visuell kurveditor i Inspektorn för videoklipp.
+* Förinställningar: "Flash In", "Montage Hook", "Slow Down".
 
-## ⚡ Fas 2: Snabbklippning & Flöde
+### Sprint 7: Ljud & Auto-Ducking
+* Kurvhandtag på ljudklipp för mjuka övertoningar (Fade In / Fade Out).
+* Intelligent Auto-ducking: bakgrundsmusik sänks automatiskt med t.ex. -12dB när tal spelas på videospåret.
 
-### ✂️ Sprint 4: Snabbredigering (Ripple Delete, Q/W Trim, Snapping)
-* **Mål:** Höja klipphastigheten 3x vid grovklippning av råmaterial.
-* **Funktioner:**
-  - `Q` = Trimma klippets början fram till spelhuvudet (Top-trim).
-  - `W` = Trimma klippets slut bak till spelhuvudet (Tail-trim).
-  - `Shift + Delete` / `Ripple Delete` = Radera markerat klipp och flytta alla efterföljande klipp bakåt för att sluta gapet automatiskt.
-  - Magnetiskt snäppläge (`N`) som låser klipp mot varandras kanter och mot spelhuvudet.
-* **Status:** 📋 Planerad
+### Sprint 8: Auto-Captions
+* Integrering av offline Whisper-transkribering.
+* Ord-för-ord synkning och TikTok-typografi.
 
----
-
-### 🎯 Sprint 5: Keyframing V1 (Dynamiska zoomar & Ken Burns)
-* **Mål:** Skapa "punch-in zooms" på ansikten/reaktioner för att hålla tittarens uppmärksamhet.
-* **Funktioner:**
-  - Diamantknapp (◆) bredvid *Skala* och *Position X/Y* i Inspektorn för att sätta keyframes.
-  - Visuella keyframe-punkter direkt på klippet i tidslinjen.
-  - Mjuk linjär/ease-in-out-interpolering under uppspelning och export.
-* **Status:** 📋 Planerad
-
----
-
-### 🎙️ Sprint 6: Smart Ljud-ducking (Auto-Ducking)
-* **Mål:** Bakgrundsmusiken ska automatiskt dämpas när någon pratar.
-* **Funktioner:**
-  - Knapp i ljudinspektorn: "Aktivera Auto-Ducking mot videospår".
-  - Inställning för dämpningsnivå (-10 dB till -24 dB) och återgångstid (fade release).
-* **Status:** 📋 Planerad
-
----
-
-## 🔮 Fas 3: Avancerade Virala Effekter
-
-### 🌀 Sprint 7: Klippövergångar (Transitions: Zoom Blur, Glitch, Whip Pan)
-* **Mål:** Sömlösa och energiska övergångar mellan två angränsande videoklipp.
-* **Funktioner:**
-  - Dra övergång från Marketplace/flik och släpp direkt i skarven mellan två klipp.
-  - Shader-övergångar: *Cross Dissolve*, *Whip Pan*, *Zoom Blur*, *Glitch*, *Flash White*.
-* **Status:** 📋 Planerad
-
----
-
-### 🏎️ Sprint 8: Hastighetskurvor & Speed Ramping (Velocity Edits)
-* **Mål:** Snabba accelerationer som slår över i slow-motion (CapCut velocity style).
-* **Funktioner:**
-  - Visuell Bezier-kurva i Inspektorn med förinställningar (*Montage*, *Bullet Time*, *Jump Cut*).
-  - Variabel FPS-avkodning och återgivning på tidslinjen.
-* **Status:** 📋 Planerad
-
----
-
-### 💬 Sprint 9: Auto-Captions V1 (Lokal Whisper AI)
-* **Mål:** Automatisk undertextning med dynamisk ordmarkering utan molnkostnader.
-* **Funktioner:**
-  - Extrahera ljud till WAV och skicka till lokal `whisper.cpp`-backend.
-  - Automatisk generering av tidsatta textklipp på textspåret.
-  - Stilval: "Hormozi" (gult/grönt aktivt ord), "Karaoke", "Minimal Box".
-* **Status:** 📋 Planerad
+### Sprint 9: 1-klicks Export
+* Snabbknappar för TikTok (1080x1920, 60fps), YouTube Shorts, Instagram och YouTube 4K.
