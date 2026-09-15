@@ -18,6 +18,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const exporter = new NovaCutExporter(engine, timeline);
     window.exporter = exporter;
 
+    const sfxManager = new NovaCutSFX(timeline, engine);
+    window.sfxManager = sfxManager;
+
     // 2. Setup Top Bar & Transport Controls
     document.getElementById('btnPlayPause').addEventListener('click', () => engine.togglePlay());
     document.getElementById('btnPrevFrame').addEventListener('click', () => engine.stepFrame(-1));
@@ -39,6 +42,23 @@ document.addEventListener('DOMContentLoaded', () => {
     if (aspectSelect) {
         aspectSelect.addEventListener('change', (e) => {
             engine.setAspectRatio(e.target.value);
+        });
+    }
+
+    // Monitor Bar Tools
+    const btnSafeZone = document.getElementById('btnToggleSafeZone');
+    if (btnSafeZone) {
+        btnSafeZone.addEventListener('click', () => engine.toggleSafeZone());
+    }
+
+    const btnFitCanvas = document.getElementById('btnFitCanvas');
+    if (btnFitCanvas) {
+        btnFitCanvas.addEventListener('click', () => {
+            const container = document.querySelector('.canvas-container');
+            if (container) {
+                container.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+            }
+            engine.render();
         });
     }
 
@@ -318,6 +338,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnAudioOnly = document.getElementById('btnImportAudioOnly');
     if (btnAudioOnly && btnImport) {
         btnAudioOnly.addEventListener('click', () => btnImport.click());
+    }
+
+    // Audio Sub-tabs (SFX vs Musik)
+    const subTabSfx = document.getElementById('subTabSfx');
+    const subTabMusic = document.getElementById('subTabMusic');
+    const audioViewSfx = document.getElementById('audioViewSfx');
+    const audioViewMusic = document.getElementById('audioViewMusic');
+
+    if (subTabSfx && subTabMusic && audioViewSfx && audioViewMusic) {
+        subTabSfx.addEventListener('click', () => {
+            subTabSfx.classList.add('active');
+            subTabMusic.classList.remove('active');
+            audioViewSfx.style.display = 'block';
+            audioViewMusic.style.display = 'none';
+        });
+
+        subTabMusic.addEventListener('click', () => {
+            subTabMusic.classList.add('active');
+            subTabSfx.classList.remove('active');
+            audioViewMusic.style.display = 'block';
+            audioViewSfx.style.display = 'none';
+        });
     }
 
     const audioPresets = [

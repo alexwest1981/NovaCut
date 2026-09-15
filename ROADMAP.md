@@ -40,7 +40,8 @@ Denna roadmap bryter ner NovaCuts utveckling i **fokuserade, lätthanterliga mik
     - *Bass Drop / Impact* (dramatisk hook)
   - Förhandslyssning i fliken **Ljud** med play/pause-knapp före placering.
   - 1-klicks-placering direkt vid tidslinjens markör på ljudspåret.
-* **Status:** ⏳ *Redo att påbörjas*
+  - Inkluderar även CapCut Pro Studio GUI (Monitor-bar, säkra zoner, spårlåsning & muting, neon laser-spelhuvud).
+* **Status:** ✅ *Slutförd (Sprint 1)*
 
 ---
 

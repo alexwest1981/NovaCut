@@ -12,6 +12,7 @@ class NovaCutEngine {
         this.isLooping = true;
         this.fps = 30;
         this.aspectRatio = '16:9';
+        this.showSafeZone = false;
 
         this.masterVolume = 1.0;
         this.playbackRate = 1.0;
@@ -29,6 +30,8 @@ class NovaCutEngine {
 
     setAspectRatio(ratio) {
         this.aspectRatio = ratio;
+        const select = document.getElementById('aspectRatioSelect');
+        if (select && select.value !== ratio) select.value = ratio;
         this.updateCanvasDimensions();
         this.render();
     }
@@ -47,6 +50,30 @@ class NovaCutEngine {
             this.canvas.width = 1080;
             this.canvas.height = 1350;
         }
+
+        const resEl = document.getElementById('monitorResolution');
+        if (resEl) {
+            resEl.textContent = `${this.canvas.width}×${this.canvas.height} • ${this.fps} FPS`;
+        }
+        const pillEl = document.getElementById('monitorAspectPill');
+        if (pillEl) {
+            const labels = {
+                '16:9': '16:9 Widescreen',
+                '9:16': '9:16 TikTok / Reel',
+                '1:1': '1:1 Kvadrat',
+                '4:5': '4:5 Porträtt'
+            };
+            pillEl.textContent = labels[this.aspectRatio] || this.aspectRatio;
+        }
+    }
+
+    toggleSafeZone() {
+        this.showSafeZone = !this.showSafeZone;
+        const btn = document.getElementById('btnToggleSafeZone');
+        if (btn) {
+            btn.classList.toggle('active', this.showSafeZone);
+        }
+        this.render();
     }
 
     play() {
@@ -143,10 +170,20 @@ class NovaCutEngine {
             return;
         }
 
+        const trackStates = window.timeline?.trackStates || {
+            text: { visible: true, locked: false },
+            effect: { visible: true, locked: false },
+            overlay: { visible: true, locked: false },
+            video: { visible: true, locked: false },
+            audio: { muted: false, locked: false }
+        };
+
         const activeClips = window.timeline.getActiveClipsAt(this.currentTime);
 
         // 2. Global Effect Layers (Active clips on effect track)
-        const effectClips = activeClips.filter(c => c.trackId === 'effect');
+        const effectClips = (trackStates.effect?.visible !== false)
+            ? activeClips.filter(c => c.trackId === 'effect')
+            : [];
         let combinedFilter = 'none';
         let customOverlays = [];
 
@@ -165,12 +202,19 @@ class NovaCutEngine {
         ctx.filter = combinedFilter;
 
         // 3. Render Main Video Track & Overlay Track
-        const videoClips = activeClips.filter(c => c.trackId === 'video' || c.trackId === 'overlay');
+        const videoClips = activeClips.filter(c => {
+            if (c.trackId === 'video' && trackStates.video?.visible !== false) return true;
+            if (c.trackId === 'overlay' && trackStates.overlay?.visible !== false) return true;
+            return false;
+        });
         
         // Sort: main video first, overlay on top
         videoClips.sort((a, b) => (a.trackId === 'video' ? -1 : 1));
 
-        if (videoClips.length === 0 && activeClips.filter(c => c.trackId === 'text').length === 0) {
+        const isTextVisible = trackStates.text?.visible !== false;
+        const visibleTextClips = isTextVisible ? activeClips.filter(c => c.trackId === 'text') : [];
+
+        if (videoClips.length === 0 && visibleTextClips.length === 0) {
             // Render friendly placeholder when project is empty
             this.renderEmptyPlaceholder();
         }
@@ -180,28 +224,37 @@ class NovaCutEngine {
         });
 
         // 4. Render Custom Overlay Effects (e.g. VHS scanlines, Vignette)
-        customOverlays.forEach(ov => {
-            this.renderSpecialOverlay(ov.type, ov.params, width, height);
-        });
+        if (trackStates.effect?.visible !== false) {
+            customOverlays.forEach(ov => {
+                this.renderSpecialOverlay(ov.type, ov.params, width, height);
+            });
+        }
 
         // Reset filter for sharp text rendering
         ctx.filter = 'none';
 
         // 5. Render Text Layers
-        const textClips = activeClips.filter(c => c.trackId === 'text');
-        textClips.forEach(clip => {
-            this.renderTextClip(clip, width, height);
-        });
+        if (isTextVisible) {
+            visibleTextClips.forEach(clip => {
+                this.renderTextClip(clip, width, height);
+            });
+        }
 
         // 6. Interactive Selection Gizmo & Snap Guidelines
         if (window.timeline && window.timeline.selectedClipId) {
             const selClip = window.timeline.clips.find(c => c.id === window.timeline.selectedClipId);
             if (selClip && (selClip.trackId === 'text' || selClip.trackId === 'overlay' || selClip.trackId === 'video')) {
+                const isTrackVisible = trackStates[selClip.trackId]?.visible !== false;
                 const isActive = activeClips.some(c => c.id === selClip.id);
-                if (isActive) {
+                if (isActive && isTrackVisible) {
                     this.renderSelectionGizmo(selClip, width, height);
                 }
             }
+        }
+
+        // 7. Safe Zones Overlay (TikTok / Reels / Action & Title Safe)
+        if (this.showSafeZone) {
+            this.renderSafeZones(width, height);
         }
 
         ctx.restore();
@@ -833,11 +886,12 @@ class NovaCutEngine {
     }
 
     syncAudioTracks(activeClips) {
+        const isMuted = window.timeline?.trackStates?.audio?.muted || false;
         const audioClips = activeClips.filter(c => c.trackId === 'audio');
         audioClips.forEach(clip => {
             const el = this.mediaElements.get(clip.mediaId);
             if (el && typeof el.play === 'function') {
-                el.volume = (clip.volume !== undefined ? clip.volume : 1.0) * this.masterVolume;
+                el.volume = isMuted ? 0 : (clip.volume !== undefined ? clip.volume : 1.0) * this.masterVolume;
                 const clipRelativeTime = (this.currentTime - clip.startTime) + (clip.sourceOffset || 0);
 
                 if (this.isPlaying) {
@@ -853,6 +907,97 @@ class NovaCutEngine {
                 }
             }
         });
+    }
+
+    renderSafeZones(width, height) {
+        const { ctx } = this;
+        ctx.save();
+
+        if (this.aspectRatio === '9:16') {
+            // TikTok / Instagram Reels / YouTube Shorts safe zones
+            // Top: 14% (header, tabs, search)
+            // Bottom: 22% (caption, author, sound title, comment input)
+            // Right: 16% (interaction sidebar: like, comment, bookmark, share)
+            // Left: 6% margin
+            const topMargin = height * 0.14;
+            const bottomMargin = height * 0.22;
+            const rightMargin = width * 0.16;
+            const leftMargin = width * 0.06;
+
+            const safeW = width - leftMargin - rightMargin;
+            const safeH = height - topMargin - bottomMargin;
+
+            // Semi-transparent danger zone tint
+            ctx.fillStyle = 'rgba(255, 0, 80, 0.08)';
+            ctx.fillRect(0, 0, width, topMargin);
+            ctx.fillRect(0, height - bottomMargin, width, bottomMargin);
+            ctx.fillRect(width - rightMargin, topMargin, rightMargin, height - topMargin - bottomMargin);
+
+            // Safe Zone Dashed Border (Neon Cyan)
+            ctx.strokeStyle = '#00f2fe';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([12, 8]);
+            ctx.strokeRect(leftMargin, topMargin, safeW, safeH);
+
+            // Labels
+            ctx.setLineDash([]);
+            ctx.fillStyle = '#00f2fe';
+            ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText('⊞ TIKTOK / REELS SÄKER ZON', leftMargin + 16, topMargin + 32);
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+            ctx.font = '16px -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.fillText('Håll text & grafik här för att undvika ikoner & undertexter', leftMargin + 16, topMargin + 58);
+
+            // UI Area hints
+            ctx.fillStyle = 'rgba(255, 90, 90, 0.85)';
+            ctx.font = 'bold 16px -apple-system, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('▲ APP TOPPMENY', width / 2, topMargin / 2);
+            ctx.fillText('▼ UNDERTEXTER & MUSIKTITEL', width / 2, height - bottomMargin / 2);
+
+            ctx.textAlign = 'right';
+            ctx.fillText('IKONER ▶', width - 12, height / 2);
+
+        } else {
+            // Standard 16:9 / 1:1 / 4:5 Action & Title Safe Margins
+            // Action Safe: 90%
+            const actionInsetX = width * 0.05;
+            const actionInsetY = height * 0.05;
+            ctx.strokeStyle = 'rgba(0, 242, 254, 0.6)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([10, 6]);
+            ctx.strokeRect(actionInsetX, actionInsetY, width - actionInsetX * 2, height - actionInsetY * 2);
+
+            // Title Safe: 80%
+            const titleInsetX = width * 0.10;
+            const titleInsetY = height * 0.10;
+            ctx.strokeStyle = 'rgba(0, 212, 130, 0.75)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([8, 6]);
+            ctx.strokeRect(titleInsetX, titleInsetY, width - titleInsetX * 2, height - titleInsetY * 2);
+
+            // Center Crosshair
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([]);
+            const chSize = 30;
+            ctx.beginPath();
+            ctx.moveTo(width / 2 - chSize, height / 2);
+            ctx.lineTo(width / 2 + chSize, height / 2);
+            ctx.moveTo(width / 2, height / 2 - chSize);
+            ctx.lineTo(width / 2, height / 2 + chSize);
+            ctx.stroke();
+
+            // Label
+            ctx.fillStyle = '#00d482';
+            ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText('⊞ TITEL- OCH GRAFIKMARGINAL (80% / 90%)', titleInsetX + 16, titleInsetY + 30);
+        }
+
+        ctx.restore();
     }
 
     updateTimecodeUI() {

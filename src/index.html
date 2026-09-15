@@ -96,10 +96,36 @@
             <!-- Tab 4: Audio Presets & SFX -->
             <div id="tab-audio" class="tab-content">
                 <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <button id="btnImportAudioOnly" class="btn-primary" style="justify-content: center;">+ Importera Musik / SFX</button>
-                    <div class="section-title" style="margin-top: 10px;">Inbyggda Ljudklipp</div>
-                    <div id="audioPresetsList" style="display: flex; flex-direction: column; gap: 8px;">
-                        <!-- Audio presets rendered dynamically -->
+                    <button id="btnImportAudioOnly" class="btn-primary" style="justify-content: center;">
+                        <span>+ Importera Eget Ljud</span>
+                    </button>
+
+                    <!-- Sub-navigation: Ljudeffekter (SFX) vs Musik -->
+                    <div class="audio-sub-tabs">
+                        <button class="audio-tab-btn active" id="subTabSfx" data-sub="sfx">💥 Ljudeffekter (SFX)</button>
+                        <button class="audio-tab-btn" id="subTabMusic" data-sub="music">🎵 Musikspår</button>
+                    </div>
+
+                    <!-- View 1: Creator SFX Pack -->
+                    <div id="audioViewSfx" class="audio-sub-view">
+                        <div class="category-chips" style="margin-bottom: 6px;">
+                            <div class="chip active sfx-chip" data-cat="all">Alla</div>
+                            <div class="chip sfx-chip" data-cat="transition">Whoosh</div>
+                            <div class="chip sfx-chip" data-cat="reaction">Pop / Ding</div>
+                            <div class="chip sfx-chip" data-cat="impact">Impact</div>
+                            <div class="chip sfx-chip" data-cat="retro">Glitch / Retro</div>
+                        </div>
+                        <div id="sfxPresetsList" style="display: flex; flex-direction: column; gap: 8px;">
+                            <!-- SFX cards rendered dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- View 2: Background Music Presets -->
+                    <div id="audioViewMusic" class="audio-sub-view" style="display: none;">
+                        <div class="section-title" style="margin-top: 4px;">Inbyggd Bakgrundsmusik</div>
+                        <div id="audioPresetsList" style="display: flex; flex-direction: column; gap: 8px;">
+                            <!-- Audio presets rendered dynamically -->
+                        </div>
                     </div>
                 </div>
             </div>
@@ -130,6 +156,18 @@
 
         <!-- Center Pane: Preview Player & Canvas -->
         <div class="center-pane">
+            <div class="player-monitor-bar">
+                <div class="monitor-tag">
+                    <span class="pulse-dot"></span>
+                    <span id="monitorResolution">1920×1080 • 60 FPS</span>
+                </div>
+                <div class="monitor-actions">
+                    <span class="monitor-pill" id="monitorAspectPill">16:9 Widescreen</span>
+                    <button id="btnToggleSafeZone" class="btn-monitor-tool" title="Visa/dölj säkra marginaler för TikTok/Shorts">⊞ Säkra zoner</button>
+                    <button id="btnFitCanvas" class="btn-monitor-tool" title="Återställ förhandsgranskning">100% Anpassa</button>
+                </div>
+            </div>
+
             <div class="canvas-container">
                 <canvas id="previewCanvas" width="1920" height="1080"></canvas>
             </div>
@@ -202,34 +240,54 @@
             <div class="track-headers">
                 <div class="track-headers-spacer"></div>
                 <div class="track-headers-scrollable" id="trackHeadersScrollable">
-                    <div class="track-header">
+                    <div class="track-header" data-track-id="text">
                         <div class="track-header-left">
-                            <span class="track-dot text"></span>
-                            <span class="track-header-title">Text 1</span>
+                            <span class="track-badge text">TXT</span>
+                            <span class="track-header-title">Textlager</span>
+                        </div>
+                        <div class="track-header-actions">
+                            <button class="btn-track-action track-toggle-vis" title="Dölj/Visa text">👁️</button>
+                            <button class="btn-track-action track-toggle-lock" title="Lås spår">🔓</button>
                         </div>
                     </div>
-                    <div class="track-header">
+                    <div class="track-header" data-track-id="effect">
                         <div class="track-header-left">
-                            <span class="track-dot effect"></span>
+                            <span class="track-badge effect">FX</span>
                             <span class="track-header-title">Effektlager</span>
                         </div>
-                    </div>
-                    <div class="track-header">
-                        <div class="track-header-left">
-                            <span class="track-dot overlay"></span>
-                            <span class="track-header-title">Overlay Video</span>
+                        <div class="track-header-actions">
+                            <button class="btn-track-action track-toggle-vis" title="Dölj/Visa effekter">👁️</button>
+                            <button class="btn-track-action track-toggle-lock" title="Lås spår">🔓</button>
                         </div>
                     </div>
-                    <div class="track-header">
+                    <div class="track-header" data-track-id="overlay">
                         <div class="track-header-left">
-                            <span class="track-dot video"></span>
+                            <span class="track-badge overlay">PIP</span>
+                            <span class="track-header-title">Overlay (B-Roll)</span>
+                        </div>
+                        <div class="track-header-actions">
+                            <button class="btn-track-action track-toggle-vis" title="Dölj/Visa overlay">👁️</button>
+                            <button class="btn-track-action track-toggle-lock" title="Lås spår">🔓</button>
+                        </div>
+                    </div>
+                    <div class="track-header" data-track-id="video">
+                        <div class="track-header-left">
+                            <span class="track-badge video">VID</span>
                             <span class="track-header-title">Huvudvideo</span>
                         </div>
+                        <div class="track-header-actions">
+                            <button class="btn-track-action track-toggle-vis" title="Dölj/Visa video">👁️</button>
+                            <button class="btn-track-action track-toggle-lock" title="Lås spår">🔓</button>
+                        </div>
                     </div>
-                    <div class="track-header">
+                    <div class="track-header" data-track-id="audio">
                         <div class="track-header-left">
-                            <span class="track-dot audio"></span>
+                            <span class="track-badge audio">AUD</span>
                             <span class="track-header-title">Ljudspår</span>
+                        </div>
+                        <div class="track-header-actions">
+                            <button class="btn-track-action track-toggle-mute" title="Tysta ljudspår">🔊</button>
+                            <button class="btn-track-action track-toggle-lock" title="Lås spår">🔓</button>
                         </div>
                     </div>
                 </div>
@@ -352,6 +410,7 @@
     <script src="js/timeline.js"></script>
     <script src="js/inspector.js"></script>
     <script src="js/marketplace.js"></script>
+    <script src="js/sfx.js"></script>
     <script src="js/exporter.js"></script>
     <script src="js/app.js"></script>
 </body>

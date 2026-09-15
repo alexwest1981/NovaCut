@@ -20,6 +20,14 @@ class NovaCutTimeline {
             { id: 'audio', name: 'Ljudspår', type: 'audio' }
         ];
 
+        this.trackStates = {
+            text: { visible: true, locked: false },
+            effect: { visible: true, locked: false },
+            overlay: { visible: true, locked: false },
+            video: { visible: true, locked: false },
+            audio: { muted: false, locked: false }
+        };
+
         this.viewport = document.getElementById('timelineViewport');
         this.canvasContainer = document.getElementById('timelineCanvas');
         this.rulerCanvas = document.getElementById('rulerCanvas');
@@ -32,6 +40,7 @@ class NovaCutTimeline {
 
         this.initRuler();
         this.setupEvents();
+        this.setupTrackHeaderControls();
     }
 
     initRuler() {
@@ -243,6 +252,7 @@ class NovaCutTimeline {
         if (!this.selectedClipId) return;
         const clip = this.clips.find(c => c.id === this.selectedClipId);
         if (!clip) return;
+        if (this.trackStates[clip.trackId]?.locked) return; // Locked track cannot be split
 
         const playheadTime = this.engine.currentTime;
         const clipEnd = clip.startTime + clip.duration;
@@ -279,6 +289,8 @@ class NovaCutTimeline {
         if (!this.selectedClipId) return;
         const index = this.clips.findIndex(c => c.id === this.selectedClipId);
         if (index === -1) return;
+        const clip = this.clips[index];
+        if (this.trackStates[clip.trackId]?.locked) return; // Locked track cannot be deleted
 
         const domEl = document.getElementById(`dom-${this.selectedClipId}`);
         if (domEl) domEl.remove();
@@ -338,6 +350,12 @@ class NovaCutTimeline {
             if (!clip) return;
 
             this.selectClip(clip.id);
+
+            // If track is locked, prevent move or trim
+            if (this.trackStates[clip.trackId]?.locked) {
+                e.stopPropagation();
+                return;
+            }
 
             const handle = e.target.closest('.trim-handle');
             if (handle) {
@@ -444,6 +462,58 @@ class NovaCutTimeline {
             }
         }
         return null;
+    }
+
+    setupTrackHeaderControls() {
+        document.querySelectorAll('.track-header').forEach(header => {
+            const trackId = header.dataset.trackId;
+            if (!trackId) return;
+
+            const btnVis = header.querySelector('.track-toggle-vis');
+            if (btnVis) {
+                btnVis.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const state = this.trackStates[trackId];
+                    if (!state) return;
+                    state.visible = !state.visible;
+                    btnVis.textContent = state.visible ? '👁️' : '🚫';
+                    btnVis.classList.toggle('active', !state.visible);
+                    btnVis.title = state.visible ? `Dölj ${trackId}` : `Visa ${trackId}`;
+                    this.engine.render();
+                });
+            }
+
+            const btnMute = header.querySelector('.track-toggle-mute');
+            if (btnMute) {
+                btnMute.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const state = this.trackStates[trackId];
+                    if (!state) return;
+                    state.muted = !state.muted;
+                    btnMute.textContent = state.muted ? '🔇' : '🔊';
+                    btnMute.classList.toggle('active', state.muted);
+                    btnMute.title = state.muted ? 'Aktivera ljudspår' : 'Tysta ljudspår';
+                    this.engine.render();
+                });
+            }
+
+            const btnLock = header.querySelector('.track-toggle-lock');
+            if (btnLock) {
+                btnLock.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const state = this.trackStates[trackId];
+                    if (!state) return;
+                    state.locked = !state.locked;
+                    btnLock.textContent = state.locked ? '🔒' : '🔓';
+                    btnLock.classList.toggle('active', state.locked);
+                    btnLock.title = state.locked ? `Lås upp ${trackId}` : `Lås ${trackId}`;
+                    const lane = document.getElementById(`lane-${trackId}`);
+                    if (lane) {
+                        lane.classList.toggle('locked', state.locked);
+                    }
+                });
+            }
+        });
     }
 }
 
