@@ -10,5 +10,11 @@ contextBridge.exposeInMainWorld('novaCut', {
         ipcRenderer.on('export:progress', (event, data) => callback(data));
     },
     importFont: () => ipcRenderer.invoke('font:import'),
-    loadCustomFonts: () => ipcRenderer.invoke('font:loadCustom')
+    loadCustomFonts: () => ipcRenderer.invoke('font:loadCustom'),
+    listProjects: () => ipcRenderer.invoke('project:list'),
+    saveProject: (projectData) => ipcRenderer.invoke('project:save', projectData),
+    loadProject: (id) => ipcRenderer.invoke('project:load', id),
+    deleteProject: (id) => ipcRenderer.invoke('project:delete', id),
+    openProjectFile: () => ipcRenderer.invoke('project:openFile')
 });
+

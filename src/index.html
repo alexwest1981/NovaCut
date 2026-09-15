@@ -13,12 +13,16 @@
     <!-- App Header -->
     <header class="header">
         <div class="header-left">
-            <div class="brand">
+            <button id="btnHomeProjects" class="btn-home-brand" title="Öppna projektöversikt / Välkomstskärm">
                 <div class="brand-icon">⚡</div>
-                <span>NovaCut</span>
-                <span class="brand-badge">Linux</span>
-            </div>
+                <span class="brand-name">NovaCut</span>
+                <span class="brand-badge">🏠 Projekt</span>
+            </button>
             <input type="text" id="projectTitle" class="project-title-input" value="Mitt Projekt" title="Klicka för att byta projektnamn">
+            <button id="btnSaveProject" class="btn-save-compact" title="Spara projekt (Ctrl+S)">
+                <span>💾</span>
+                <span>Spara</span>
+            </button>
         </div>
 
         <div class="header-center">
@@ -402,6 +406,70 @@
         </div>
     </div>
 
+    <!-- Welcome & Projects Hub Modal (Always shown on start) -->
+    <div id="welcomeModal" class="welcome-modal-overlay active">
+        <div class="welcome-container">
+            <!-- Left Sidebar -->
+            <div class="welcome-sidebar">
+                <div class="welcome-brand">
+                    <div class="welcome-logo">⚡</div>
+                    <div>
+                        <div class="welcome-app-name">NovaCut</div>
+                        <div class="welcome-app-desc">Video Studio för Linux</div>
+                    </div>
+                </div>
+
+                <div class="welcome-actions">
+                    <button id="btnWelcomeNewProject" class="btn-welcome-new">
+                        <span class="new-icon">➕</span>
+                        <div>
+                            <div class="new-title">Nytt Projekt</div>
+                            <div class="new-sub">Starta från scratch</div>
+                        </div>
+                    </button>
+
+                    <div class="welcome-ratio-group">
+                        <div class="ratio-label">Format för nytt projekt:</div>
+                        <div class="welcome-ratio-chips">
+                            <button class="ratio-chip active" data-ratio="16:9">16:9 Widescreen</button>
+                            <button class="ratio-chip" data-ratio="9:16">9:16 TikTok / Reel</button>
+                            <button class="ratio-chip" data-ratio="1:1">1:1 Kvadrat</button>
+                            <button class="ratio-chip" data-ratio="4:5">4:5 Porträtt</button>
+                        </div>
+                    </div>
+
+                    <button id="btnWelcomeOpenFile" class="btn-welcome-open">
+                        <span>📁</span>
+                        <span>Öppna projektfil (.novacut)...</span>
+                    </button>
+                </div>
+
+                <div class="welcome-footer-info">
+                    <div class="welcome-version">NovaCut v0.1.0 • GPU NVENC / VAAPI</div>
+                    <button id="btnWelcomeClose" class="btn-skip-editor">Gå direkt till redigeraren →</button>
+                </div>
+            </div>
+
+            <!-- Main Content: Projects Grid -->
+            <div class="welcome-main">
+                <div class="welcome-main-header">
+                    <div>
+                        <h2 class="welcome-heading">Mina Projekt</h2>
+                        <p class="welcome-subheading">Välj ett tidigare projekt för att fortsätta klippa eller öppna</p>
+                    </div>
+                    <div class="welcome-search-box">
+                        <span>🔍</span>
+                        <input type="text" id="welcomeProjectSearch" placeholder="Sök bland projekt...">
+                    </div>
+                </div>
+
+                <div class="welcome-projects-grid" id="welcomeProjectsGrid">
+                    <!-- Project cards populated dynamically by projects.js -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Hidden Video/Audio Cache Elements for Composition -->
     <div id="mediaCache" style="display: none;"></div>
 
@@ -412,6 +480,7 @@
     <script src="js/inspector.js"></script>
     <script src="js/marketplace.js"></script>
     <script src="js/sfx.js"></script>
+    <script src="js/projects.js"></script>
     <script src="js/exporter.js"></script>
     <script src="js/app.js"></script>
 </body>

@@ -467,36 +467,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 9. Load Default Starter Project (Sample Video + Text + Cyberpunk Filter)
-    timeline.addClip({
-        trackId: 'video',
-        title: 'Syntetisk Bakgrundsvideo',
-        type: 'video',
-        startTime: 0,
-        duration: 8.0,
-        scale: 1.0
-    });
+    // 9. Initialize Project Hub & Welcome Screen
+    const projectManager = new NovaCutProjects(engine, timeline);
+    window.projectManager = projectManager;
 
-    timeline.addClip({
-        trackId: 'text',
-        title: 'NovaCut Välkommen',
-        type: 'text',
-        text: 'NovaCut Video Editor',
-        startTime: 1.0,
-        duration: 5.0,
-        fontSize: 72,
-        color: '#00d482'
-    });
+    // Populate initial starter project behind welcome modal
+    projectManager.openProject('demo-starter');
 
-    timeline.addClip({
-        trackId: 'effect',
-        title: 'Cyberpunk Neon',
-        type: 'effect',
-        startTime: 2.0,
-        duration: 4.5,
-        cssFilter: 'contrast(130%) saturate(150%) hue-rotate(160deg)',
-        params: { intensity: 1.2 }
-    });
+    // Always start application with the Welcome Screen & Project List
+    projectManager.showWelcome();
 
     // Initial render
     engine.render();

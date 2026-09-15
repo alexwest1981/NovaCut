@@ -20,6 +20,61 @@ if (!fs.existsSync(userFontsDir)) {
     fs.mkdirSync(userFontsDir, { recursive: true });
 }
 
+const userProjectsDir = path.join(app.getPath('userData'), 'projects');
+if (!fs.existsSync(userProjectsDir)) {
+    fs.mkdirSync(userProjectsDir, { recursive: true });
+}
+
+// Ensure default starter project exists
+const starterProjectFile = path.join(userProjectsDir, 'demo-starter.novacut');
+if (!fs.existsSync(starterProjectFile)) {
+    const starterData = {
+        id: 'demo-starter',
+        title: 'NovaCut Välkomstvideo',
+        aspectRatio: '16:9',
+        duration: 8.0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        clips: [
+            {
+                id: 'clip-video-1',
+                trackId: 'video',
+                title: 'Syntetisk Bakgrundsvideo',
+                type: 'video',
+                startTime: 0,
+                duration: 8.0,
+                scale: 1.0
+            },
+            {
+                id: 'clip-text-1',
+                trackId: 'text',
+                title: 'NovaCut Välkommen',
+                type: 'text',
+                text: 'NovaCut Video Editor',
+                startTime: 1.0,
+                duration: 5.0,
+                fontSize: 72,
+                color: '#00d482'
+            },
+            {
+                id: 'clip-fx-1',
+                trackId: 'effect',
+                title: 'Cyberpunk Neon',
+                type: 'effect',
+                startTime: 2.0,
+                duration: 4.5,
+                cssFilter: 'contrast(130%) saturate(150%) hue-rotate(160deg)',
+                params: { intensity: 1.2 }
+            }
+        ]
+    };
+    try {
+        fs.writeFileSync(starterProjectFile, JSON.stringify(starterData, null, 2));
+    } catch (e) {
+        console.warn('Could not write starter project:', e);
+    }
+}
+
 function createWindow() {
     mainWindow = new BrowserWindow({
         title: 'NovaCut - Video Editor',
@@ -188,6 +243,104 @@ ipcMain.handle('font:loadCustom', async () => {
         }
     }
     return fonts;
+});
+
+// --- Project Management IPC Handlers ---
+ipcMain.handle('project:list', async () => {
+    try {
+        if (!fs.existsSync(userProjectsDir)) return [];
+        const files = fs.readdirSync(userProjectsDir);
+        const projects = [];
+        for (const file of files) {
+            if (file.endsWith('.novacut') || file.endsWith('.json')) {
+                try {
+                    const raw = fs.readFileSync(path.join(userProjectsDir, file), 'utf8');
+                    const data = JSON.parse(raw);
+                    projects.push({
+                        id: data.id || path.parse(file).name,
+                        title: data.title || 'Namnlöst Projekt',
+                        aspectRatio: data.aspectRatio || '16:9',
+                        duration: data.duration || 10.0,
+                        clipCount: (data.clips || []).length,
+                        updatedAt: data.updatedAt || data.createdAt || fs.statSync(path.join(userProjectsDir, file)).mtime.toISOString(),
+                        filePath: path.join(userProjectsDir, file)
+                    });
+                } catch (e) {
+                    console.warn('Could not parse project file:', file, e);
+                }
+            }
+        }
+        projects.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+        return projects;
+    } catch (err) {
+        console.error('Error listing projects:', err);
+        return [];
+    }
+});
+
+ipcMain.handle('project:save', async (event, projectData) => {
+    try {
+        const id = projectData.id || `project-${Date.now()}`;
+        projectData.id = id;
+        projectData.updatedAt = new Date().toISOString();
+        if (!projectData.createdAt) projectData.createdAt = projectData.updatedAt;
+
+        const filePath = path.join(userProjectsDir, `${id}.novacut`);
+        fs.writeFileSync(filePath, JSON.stringify(projectData, null, 2));
+        return { success: true, project: projectData, filePath };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('project:load', async (event, projectId) => {
+    try {
+        const filePath = path.join(userProjectsDir, `${projectId}.novacut`);
+        if (!fs.existsSync(filePath)) {
+            const altPath = path.join(userProjectsDir, projectId);
+            if (fs.existsSync(altPath)) {
+                return JSON.parse(fs.readFileSync(altPath, 'utf8'));
+            }
+            throw new Error('Projektet hittades inte');
+        }
+        return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    } catch (err) {
+        return { error: err.message };
+    }
+});
+
+ipcMain.handle('project:delete', async (event, projectId) => {
+    try {
+        const filePath = path.join(userProjectsDir, `${projectId}.novacut`);
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
+        return { success: true };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('project:openFile', async () => {
+    if (!mainWindow) return null;
+    const result = await dialog.showOpenDialog(mainWindow, {
+        title: 'Öppna NovaCut Projekt',
+        filters: [
+            { name: 'NovaCut Projekt (*.novacut, *.json)', extensions: ['novacut', 'json'] }
+        ],
+        properties: ['openFile']
+    });
+    if (result.canceled || !result.filePaths.length) return null;
+    try {
+        const filePath = result.filePaths[0];
+        const content = fs.readFileSync(filePath, 'utf8');
+        const data = JSON.parse(content);
+        data.filePath = filePath;
+        return data;
+    } catch (err) {
+        console.error('Error opening project file:', err);
+        return { error: err.message };
+    }
 });
 
 // FFmpeg Export Engine
