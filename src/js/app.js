@@ -471,9 +471,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const projectManager = new NovaCutProjects(engine, timeline);
     window.projectManager = projectManager;
 
-    // Populate initial starter project behind welcome modal
-    projectManager.openProject('demo-starter');
-
     // Always start application with the Welcome Screen & Project List
     projectManager.showWelcome();
 

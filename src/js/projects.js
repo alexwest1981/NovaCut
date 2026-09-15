@@ -7,7 +7,7 @@ class NovaCutProjects {
         this.timeline = timeline;
 
         this.projects = [];
-        this.currentProjectId = 'demo-starter';
+        this.currentProjectId = null;
         this.selectedRatio = '16:9';
 
         this.modalEl = document.getElementById('welcomeModal');
@@ -19,8 +19,9 @@ class NovaCutProjects {
 
     async init() {
         this.setupEventListeners();
-        await this.loadProjectList();
         this.showWelcome();
+        await this.loadProjectList();
+        this.renderProjects();
     }
 
     setupEventListeners() {
