@@ -285,6 +285,31 @@ class NovaCutInspector {
                     </label>
                 </div>
             </div>
+
+            <div class="inspector-section">
+                <div class="section-title">Ljud & Toning</div>
+                <div class="param-row">
+                    <span class="param-label">Volym</span>
+                    <div class="param-input-group">
+                        <input type="range" class="slider-input" id="propVideoVol" min="0" max="2.0" step="0.05" value="${clip.volume !== undefined ? clip.volume : 1.0}">
+                        <span class="num-display" id="valVideoVol">${Math.round((clip.volume !== undefined ? clip.volume : 1.0) * 100)}%</span>
+                    </div>
+                </div>
+                <div class="param-row">
+                    <span class="param-label">Tona in (Fade In)</span>
+                    <div class="param-input-group">
+                        <input type="range" class="slider-input" id="propAudioFadeIn" min="0" max="5.0" step="0.1" value="${clip.fadeIn || 0}">
+                        <span class="num-display" id="valAudioFadeIn">${(clip.fadeIn || 0).toFixed(1)}s</span>
+                    </div>
+                </div>
+                <div class="param-row">
+                    <span class="param-label">Tona ut (Fade Out)</span>
+                    <div class="param-input-group">
+                        <input type="range" class="slider-input" id="propAudioFadeOut" min="0" max="5.0" step="0.1" value="${clip.fadeOut || 0}">
+                        <span class="num-display" id="valAudioFadeOut">${(clip.fadeOut || 0).toFixed(1)}s</span>
+                    </div>
+                </div>
+            </div>
         `;
 
         this.bindKeyframeControl(clip, 'scale', 'propScale', 'valScale', (v) => `${v.toFixed(2)}x`);
@@ -292,6 +317,24 @@ class NovaCutInspector {
         this.bindKeyframeControl(clip, 'posY', 'propPosY', 'valPosY', (v) => Math.round(v));
         this.bindKeyframeControl(clip, 'rotation', 'propRotation', 'valRotation', (v) => `${Math.round(v)}°`);
         this.bindKeyframeControl(clip, 'opacity', 'propOpacity', 'valOpacity', (v) => `${Math.round(v * 100)}%`);
+
+        this.bindInput('propVideoVol', 'valVideoVol', (v) => {
+            clip.volume = parseFloat(v);
+            this.engine.render();
+            return `${Math.round(parseFloat(v) * 100)}%`;
+        });
+        this.bindInput('propAudioFadeIn', 'valAudioFadeIn', (v) => {
+            clip.fadeIn = parseFloat(v);
+            this.timeline.renderClipDOM(clip);
+            this.engine.render();
+            return `${parseFloat(v).toFixed(1)}s`;
+        });
+        this.bindInput('propAudioFadeOut', 'valAudioFadeOut', (v) => {
+            clip.fadeOut = parseFloat(v);
+            this.timeline.renderClipDOM(clip);
+            this.engine.render();
+            return `${parseFloat(v).toFixed(1)}s`;
+        });
 
         const btnResetMediaX = document.getElementById('btnResetMediaPosX');
         if (btnResetMediaX) {
@@ -666,12 +709,49 @@ class NovaCutInspector {
     renderAudioProperties(clip) {
         this.bodyEl.innerHTML = `
             <div class="inspector-section">
-                <div class="section-title">Ljudstyrka & Mix</div>
+                <div class="section-title">Ljudstyrka & Toning</div>
                 <div class="param-row">
                     <span class="param-label">Volym</span>
                     <div class="param-input-group">
                         <input type="range" class="slider-input" id="propAudioVol" min="0" max="2.0" step="0.05" value="${clip.volume !== undefined ? clip.volume : 1.0}">
                         <span class="num-display" id="valAudioVol">${Math.round((clip.volume !== undefined ? clip.volume : 1.0) * 100)}%</span>
+                    </div>
+                </div>
+
+                <div class="param-row">
+                    <span class="param-label">Tona in (Fade In)</span>
+                    <div class="param-input-group">
+                        <input type="range" class="slider-input" id="propAudioFadeIn" min="0" max="5.0" step="0.1" value="${clip.fadeIn || 0}">
+                        <span class="num-display" id="valAudioFadeIn">${(clip.fadeIn || 0).toFixed(1)}s</span>
+                    </div>
+                </div>
+
+                <div class="param-row">
+                    <span class="param-label">Tona ut (Fade Out)</span>
+                    <div class="param-input-group">
+                        <input type="range" class="slider-input" id="propAudioFadeOut" min="0" max="5.0" step="0.1" value="${clip.fadeOut || 0}">
+                        <span class="num-display" id="valAudioFadeOut">${(clip.fadeOut || 0).toFixed(1)}s</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="inspector-section">
+                <div class="section-title">Intelligent Auto-Ducking</div>
+                <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px;">
+                    Sänker automatiskt musiken när video eller tal spelas på andra spår.
+                </p>
+                <div class="param-row">
+                    <span class="param-label">Auto-Ducking</span>
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer;">
+                        <input type="checkbox" id="propAutoDucking" ${clip.autoDucking ? 'checked' : ''}>
+                        <span style="color: var(--accent); font-weight: 600;">Aktivera</span>
+                    </label>
+                </div>
+                <div class="param-row" id="rowDuckingAmount" style="${clip.autoDucking ? 'display: flex;' : 'display: none;'}">
+                    <span class="param-label">Sänkningsgrad</span>
+                    <div class="param-input-group">
+                        <input type="range" class="slider-input" id="propDuckingAmount" min="0.2" max="0.9" step="0.05" value="${clip.duckingAmount !== undefined ? clip.duckingAmount : 0.65}">
+                        <span class="num-display" id="valDuckingAmount">-${Math.round((clip.duckingAmount !== undefined ? clip.duckingAmount : 0.65) * 20)}dB</span>
                     </div>
                 </div>
             </div>
@@ -695,16 +775,64 @@ class NovaCutInspector {
             </div>
         `;
 
-        this.bindInput('propAudioVol', 'valAudioVol', (v) => { clip.volume = parseFloat(v); return `${Math.round(parseFloat(v)*100)}%`; });
+        this.bindInput('propAudioVol', 'valAudioVol', (v) => { 
+            clip.volume = parseFloat(v); 
+            this.engine.render();
+            return `${Math.round(parseFloat(v)*100)}%`; 
+        });
+
+        this.bindInput('propAudioFadeIn', 'valAudioFadeIn', (v) => { 
+            clip.fadeIn = parseFloat(v); 
+            this.timeline.renderClipDOM(clip);
+            this.engine.render();
+            return `${parseFloat(v).toFixed(1)}s`; 
+        });
+
+        this.bindInput('propAudioFadeOut', 'valAudioFadeOut', (v) => { 
+            clip.fadeOut = parseFloat(v); 
+            this.timeline.renderClipDOM(clip);
+            this.engine.render();
+            return `${parseFloat(v).toFixed(1)}s`; 
+        });
+
+        const chkDuck = document.getElementById('propAutoDucking');
+        const rowDuck = document.getElementById('rowDuckingAmount');
+        if (chkDuck) {
+            chkDuck.addEventListener('change', () => {
+                clip.autoDucking = chkDuck.checked;
+                if (rowDuck) rowDuck.style.display = chkDuck.checked ? 'flex' : 'none';
+                this.timeline.renderClipDOM(clip);
+                this.engine.render();
+            });
+        }
+
+        this.bindInput('propDuckingAmount', 'valDuckingAmount', (v) => {
+            clip.duckingAmount = parseFloat(v);
+            this.engine.render();
+            return `-${Math.round(parseFloat(v) * 20)}dB`;
+        });
+
         this.bindInput('propAudioSpeed', 'valAudioSpeed', (v) => { 
             clip.speed = parseFloat(v); 
             this.timeline.renderClipDOM(clip);
             return `${parseFloat(v).toFixed(2)}x`; 
         });
-        const chk = document.getElementById('propAudioPreservesPitch');
-        if (chk) {
-            chk.addEventListener('change', () => { clip.preservesPitch = chk.checked; });
+
+        const chkPitch = document.getElementById('propAudioPreservesPitch');
+        if (chkPitch) {
+            chkPitch.addEventListener('change', () => { clip.preservesPitch = chkPitch.checked; });
         }
+    }
+
+    updateAudioFadeInputs(clip) {
+        const inSl = document.getElementById('propAudioFadeIn');
+        const inVal = document.getElementById('valAudioFadeIn');
+        const outSl = document.getElementById('propAudioFadeOut');
+        const outVal = document.getElementById('valAudioFadeOut');
+        if (inSl) inSl.value = clip.fadeIn || 0;
+        if (inVal) inVal.textContent = `${(clip.fadeIn || 0).toFixed(1)}s`;
+        if (outSl) outSl.value = clip.fadeOut || 0;
+        if (outVal) outVal.textContent = `${(clip.fadeOut || 0).toFixed(1)}s`;
     }
 
     updatePositionInputs(posX, posY) {

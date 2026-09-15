@@ -249,6 +249,74 @@ class NovaCutTimeline {
             speedBadge.style.display = 'none';
         }
 
+        // Ducking badge on clip
+        let duckBadge = el.querySelector('.clip-duck-badge');
+        if (clip.autoDucking) {
+            if (!duckBadge) {
+                duckBadge = document.createElement('span');
+                duckBadge.className = 'clip-speed-badge clip-duck-badge';
+                duckBadge.style.background = 'rgba(255, 170, 0, 0.25)';
+                duckBadge.style.color = '#ffb703';
+                duckBadge.style.borderColor = 'rgba(255, 183, 3, 0.4)';
+                el.querySelector('.clip-content')?.appendChild(duckBadge);
+            }
+            duckBadge.textContent = '🦆 Ducking';
+            duckBadge.style.display = 'inline-block';
+        } else if (duckBadge) {
+            duckBadge.style.display = 'none';
+        }
+
+        // Audio waveform visual representation
+        if (clip.type === 'audio' || clip.trackId === 'audio') {
+            let wf = el.querySelector('.clip-waveform');
+            if (!wf) {
+                wf = document.createElement('div');
+                wf.className = 'clip-waveform';
+                el.appendChild(wf);
+            }
+            wf.innerHTML = `
+                <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 100 40">
+                    <path d="M0,20 Q5,5 10,20 T20,20 T30,10 T40,20 T50,2 T60,20 T70,8 T80,20 T90,14 T100,20" fill="none" stroke="currentColor" stroke-width="2.5" />
+                    <path d="M0,20 Q5,35 10,20 T20,20 T30,30 T40,20 T50,38 T60,20 T70,32 T80,20 T90,26 T100,20" fill="none" stroke="currentColor" stroke-width="2.5" />
+                </svg>
+            `;
+        }
+
+        // Fade In / Fade Out visual overlay
+        let fadeLayer = el.querySelector('.clip-fade-layer');
+        if (!fadeLayer) {
+            fadeLayer = document.createElement('div');
+            fadeLayer.className = 'clip-fade-layer';
+            el.appendChild(fadeLayer);
+        }
+
+        const fadeInPct = clip.fadeIn ? Math.min(50, (clip.fadeIn / clip.duration) * 100) : 0;
+        const fadeOutPct = clip.fadeOut ? Math.min(50, (clip.fadeOut / clip.duration) * 100) : 0;
+
+        fadeLayer.innerHTML = `
+            ${fadeInPct > 0 ? `<div class="clip-fade-in-shape" style="width: ${fadeInPct}%;"></div>` : ''}
+            ${fadeOutPct > 0 ? `<div class="clip-fade-out-shape" style="width: ${fadeOutPct}%;"></div>` : ''}
+        `;
+
+        if (clip.type === 'audio' || clip.type === 'video' || clip.trackId === 'audio' || clip.trackId === 'video') {
+            let handleIn = el.querySelector('.fade-handle.fade-in-handle');
+            if (!handleIn) {
+                handleIn = document.createElement('div');
+                handleIn.className = 'fade-handle fade-in-handle';
+                handleIn.title = 'Dra för att justera Tona In (Fade In)';
+                el.appendChild(handleIn);
+                this.bindFadeHandle(handleIn, clip, 'in');
+            }
+            let handleOut = el.querySelector('.fade-handle.fade-out-handle');
+            if (!handleOut) {
+                handleOut = document.createElement('div');
+                handleOut.className = 'fade-handle fade-out-handle';
+                handleOut.title = 'Dra för att justera Tona Ut (Fade Out)';
+                el.appendChild(handleOut);
+                this.bindFadeHandle(handleOut, clip, 'out');
+            }
+        }
+
         // Keyframes visual layer on timeline
         let kfLayer = el.querySelector('.clip-keyframes-layer');
         if (!kfLayer) {
@@ -280,6 +348,41 @@ class NovaCutTimeline {
                 kfLayer.appendChild(marker);
             });
         }
+    }
+
+    bindFadeHandle(handle, clip, direction) {
+        handle.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            const startX = e.clientX;
+            const startFade = (direction === 'in') ? (clip.fadeIn || 0) : (clip.fadeOut || 0);
+
+            const onMouseMove = (moveEvent) => {
+                const deltaX = moveEvent.clientX - startX;
+                const deltaSec = (deltaX / this.pixelsPerSecond) * (direction === 'in' ? 1 : -1);
+                const maxFade = Math.max(0.5, clip.duration / 2);
+                const newFade = Math.max(0, Math.min(maxFade, Math.round((startFade + deltaSec) * 10) / 10));
+
+                if (direction === 'in') {
+                    clip.fadeIn = newFade;
+                } else {
+                    clip.fadeOut = newFade;
+                }
+
+                this.renderClipDOM(clip);
+                if (window.inspector && window.inspector.currentClip?.id === clip.id) {
+                    window.inspector.updateAudioFadeInputs(clip);
+                }
+                this.engine.render();
+            };
+
+            const onMouseUp = () => {
+                window.removeEventListener('mousemove', onMouseMove);
+                window.removeEventListener('mouseup', onMouseUp);
+            };
+
+            window.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('mouseup', onMouseUp);
+        });
     }
 
     selectClip(clipId) {

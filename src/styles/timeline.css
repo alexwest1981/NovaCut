@@ -425,3 +425,78 @@
     transform: scale(1.1);
 }
 
+/* --- Fade Handles & Overlays (Sprint 7) --- */
+.fade-handle {
+    position: absolute;
+    top: 2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.7);
+    cursor: ew-resize;
+    opacity: 0;
+    transition: opacity 0.15s ease, transform 0.1s ease;
+    z-index: 15;
+}
+
+.timeline-clip:hover .fade-handle,
+.timeline-clip.selected .fade-handle {
+    opacity: 0.85;
+}
+
+.fade-handle:hover {
+    opacity: 1 !important;
+    transform: scale(1.35);
+    background: var(--accent);
+}
+
+.fade-handle.fade-in-handle {
+    left: 4px;
+}
+
+.fade-handle.fade-out-handle {
+    right: 4px;
+}
+
+.clip-fade-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    overflow: hidden;
+    border-radius: 4px;
+    z-index: 2;
+}
+
+.clip-fade-in-shape {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    background: linear-gradient(to top right, rgba(0, 0, 0, 0.5) 0%, transparent 100%);
+    border-right: 1px dashed rgba(255, 255, 255, 0.5);
+}
+
+.clip-fade-out-shape {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to top left, rgba(0, 0, 0, 0.5) 0%, transparent 100%);
+    border-left: 1px dashed rgba(255, 255, 255, 0.5);
+}
+
+.clip-waveform {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0.22;
+    pointer-events: none;
+    z-index: 1;
+}
+

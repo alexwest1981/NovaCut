@@ -445,6 +445,8 @@ class NovaCutEngine {
         const currentSpeed = this.getClipInstantaneousSpeed(clip, localTime);
 
         if (mediaEl && mediaEl.tagName === 'VIDEO') {
+            const isVideoMuted = window.timeline?.trackStates?.[clip.trackId]?.muted || false;
+            mediaEl.volume = isVideoMuted ? 0 : Math.min(1.0, this.getClipAudioVolume(clip, localTime, []));
             mediaEl.preservesPitch = clip.preservesPitch !== false;
             mediaEl.playbackRate = Math.max(0.1, Math.min(16, currentSpeed));
             
@@ -1210,14 +1212,59 @@ class NovaCutEngine {
         ctx.fillText('⚡ Importera media eller dra ett klipp till tidslinjen', canvas.width / 2, canvas.height / 2);
     }
 
+    getClipAudioVolume(clip, localTime, activeClips = []) {
+        let vol = (clip.volume !== undefined ? clip.volume : 1.0) * this.masterVolume;
+
+        // Fade In
+        if (clip.fadeIn && clip.fadeIn > 0) {
+            if (localTime < clip.fadeIn) {
+                const f = Math.max(0, Math.min(1, localTime / clip.fadeIn));
+                vol *= (0.5 - 0.5 * Math.cos(f * Math.PI));
+            }
+        }
+
+        // Fade Out
+        if (clip.fadeOut && clip.fadeOut > 0) {
+            const timeRemaining = clip.duration - localTime;
+            if (timeRemaining < clip.fadeOut) {
+                const f = Math.max(0, Math.min(1, timeRemaining / clip.fadeOut));
+                vol *= (0.5 - 0.5 * Math.cos(f * Math.PI));
+            }
+        }
+
+        // Auto-Ducking: If this is an audio clip with autoDucking enabled
+        if (clip.autoDucking) {
+            const otherAudioActive = activeClips.some(c => {
+                if (c.id === clip.id) return false;
+                if (c.trackId === 'video' || c.trackId === 'overlay') {
+                    const el = this.mediaElements.get(c.mediaId);
+                    const isMuted = window.timeline?.trackStates?.[c.trackId]?.muted;
+                    return !isMuted && el && el.tagName === 'VIDEO' && (c.volume === undefined || c.volume > 0.05);
+                }
+                if (c.trackId === 'audio' && !c.autoDucking) {
+                    return (c.volume === undefined || c.volume > 0.05);
+                }
+                return false;
+            });
+
+            if (otherAudioActive) {
+                const duckAmount = clip.duckingAmount !== undefined ? clip.duckingAmount : 0.65;
+                vol *= (1.0 - duckAmount);
+            }
+        }
+
+        return Math.max(0, Math.min(2.0, vol));
+    }
+
     syncAudioTracks(activeClips) {
         const isMuted = window.timeline?.trackStates?.audio?.muted || false;
         const audioClips = activeClips.filter(c => c.trackId === 'audio');
         audioClips.forEach(clip => {
             const el = this.mediaElements.get(clip.mediaId);
             if (el && typeof el.play === 'function') {
-                el.volume = isMuted ? 0 : (clip.volume !== undefined ? clip.volume : 1.0) * this.masterVolume;
                 const localTime = Math.max(0, Math.min(clip.duration, this.currentTime - clip.startTime));
+                const computedVol = this.getClipAudioVolume(clip, localTime, activeClips);
+                el.volume = isMuted ? 0 : Math.min(1.0, computedVol);
                 const clipRelativeTime = this.getClipSourceTime(clip, localTime);
                 const currentSpeed = this.getClipInstantaneousSpeed(clip, localTime);
                 el.preservesPitch = clip.preservesPitch !== false;
