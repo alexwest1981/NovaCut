@@ -11,10 +11,10 @@ Detta dokument beskriver sprintplanen för **NovaCut**, en modern, blixtsnabb oc
 | **Sprint 1** | **WYSIWYG & Canvasinteraktion** | ✅ Klar | Interaktiv drag-and-drop på canvas, 9 snabbpositioner, magnetiska stödlinjer (snapping), säkra zoner för TikTok/Shorts. |
 | **Sprint 2** | **Välkomsthub & Projekthantering** | ✅ Klar | CapCut-liknande projektöversikt vid appstart, sparade projekt, bildförhållanden (16:9, 9:16, 1:1, 4:5), öppna från disk. |
 | **Sprint 3** | **Dynamisk Upplösning & Widescreen** | ✅ Klar | Flexibla resizable splitters, monitor zoom (Fit, 50-200%), dynamisk tidslinjebredd, 21:9 Ultrawide och 4:3-stöd. |
-| **Sprint 4** | **Snabbredigering & Ripple Editing** | 🚀 Pågår | Ripple Delete (`Shift+Delete`), `Q`/`W`-snabbtrimning vid spelhuvud, automatisk luckstängning (Close Gaps). |
-| **Sprint 5** | **Keyframing (Animation & Rörelse)** | 📅 Nästa | Diamantknappar för keyframes på skala, position, rotation, opacitet med mjuk interpolation. |
-| **Sprint 6** | **Speed Ramping & Hastighetskurvor** | 📅 Planerad | Kurvbaserad hastighet (0.1x–10x), kurvmallar (Flash, Montage, Bullet-time, Hero). |
-| **Sprint 7** | **Ljudredigering & Auto-Ducking** | 📅 Planerad | Fade In/Out-handtag på ljudklipp, automatisk volymsänkning av musik vid tal (auto-ducking). |
+| **Sprint 4** | **Snabbredigering & Ripple Editing** | ✅ Klar | Ripple Delete (`Shift+Delete`), `Q`/`W`-snabbtrimning vid spelhuvud, automatisk luckstängning (Close Gaps). |
+| **Sprint 5** | **Keyframing (Animation & Rörelse)** | ✅ Klar | Diamantknappar för keyframes på skala, position, rotation, opacitet med mjuk interpolation. |
+| **Sprint 6** | **Speed Ramping & Hastighetskurvor** | 🚀 Pågår | Kurvbaserad hastighet (0.1x–10x), kurvmallar (Flash, Montage, Bullet-time, Hero, Custom), visuell kurveditor. |
+| **Sprint 7** | **Ljudredigering & Auto-Ducking** | 📅 Nästa | Fade In/Out-handtag på ljudklipp, automatisk volymsänkning av musik vid tal (auto-ducking). |
 | **Sprint 8** | **Auto-Captions & Virala Undertexter** | 📅 Planerad | Automatisk textgenerering och animerade ordstilar (Hormozi, Pop, Karaoke highlight). |
 | **Sprint 9** | **Export Presets för Sociala Medier** | 📅 Planerad | 1-klicks export med optimerade NVENC/VAAPI-profiler för TikTok, Reels, Shorts och 4K. |
 
