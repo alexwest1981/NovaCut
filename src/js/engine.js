@@ -550,6 +550,15 @@ class NovaCutEngine {
         ctx.scale(scale, scale);
         ctx.globalAlpha = opacity;
 
+        // Viral Pop Animation (Bounce on enter)
+        if (clip.captionStyle === 'pop') {
+            const localTime = Math.max(0, Math.min(clip.duration, this.currentTime - clip.startTime));
+            if (localTime < 0.22) {
+                const popScale = 1.0 + Math.sin((localTime / 0.22) * Math.PI) * 0.25;
+                ctx.scale(popScale, popScale);
+            }
+        }
+
         const fontSize = clip.fontSize || 64;
         const fontFamily = clip.fontFamily || 'sans-serif';
         const fontWeight = clip.bold ? 'bold ' : '600 ';
@@ -587,24 +596,77 @@ class NovaCutEngine {
             ctx.fill();
         }
 
-        // Render each line of text
+        // Word-by-word viral highlight (Karaoke / Hormozi)
+        const isKaraokeOrHormozi = (clip.captionStyle === 'karaoke' || clip.captionStyle === 'hormozi');
+
         lines.forEach((line, index) => {
             const lineY = startY + index * lineHeight;
+            const words = line.trim().split(/\s+/);
 
-            // Text Outline / Shadow
-            if (clip.outlineColor) {
-                ctx.strokeStyle = clip.outlineColor;
-                ctx.lineWidth = clip.outlineWidth || 6;
-                ctx.strokeText(line, 0, lineY);
+            if (isKaraokeOrHormozi && words.length > 1) {
+                const localTime = Math.max(0, Math.min(clip.duration, this.currentTime - clip.startTime));
+                const progress = localTime / clip.duration;
+                const activeWordIdx = Math.min(words.length - 1, Math.floor(progress * words.length));
+
+                // Measure words
+                let totalWidth = 0;
+                const spaceW = ctx.measureText(' ').width;
+                const wordWidths = words.map(w => {
+                    const mw = ctx.measureText(w).width;
+                    totalWidth += mw;
+                    return mw;
+                });
+                totalWidth += spaceW * (words.length - 1);
+
+                let startX = -totalWidth / 2;
+                if (clip.align === 'left') startX = 0;
+                else if (clip.align === 'right') startX = -totalWidth;
+
+                let curX = startX;
+                words.forEach((word, wIdx) => {
+                    const wWidth = wordWidths[wIdx];
+                    const isActive = (wIdx === activeWordIdx);
+                    const isPast = (wIdx < activeWordIdx);
+                    const wordCenterX = curX + wWidth / 2;
+
+                    ctx.save();
+                    if (isActive) {
+                        ctx.fillStyle = clip.highlightColor || (clip.captionStyle === 'hormozi' ? '#ffd000' : '#00d482');
+                        ctx.shadowColor = clip.highlightColor || (clip.captionStyle === 'hormozi' ? '#ffd000' : '#00d482');
+                        ctx.shadowBlur = 14;
+                    } else if (isPast) {
+                        ctx.fillStyle = clip.color || '#ffffff';
+                    } else {
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+                    }
+
+                    if (clip.outlineColor) {
+                        ctx.strokeStyle = clip.outlineColor;
+                        ctx.lineWidth = clip.outlineWidth || (clip.captionStyle === 'hormozi' ? 8 : 6);
+                        ctx.strokeText(word, wordCenterX, lineY);
+                    }
+
+                    ctx.fillText(word, wordCenterX, lineY);
+                    ctx.restore();
+
+                    curX += wWidth + spaceW;
+                });
             } else {
-                ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-                ctx.shadowBlur = 12;
-                ctx.shadowOffsetX = 2;
-                ctx.shadowOffsetY = 4;
-            }
+                // Standard rendering
+                if (clip.outlineColor) {
+                    ctx.strokeStyle = clip.outlineColor;
+                    ctx.lineWidth = clip.outlineWidth || 6;
+                    ctx.strokeText(line, 0, lineY);
+                } else {
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+                    ctx.shadowBlur = 12;
+                    ctx.shadowOffsetX = 2;
+                    ctx.shadowOffsetY = 4;
+                }
 
-            ctx.fillStyle = clip.color || '#ffffff';
-            ctx.fillText(line, 0, lineY);
+                ctx.fillStyle = clip.color || '#ffffff';
+                ctx.fillText(line, 0, lineY);
+            }
         });
 
         ctx.restore();

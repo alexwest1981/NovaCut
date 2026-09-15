@@ -437,6 +437,26 @@ class NovaCutInspector {
             </div>
 
             <div class="inspector-section">
+                <div class="section-title">Viral Undertextanimation</div>
+                <div class="param-row">
+                    <span class="param-label">Stil / Effekt</span>
+                    <select id="propCaptionStyle" class="select-compact">
+                        <option value="none" ${!clip.captionStyle || clip.captionStyle === 'none' ? 'selected' : ''}>Standard (Statisk)</option>
+                        <option value="hormozi" ${clip.captionStyle === 'hormozi' ? 'selected' : ''}>🔥 Hormozi Highlight</option>
+                        <option value="karaoke" ${clip.captionStyle === 'karaoke' ? 'selected' : ''}>🎤 Karaoke Glow</option>
+                        <option value="pop" ${clip.captionStyle === 'pop' ? 'selected' : ''}>⚡ Pop & Bounce</option>
+                    </select>
+                </div>
+                <div class="param-row" id="rowHighlightColor" style="${(clip.captionStyle === 'karaoke' || clip.captionStyle === 'hormozi') ? 'display: flex;' : 'display: none;'}">
+                    <span class="param-label">Betoningsfärg</span>
+                    <input type="color" class="color-picker" id="propHighlightColor" value="${clip.highlightColor || (clip.captionStyle === 'hormozi' ? '#ffd000' : '#00d482')}">
+                </div>
+                <button id="btnApplyStyleToAllCaptions" class="btn-primary" style="width: 100%; margin-top: 8px; justify-content: center; font-size: 11px; padding: 7px;">
+                    <span>📑 Tillämpa stil på ALLA undertexter</span>
+                </button>
+            </div>
+
+            <div class="inspector-section">
                 <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
                     <span>Position & Justering</span>
                     <span style="font-size: 10px; color: var(--accent); font-weight: normal; text-transform: none;">✋ Dra direkt i videon</span>
@@ -636,6 +656,46 @@ class NovaCutInspector {
                 this.engine.render();
             }
         });
+
+        // Caption Style event bindings
+        const selStyle = document.getElementById('propCaptionStyle');
+        const rowHl = document.getElementById('rowHighlightColor');
+        if (selStyle) {
+            selStyle.addEventListener('change', (e) => {
+                clip.captionStyle = e.target.value === 'none' ? null : e.target.value;
+                if (rowHl) rowHl.style.display = (clip.captionStyle === 'karaoke' || clip.captionStyle === 'hormozi') ? 'flex' : 'none';
+                this.engine.render();
+            });
+        }
+        const hlPicker = document.getElementById('propHighlightColor');
+        if (hlPicker) {
+            hlPicker.addEventListener('input', (e) => {
+                clip.highlightColor = e.target.value;
+                this.engine.render();
+            });
+        }
+        const btnApplyAll = document.getElementById('btnApplyStyleToAllCaptions');
+        if (btnApplyAll) {
+            btnApplyAll.addEventListener('click', () => {
+                const textClips = this.timeline.clips.filter(c => c.trackId === 'text');
+                textClips.forEach(c => {
+                    c.fontSize = clip.fontSize;
+                    c.fontFamily = clip.fontFamily;
+                    c.color = clip.color;
+                    c.bgColor = clip.bgColor;
+                    c.outlineColor = clip.outlineColor;
+                    c.outlineWidth = clip.outlineWidth;
+                    c.posY = clip.posY;
+                    c.captionStyle = clip.captionStyle;
+                    c.highlightColor = clip.highlightColor;
+                });
+                this.engine.render();
+                btnApplyAll.innerHTML = `<span>✅ Tillämpades på ${textClips.length} undertexter!</span>`;
+                setTimeout(() => {
+                    btnApplyAll.innerHTML = `<span>📑 Tillämpa stil på ALLA undertexter</span>`;
+                }, 2000);
+            });
+        }
 
         this.syncSlidersToCurrentTime();
     }

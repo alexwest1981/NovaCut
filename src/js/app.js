@@ -394,6 +394,193 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Auto-Captions Controller (Sprint 8)
+    const btnOpenCaptions = document.getElementById('btnOpenAutoCaptions');
+    const captionsModal = document.getElementById('autoCaptionsModal');
+    const btnCloseCaptions = document.getElementById('btnCloseAutoCaptionsModal');
+    const btnCancelCaptions = document.getElementById('btnCancelAutoCaptions');
+    const sourceSelect = document.getElementById('captionSourceSelect');
+    const customScriptBox = document.getElementById('customScriptBox');
+    const btnGenerateCaptions = document.getElementById('btnGenerateAutoCaptions');
+
+    if (btnOpenCaptions && captionsModal) {
+        btnOpenCaptions.addEventListener('click', () => {
+            captionsModal.classList.add('active');
+        });
+
+        const closeCaptionsModal = () => {
+            captionsModal.classList.remove('active');
+        };
+
+        if (btnCloseCaptions) btnCloseCaptions.addEventListener('click', closeCaptionsModal);
+        if (btnCancelCaptions) btnCancelCaptions.addEventListener('click', closeCaptionsModal);
+
+        if (sourceSelect && customScriptBox) {
+            sourceSelect.addEventListener('change', () => {
+                customScriptBox.style.display = (sourceSelect.value === 'manual-script') ? 'block' : 'none';
+            });
+        }
+
+        // Style selection
+        document.querySelectorAll('.caption-style-card').forEach(card => {
+            card.addEventListener('click', () => {
+                document.querySelectorAll('.caption-style-card').forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+            });
+        });
+
+        const demoScripts = {
+            'demo-hook': [
+                "Det här enkla tricket",
+                "förändrade hur jag skapar videos",
+                "för alltid.",
+                "De flesta gör misstaget",
+                "att använda tråkiga typsnitt,",
+                "men med dynamiska färger",
+                "och rörliga effekter",
+                "stannar tittarna kvar.",
+                "Prova själv i NovaCut idag!"
+            ],
+            'demo-story': [
+                "Vänta till slutet",
+                "för att se vad som",
+                "faktiskt hände.",
+                "Vi startade projektet",
+                "klockan tre på natten,",
+                "och ingen trodde",
+                "att det skulle bli klart.",
+                "Men resultatet chockade",
+                "precis alla som såg det!"
+            ],
+            'demo-tech': [
+                "The secret to viral videos",
+                "is fast cuts and animated captions.",
+                "People watch with the sound off",
+                "more than fifty percent of the time.",
+                "Captions keep viewers hooked",
+                "from the very first second."
+            ]
+        };
+
+        if (btnGenerateCaptions) {
+            btnGenerateCaptions.addEventListener('click', () => {
+                const source = sourceSelect ? sourceSelect.value : 'demo-hook';
+                const activeCard = document.querySelector('.caption-style-card.active');
+                const chosenStyle = activeCard ? activeCard.dataset.style : 'hormozi';
+                const wordsPerClip = document.getElementById('captionWordsPerClip')?.value || 'short';
+                const positionMode = document.getElementById('captionPositionSelect')?.value || 'lower-third';
+
+                let phrases = [];
+                if (source === 'manual-script') {
+                    const customText = document.getElementById('customScriptText')?.value || '';
+                    if (customText.trim()) {
+                        const words = customText.trim().split(/\s+/);
+                        const chunkSize = (wordsPerClip === 'single') ? 2 : (wordsPerClip === 'short') ? 4 : 6;
+                        for (let i = 0; i < words.length; i += chunkSize) {
+                            phrases.push(words.slice(i, i + chunkSize).join(' '));
+                        }
+                    }
+                } else if (demoScripts[source]) {
+                    phrases = demoScripts[source];
+                } else {
+                    phrases = demoScripts['demo-hook'];
+                }
+
+                if (phrases.length === 0) {
+                    phrases = demoScripts['demo-hook'];
+                }
+
+                // Style presets
+                const styleConfig = {
+                    hormozi: {
+                        captionStyle: 'hormozi',
+                        fontSize: 72,
+                        fontFamily: 'Impact, sans-serif',
+                        bold: true,
+                        color: '#ffffff',
+                        highlightColor: '#ffd000',
+                        outlineColor: '#000000',
+                        outlineWidth: 8
+                    },
+                    karaoke: {
+                        captionStyle: 'karaoke',
+                        fontSize: 60,
+                        fontFamily: 'sans-serif',
+                        bold: true,
+                        color: '#ffffff',
+                        highlightColor: '#00d482',
+                        outlineColor: '#000000',
+                        outlineWidth: 6
+                    },
+                    pop: {
+                        captionStyle: 'pop',
+                        fontSize: 64,
+                        fontFamily: "'JetBrains Mono', monospace",
+                        bold: true,
+                        color: '#00f2fe',
+                        outlineColor: '#000000',
+                        outlineWidth: 6
+                    },
+                    minimal: {
+                        captionStyle: 'minimal',
+                        fontSize: 48,
+                        fontFamily: 'sans-serif',
+                        bold: false,
+                        color: '#ffffff',
+                        bgColor: 'rgba(0, 0, 0, 0.72)',
+                        outlineColor: null
+                    }
+                };
+
+                const currentStyle = styleConfig[chosenStyle] || styleConfig.hormozi;
+                const posY = (positionMode === 'center') ? 0 : 340;
+
+                // Remove existing text clips to prevent overlap
+                const existingTextClips = timeline.clips.filter(c => c.trackId === 'text');
+                existingTextClips.forEach(c => timeline.removeClip(c.id));
+
+                let curTime = 0.0;
+                let firstClipId = null;
+
+                phrases.forEach((phrase, idx) => {
+                    const wordCount = phrase.split(/\s+/).length;
+                    const dur = Math.max(1.2, Math.min(3.5, wordCount * 0.38));
+
+                    const clip = {
+                        trackId: 'text',
+                        title: phrase.slice(0, 16),
+                        type: 'text',
+                        text: phrase,
+                        startTime: curTime,
+                        duration: dur,
+                        fontSize: currentStyle.fontSize,
+                        fontFamily: currentStyle.fontFamily,
+                        bold: currentStyle.bold,
+                        color: currentStyle.color,
+                        bgColor: currentStyle.bgColor || null,
+                        outlineColor: currentStyle.outlineColor || null,
+                        outlineWidth: currentStyle.outlineWidth || 6,
+                        captionStyle: currentStyle.captionStyle,
+                        highlightColor: currentStyle.highlightColor || null,
+                        posX: 0,
+                        posY: posY
+                    };
+
+                    timeline.addClip(clip);
+                    if (idx === 0) firstClipId = clip.id;
+                    curTime += dur;
+                });
+
+                closeCaptionsModal();
+                engine.seek(0);
+                if (firstClipId) {
+                    timeline.selectClip(firstClipId);
+                }
+                engine.render();
+            });
+        }
+    }
+
     // 7. Audio Tab & Presets
     const btnAudioOnly = document.getElementById('btnImportAudioOnly');
     if (btnAudioOnly && btnImport) {
