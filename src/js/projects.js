@@ -184,10 +184,17 @@ class NovaCutProjects {
 
             const isPortrait = proj.aspectRatio === '9:16';
             const isSquare = proj.aspectRatio === '1:1';
+            const isUltra = proj.aspectRatio === '21:9';
+            const isClassic = proj.aspectRatio === '4:3';
+            let ratioClass = 'ratio-16-9';
+            if (isPortrait) ratioClass = 'ratio-9-16';
+            else if (isSquare) ratioClass = 'ratio-1-1';
+            else if (isUltra) ratioClass = 'ratio-21-9';
+            else if (isClassic) ratioClass = 'ratio-4-3';
             const dateStr = this.formatDate(proj.updatedAt);
 
             card.innerHTML = `
-                <div class="project-thumb-preview ${isPortrait ? 'ratio-9-16' : (isSquare ? 'ratio-1-1' : 'ratio-16-9')}">
+                <div class="project-thumb-preview ${ratioClass}">
                     <div class="thumb-glow"></div>
                     <span class="thumb-badge">${proj.aspectRatio || '16:9'}</span>
                     <span class="thumb-play">▶</span>

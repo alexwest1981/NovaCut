@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
@@ -76,12 +76,19 @@ if (!fs.existsSync(starterProjectFile)) {
 }
 
 function createWindow() {
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { width: displayWidth, height: displayHeight } = primaryDisplay.workAreaSize;
+
+    // Dynamically calculate responsive initial window size based on physical display
+    const initialWidth = Math.min(1600, Math.max(960, Math.round(displayWidth * 0.92)));
+    const initialHeight = Math.min(1000, Math.max(600, Math.round(displayHeight * 0.92)));
+
     mainWindow = new BrowserWindow({
         title: 'NovaCut - Video Editor',
-        width: 1440,
-        height: 900,
-        minWidth: 1024,
-        minHeight: 640,
+        width: initialWidth,
+        height: initialHeight,
+        minWidth: 800,
+        minHeight: 480,
         backgroundColor: '#0d0d12',
         autoHideMenuBar: true,
         webPreferences: {
@@ -91,6 +98,11 @@ function createWindow() {
             webSecurity: false // Allows loading local video/audio files directly into canvas
         }
     });
+
+    // Auto-maximize on displays with resolution <= 1366x768 to utilize full workarea
+    if (displayWidth <= 1366 || displayHeight <= 768) {
+        mainWindow.maximize();
+    }
 
     mainWindow.loadFile(path.join(__dirname, 'index.html'));
 

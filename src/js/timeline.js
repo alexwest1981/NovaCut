@@ -41,9 +41,17 @@ class NovaCutTimeline {
         this.initRuler();
         this.setupEvents();
         this.setupTrackHeaderControls();
+
+        // Responsive resize handling
+        window.addEventListener('resize', () => {
+            this.updateTimelineWidth();
+            this.drawRuler();
+            this.updatePlayheadPosition();
+        });
     }
 
     initRuler() {
+        this.updateTimelineWidth();
         this.drawRuler();
     }
 
@@ -56,9 +64,12 @@ class NovaCutTimeline {
     }
 
     updateTimelineWidth() {
-        const minWidth = Math.max(2000, (this.engine.duration + 5) * this.pixelsPerSecond);
-        this.canvasContainer.style.minWidth = `${minWidth}px`;
-        this.rulerCanvas.width = minWidth;
+        const viewportW = this.viewport ? this.viewport.clientWidth : 2000;
+        const durationW = (this.engine.duration + 8) * this.pixelsPerSecond;
+        const width = Math.max(viewportW, durationW, 1400);
+        this.canvasContainer.style.minWidth = `${width}px`;
+        this.canvasContainer.style.width = `${width}px`;
+        this.rulerCanvas.width = width;
     }
 
     drawRuler() {

@@ -56,13 +56,48 @@ document.addEventListener('DOMContentLoaded', () => {
         btnSafeZone.addEventListener('click', () => engine.toggleSafeZone());
     }
 
+    const monitorZoomSelect = document.getElementById('monitorZoomSelect');
+    if (monitorZoomSelect) {
+        monitorZoomSelect.addEventListener('change', (e) => {
+            engine.setMonitorZoom(e.target.value);
+        });
+    }
+
     const btnFitCanvas = document.getElementById('btnFitCanvas');
     if (btnFitCanvas) {
         btnFitCanvas.addEventListener('click', () => {
+            if (monitorZoomSelect) monitorZoomSelect.value = 'fit';
+            engine.setMonitorZoom('fit');
             const container = document.querySelector('.canvas-container');
             if (container) {
                 container.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
             }
+            engine.render();
+        });
+    }
+
+    // Toggle Left Pane (Media Drawer)
+    const btnToggleLeft = document.getElementById('btnToggleLeftPane');
+    const leftPane = document.getElementById('leftPane');
+    if (btnToggleLeft && leftPane) {
+        btnToggleLeft.addEventListener('click', () => {
+            leftPane.classList.toggle('collapsed');
+            btnToggleLeft.classList.toggle('active', !leftPane.classList.contains('collapsed'));
+            timeline.updateTimelineWidth();
+            timeline.drawRuler();
+            engine.render();
+        });
+    }
+
+    // Toggle Right Pane (Inspector)
+    const btnToggleRight = document.getElementById('btnToggleRightPane');
+    const rightPane = document.getElementById('inspectorPane');
+    if (btnToggleRight && rightPane) {
+        btnToggleRight.addEventListener('click', () => {
+            rightPane.classList.toggle('collapsed');
+            btnToggleRight.classList.toggle('active', !rightPane.classList.contains('collapsed'));
+            timeline.updateTimelineWidth();
+            timeline.drawRuler();
             engine.render();
         });
     }
@@ -471,9 +506,175 @@ document.addEventListener('DOMContentLoaded', () => {
     const projectManager = new NovaCutProjects(engine, timeline);
     window.projectManager = projectManager;
 
+    // 10. Setup Interactive Responsive Panel Resizers
+    setupLayoutResizers(engine, timeline);
+
     // Always start application with the Welcome Screen & Project List
     projectManager.showWelcome();
 
     // Initial render
     engine.render();
 });
+
+/**
+ * Interactive Panel Resizers (Splitters) for dynamic resolution management
+ */
+function setupLayoutResizers(engine, timeline) {
+    const leftPane = document.getElementById('leftPane');
+    const rightPane = document.getElementById('inspectorPane');
+    const timelinePanel = document.getElementById('timelinePanel');
+
+    const resizerLeft = document.getElementById('resizerLeft');
+    const resizerRight = document.getElementById('resizerRight');
+    const resizerTimeline = document.getElementById('resizerTimeline');
+
+    // Restore saved custom dimensions if valid
+    const savedLeft = localStorage.getItem('novacut_layout_left');
+    if (savedLeft && leftPane) {
+        const val = parseInt(savedLeft, 10);
+        if (val >= 200 && val <= window.innerWidth * 0.5) leftPane.style.width = `${val}px`;
+    }
+
+    const savedRight = localStorage.getItem('novacut_layout_right');
+    if (savedRight && rightPane) {
+        const val = parseInt(savedRight, 10);
+        if (val >= 180 && val <= window.innerWidth * 0.45) rightPane.style.width = `${val}px`;
+    }
+
+    const savedTimeline = localStorage.getItem('novacut_layout_timeline');
+    if (savedTimeline && timelinePanel) {
+        const val = parseInt(savedTimeline, 10);
+        if (val >= 140 && val <= window.innerHeight * 0.7) timelinePanel.style.height = `${val}px`;
+    }
+
+    // Left Pane Resizer (horizontal)
+    if (resizerLeft && leftPane) {
+        let isDragging = false;
+        let startX = 0;
+        let startW = 0;
+
+        resizerLeft.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX;
+            startW = leftPane.getBoundingClientRect().width;
+            resizerLeft.classList.add('dragging');
+            document.body.style.cursor = 'col-resize';
+            e.preventDefault();
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const delta = e.clientX - startX;
+            const newW = Math.max(200, Math.min(window.innerWidth * 0.5, startW + delta));
+            leftPane.style.width = `${newW}px`;
+            timeline.updateTimelineWidth();
+            engine.render();
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (!isDragging) return;
+            isDragging = false;
+            resizerLeft.classList.remove('dragging');
+            document.body.style.cursor = '';
+            localStorage.setItem('novacut_layout_left', Math.round(leftPane.getBoundingClientRect().width));
+            timeline.updateTimelineWidth();
+            timeline.drawRuler();
+            engine.render();
+        });
+
+        resizerLeft.addEventListener('dblclick', () => {
+            leftPane.style.width = '';
+            localStorage.removeItem('novacut_layout_left');
+            timeline.updateTimelineWidth();
+            timeline.drawRuler();
+            engine.render();
+        });
+    }
+
+    // Right Pane Resizer (horizontal)
+    if (resizerRight && rightPane) {
+        let isDragging = false;
+        let startX = 0;
+        let startW = 0;
+
+        resizerRight.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX;
+            startW = rightPane.getBoundingClientRect().width;
+            resizerRight.classList.add('dragging');
+            document.body.style.cursor = 'col-resize';
+            e.preventDefault();
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const delta = startX - e.clientX;
+            const newW = Math.max(180, Math.min(window.innerWidth * 0.45, startW + delta));
+            rightPane.style.width = `${newW}px`;
+            timeline.updateTimelineWidth();
+            engine.render();
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (!isDragging) return;
+            isDragging = false;
+            resizerRight.classList.remove('dragging');
+            document.body.style.cursor = '';
+            localStorage.setItem('novacut_layout_right', Math.round(rightPane.getBoundingClientRect().width));
+            timeline.updateTimelineWidth();
+            timeline.drawRuler();
+            engine.render();
+        });
+
+        resizerRight.addEventListener('dblclick', () => {
+            rightPane.style.width = '';
+            localStorage.removeItem('novacut_layout_right');
+            timeline.updateTimelineWidth();
+            timeline.drawRuler();
+            engine.render();
+        });
+    }
+
+    // Timeline Vertical Resizer (vertical)
+    if (resizerTimeline && timelinePanel) {
+        let isDragging = false;
+        let startY = 0;
+        let startH = 0;
+
+        resizerTimeline.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startY = e.clientY;
+            startH = timelinePanel.getBoundingClientRect().height;
+            resizerTimeline.classList.add('dragging');
+            document.body.style.cursor = 'row-resize';
+            e.preventDefault();
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const delta = startY - e.clientY;
+            const newH = Math.max(140, Math.min(window.innerHeight * 0.7, startH + delta));
+            timelinePanel.style.height = `${newH}px`;
+            engine.render();
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (!isDragging) return;
+            isDragging = false;
+            resizerTimeline.classList.remove('dragging');
+            document.body.style.cursor = '';
+            localStorage.setItem('novacut_layout_timeline', Math.round(timelinePanel.getBoundingClientRect().height));
+            timeline.updateTimelineWidth();
+            timeline.drawRuler();
+            engine.render();
+        });
+
+        resizerTimeline.addEventListener('dblclick', () => {
+            timelinePanel.style.height = '';
+            localStorage.removeItem('novacut_layout_timeline');
+            timeline.updateTimelineWidth();
+            timeline.drawRuler();
+            engine.render();
+        });
+    }
+}

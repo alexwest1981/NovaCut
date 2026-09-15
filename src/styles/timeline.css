@@ -1,7 +1,9 @@
 /* NovaCut - Timeline Styles */
 
 .timeline-panel {
-    height: 272px;
+    height: clamp(200px, 28vh, 380px);
+    min-height: 140px;
+    max-height: 65vh;
     background-color: var(--bg-surface);
     border-top: 1px solid var(--border-color);
     display: flex;
@@ -9,6 +11,7 @@
     overflow: hidden;
     position: relative;
     flex-shrink: 0;
+    transition: height 0.05s ease;
 }
 
 /* Timeline Toolbar */

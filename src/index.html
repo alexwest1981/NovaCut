@@ -32,6 +32,8 @@
                 <option value="9:16">9:16 (TikTok / Reels / Shorts)</option>
                 <option value="1:1">1:1 (Kvadratisk / Instagram)</option>
                 <option value="4:5">4:5 (Porträtt)</option>
+                <option value="21:9">21:9 (Cinematic Ultrawide)</option>
+                <option value="4:3">4:3 (Klassisk TV / Äldre)</option>
             </select>
 
             <button id="btnUndo" class="btn-icon" title="Ångra (Ctrl+Z)" disabled>↩</button>
@@ -50,7 +52,7 @@
     <div class="workspace">
 
         <!-- Left Drawer (Tabs: Media, Text, Effects, Audio, Marketplace) -->
-        <div class="left-pane">
+        <div class="left-pane" id="leftPane">
             <div class="sidebar-tabs">
                 <button class="tab-btn active" data-tab="media">📁 Media</button>
                 <button class="tab-btn" data-tab="text">🔤 Text</button>
@@ -158,6 +160,9 @@
             </div>
         </div>
 
+        <!-- Resizer: Left Sidebar to Center -->
+        <div id="resizerLeft" class="panel-resizer resizer-x" title="Dra för att ändra sidopanelens bredd (Dubbelklicka för standard)"></div>
+
         <!-- Center Pane: Preview Player & Canvas -->
         <div class="center-pane">
             <div class="player-monitor-bar">
@@ -166,10 +171,20 @@
                     <span id="monitorResolution">1920×1080 • 60 FPS</span>
                 </div>
                 <div class="monitor-actions">
+                    <button id="btnToggleLeftPane" class="btn-monitor-tool" title="Dölj/visa vänsterpanel (Media/Effekter)">📁 Panel</button>
                     <span class="monitor-pill" id="monitorAspectPill">16:9 Widescreen</span>
                     <button id="btnToggleCanvasSnap" class="btn-monitor-tool active" title="Slå av/på magnetisk snapping för text i videorutan (Håll Alt för att tillfälligt stänga av)">🧲 Snappa text</button>
                     <button id="btnToggleSafeZone" class="btn-monitor-tool" title="Visa/dölj säkra marginaler för TikTok/Shorts">⊞ Säkra zoner</button>
-                    <button id="btnFitCanvas" class="btn-monitor-tool" title="Återställ förhandsgranskning">100% Anpassa</button>
+                    <select id="monitorZoomSelect" class="btn-monitor-tool select-compact" title="Skärmförstoring / Passning" style="padding: 2px 6px; font-size: 11px;">
+                        <option value="fit">⛶ Anpassa</option>
+                        <option value="50">50%</option>
+                        <option value="75">75%</option>
+                        <option value="100">100% (1:1)</option>
+                        <option value="150">150%</option>
+                        <option value="200">200%</option>
+                    </select>
+                    <button id="btnFitCanvas" class="btn-monitor-tool" title="Återställ förhandsgranskning">Passa</button>
+                    <button id="btnToggleRightPane" class="btn-monitor-tool" title="Dölj/visa inspektor för mer arbetsyta">⚙️ Inspektor</button>
                 </div>
             </div>
 
@@ -198,6 +213,9 @@
             </div>
         </div>
 
+        <!-- Resizer: Center to Inspector -->
+        <div id="resizerRight" class="panel-resizer resizer-x" title="Dra för att ändra inspektorns bredd (Dubbelklicka för standard)"></div>
+
         <!-- Right Pane: Inspector & Properties -->
         <div class="right-pane" id="inspectorPane">
             <div class="inspector-header">
@@ -214,8 +232,11 @@
 
     </div>
 
+    <!-- Resizer: Workspace to Timeline -->
+    <div id="resizerTimeline" class="panel-resizer resizer-y" title="Dra för att ändra tidslinjens höjd (Dubbelklicka för standard)"></div>
+
     <!-- Bottom Multi-Track Timeline -->
-    <div class="timeline-panel">
+    <div class="timeline-panel" id="timelinePanel">
         <!-- Toolbar -->
         <div class="timeline-toolbar">
             <div class="timeline-tools-left">
@@ -435,6 +456,8 @@
                             <button class="ratio-chip" data-ratio="9:16">9:16 TikTok / Reel</button>
                             <button class="ratio-chip" data-ratio="1:1">1:1 Kvadrat</button>
                             <button class="ratio-chip" data-ratio="4:5">4:5 Porträtt</button>
+                            <button class="ratio-chip" data-ratio="21:9">21:9 Ultrawide</button>
+                            <button class="ratio-chip" data-ratio="4:3">4:3 Klassisk TV</button>
                         </div>
                     </div>
 

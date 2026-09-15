@@ -51,6 +51,12 @@ class NovaCutEngine {
         } else if (this.aspectRatio === '4:5') {
             this.canvas.width = 1080;
             this.canvas.height = 1350;
+        } else if (this.aspectRatio === '21:9') {
+            this.canvas.width = 2560;
+            this.canvas.height = 1080;
+        } else if (this.aspectRatio === '4:3') {
+            this.canvas.width = 1440;
+            this.canvas.height = 1080;
         }
 
         const resEl = document.getElementById('monitorResolution');
@@ -63,10 +69,36 @@ class NovaCutEngine {
                 '16:9': '16:9 Widescreen',
                 '9:16': '9:16 TikTok / Reel',
                 '1:1': '1:1 Kvadrat',
-                '4:5': '4:5 Porträtt'
+                '4:5': '4:5 Porträtt',
+                '21:9': '21:9 Ultrawide',
+                '4:3': '4:3 Klassisk TV'
             };
             pillEl.textContent = labels[this.aspectRatio] || this.aspectRatio;
         }
+    }
+
+    setMonitorZoom(zoomValue) {
+        this.monitorZoom = zoomValue;
+        const container = document.querySelector('.canvas-container');
+        if (!this.canvas) return;
+
+        if (zoomValue === 'fit') {
+            this.canvas.style.maxWidth = '100%';
+            this.canvas.style.maxHeight = '100%';
+            this.canvas.style.width = 'auto';
+            this.canvas.style.height = 'auto';
+            if (container) container.style.overflow = 'hidden';
+        } else {
+            const factor = parseFloat(zoomValue) / 100;
+            const targetW = Math.round(this.canvas.width * factor);
+            const targetH = Math.round(this.canvas.height * factor);
+            this.canvas.style.maxWidth = 'none';
+            this.canvas.style.maxHeight = 'none';
+            this.canvas.style.width = `${targetW}px`;
+            this.canvas.style.height = `${targetH}px`;
+            if (container) container.style.overflow = 'auto';
+        }
+        this.render();
     }
 
     toggleSafeZone() {
