@@ -50,9 +50,16 @@ Detta dokument beskriver sprintplanen för **NovaCut**, en modern, blixtsnabb oc
 * Kurvhandtag på ljudklipp för mjuka övertoningar (Fade In / Fade Out).
 * Intelligent Auto-ducking: bakgrundsmusik sänks automatiskt med t.ex. -12dB när tal spelas på videospåret.
 
-### Sprint 8: Auto-Captions
-* Integrering av offline Whisper-transkribering.
-* Ord-för-ord synkning och TikTok-typografi.
+### Sprint 8: True Whisper AI Auto-Captions & Virala Undertexter
+* **Offline Whisper AI Transkribering (`bin/whisper-cli`):**
+  - Högpresterande, fristående Whisper C++ CPU-binär med AVX2/FMA-stöd för Linux (0 externa biblioteksberoenden).
+  - Flerspråkig GGML-modell (`ggml-tiny.bin`, 75MB) med stöd för svenska, engelska och automatisk språkdetektering.
+  - Automatisk extrahering av 16kHz mono WAV från videoklipp och blixtsnabb tal-till-text på under 1 sekund.
+* **Ord-för-ord Tidsstämplar & Tidslinjeplacering:**
+  - Exakta tidsstämplar per segment och ord direkt från Whisper JSON-output.
+  - Genererar klipp på undertextspåret med exakt synkronisering mot talarens röst.
+* **Virala TikTok-stilar:**
+  - Hormozi Pop (gul/vit med svart ram), Karaoke Highlight (aktivt ord lyser upp), Minimalistisk Sans, Neon Cyan och Cyberpunk Glow.
 
 ### Sprint 9: 1-klicks Export & NVENC Hårdvaruacceleration
 * **Sociala Medier-Presets:** Snabbknappar för TikTok & Reels (1080×1920 60fps), YouTube Shorts, YouTube 4K Ultra HD (HEVC), YouTube 1080p, Instagram Kvadrat (1:1) och Anpassad profil.
@@ -145,11 +152,26 @@ Detta dokument beskriver sprintplanen för **NovaCut**, en modern, blixtsnabb oc
 * **Realtidsanimerade Demo-Mönster i Uppspelningsmotorn:**
   - Motorn (`renderProceduralDemo`) ritar procedurgenererade, 60fps-animerade mönster (`viral`, `gameplay`, `facecam`, `podcast`, `cinematic`) så att mallarna ser proffsiga ut och rör sig direkt innan externa mediefiler importerats.
 
+### Extra Feature: AI Visuals & Musikvideo Visualizers (`NovaCutVisuals`)
+* **Zero-Config AI Bildgenerator för Musikvideos:**
+  - Direkt bildgenerering via Pollinations.ai / Flux utan behov av API-nycklar, konton eller komplicerad setup.
+  - Förkonfigurerade musikvideo-stilar: *Synthwave Neon*, *Lo-Fi Chill Anime*, *Dark Techno Rave*, *Deep Space Nebula*, *Psychedelic Fractal*, *Tokyo Neon Rain*.
+  - Stöd för formaten 16:9, 9:16 och 1:1.
+  - Automatisk dynamisk rörelse: Ken Burns (mjuk inzoomning via keyframes), Rhythmic Beat Pulse och 35mm filmkorn.
+* **60fps Ljudreaktiva Musikvisualizers:**
+  - Procedurrenderade visualizers direkt i uppspelningsmotorn:
+    - 💥 **Trap Nation Ring:** Pulserande partikelring som expanderar i takt med bastrumman.
+    - 🌆 **Outrun Synthwave Road:** Retrorutnät med animerade neonberg och synthwave-sol.
+    - 📊 **Frequency Bars:** Glödande neon-equalizer med flerfärgade spektrumstaplar.
+    - 🌀 **Hypnotic Cosmic Portal:** Roterande hypnotisk tunnel och koncentriska energivågor.
+  - Kan kombineras sömlöst med AI-bakgrunder, undertexter, övergångar och ljudeffekter.
+
 ### Sprint 18: Lokal Render Queue & Bakgrundsrendering (Kommande sprint)
 * **Bakgrunds-rendering & Köhantering:** Flera exporter kan köas upp och köras i bakgrunden utan att blockera redigeringen på tidslinjen.
 * **Render Queue UI:** Dedikerad panel / modal med progress bars, beräknad återstående tid (ETA), paus/avbryt och direktlänk till exporterad fil.
 
 ### Sprint 19: AI Smart Cut & Tystnadsborttagning
 * **Silence Removal:** Automatisk detektering av pauser och tystnad i röstspår med tröskelvärden och 1-klicks borttagning.
+
 
 

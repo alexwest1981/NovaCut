@@ -3,6 +3,8 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { spawn, exec, execSync } = require('child_process');
+const https = require('https');
+const http = require('http');
 
 // Wayland & Linux Hardware Acceleration
 app.commandLine.appendSwitch('ozone-platform', 'wayland');
@@ -24,6 +26,11 @@ if (!fs.existsSync(userFontsDir)) {
 const userProjectsDir = path.join(app.getPath('userData'), 'projects');
 if (!fs.existsSync(userProjectsDir)) {
     fs.mkdirSync(userProjectsDir, { recursive: true });
+}
+
+const userMediaDir = path.join(app.getPath('userData'), 'media');
+if (!fs.existsSync(userMediaDir)) {
+    fs.mkdirSync(userMediaDir, { recursive: true });
 }
 
 // Ensure default starter project exists
@@ -688,6 +695,70 @@ ipcMain.handle('captions:transcribe', async (event, options = {}) => {
         console.error('[NovaCut Whisper] Error:', err);
         try { if (fs.existsSync(tempWav)) fs.unlinkSync(tempWav); } catch (_) {}
         try { if (fs.existsSync(tempJson)) fs.unlinkSync(tempJson); } catch (_) {}
+        return { success: false, error: err.message };
+    }
+});
+
+// AI Visuals / Music Video Image Generator (Zero-Config Pollinations)
+ipcMain.handle('ai:generateImage', async (event, options = {}) => {
+    const { prompt, width = 1280, height = 720, seed = Math.floor(Math.random() * 1000000) } = options;
+    if (!prompt || !prompt.trim()) {
+        return { success: false, error: 'Ingen prompt angavs.' };
+    }
+
+    const cleanPrompt = encodeURIComponent(prompt.trim());
+    const targetUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&nologo=true&seed=${seed}`;
+    const filename = `ai-visual-${Date.now()}.jpg`;
+    const destPath = path.join(userMediaDir, filename);
+
+    console.log('[NovaCut AI Image] Fetching:', targetUrl);
+
+    const downloadWithRedirect = (url, maxRedirects = 5) => {
+        return new Promise((resolve, reject) => {
+            if (maxRedirects <= 0) return reject(new Error('För många omdirigeringar.'));
+            const client = url.startsWith('http:') ? http : https;
+
+            client.get(url, (res) => {
+                if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+                    let nextUrl = res.headers.location;
+                    if (nextUrl.startsWith('/')) {
+                        const parsed = new URL(url);
+                        nextUrl = `${parsed.protocol}//${parsed.host}${nextUrl}`;
+                    }
+                    return resolve(downloadWithRedirect(nextUrl, maxRedirects - 1));
+                }
+
+                if (res.statusCode !== 200) {
+                    return reject(new Error(`Servern svarade med HTTP ${res.statusCode}`));
+                }
+
+                const fileStream = fs.createWriteStream(destPath);
+                res.pipe(fileStream);
+
+                fileStream.on('finish', () => {
+                    fileStream.close(() => resolve(destPath));
+                });
+                fileStream.on('error', (err) => {
+                    try { fs.unlinkSync(destPath); } catch (_) {}
+                    reject(err);
+                });
+            }).on('error', reject);
+        });
+    };
+
+    try {
+        await downloadWithRedirect(targetUrl);
+        const stats = fs.statSync(destPath);
+        return {
+            success: true,
+            filePath: destPath,
+            name: `AI: ${prompt.slice(0, 24)}...`,
+            width,
+            height,
+            size: stats.size
+        };
+    } catch (err) {
+        console.error('[NovaCut AI Image] Download failed:', err);
         return { success: false, error: err.message };
     }
 });

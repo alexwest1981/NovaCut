@@ -1182,6 +1182,206 @@ class NovaCutEngine {
             ctx.arc(0, 0, ringRadius, 0, Math.PI * 2);
             ctx.stroke();
 
+        } else if (pattern === 'reactive-circle') {
+            // Trap Nation / Monstercat Style Circular Audio Visualizer
+            const bgGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, w * 0.6);
+            bgGrad.addColorStop(0, '#09081e');
+            bgGrad.addColorStop(0.6, '#04030d');
+            bgGrad.addColorStop(1, '#000000');
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(-w/2, -h/2, w, h);
+
+            const beatEnergy = Math.abs(Math.sin(t * 7.5)) * 0.7 + Math.abs(Math.cos(t * 3.75)) * 0.3;
+            const baseRadius = Math.min(w, h) * 0.16 + beatEnergy * 18;
+
+            // Center Glowing Core
+            const coreGrad = ctx.createRadialGradient(0, 0, baseRadius * 0.2, 0, 0, baseRadius);
+            coreGrad.addColorStop(0, 'rgba(0, 212, 130, 0.8)');
+            coreGrad.addColorStop(0.7, 'rgba(14, 165, 233, 0.3)');
+            coreGrad.addColorStop(1, 'transparent');
+            ctx.fillStyle = coreGrad;
+            ctx.beginPath();
+            ctx.arc(0, 0, baseRadius * 1.3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Circular Spectrum Bars (64 bars)
+            const numBars = 64;
+            ctx.save();
+            ctx.rotate(t * 0.3);
+            for (let i = 0; i < numBars; i++) {
+                const angle = (i / numBars) * Math.PI * 2;
+                const freqAmp = Math.abs(Math.sin(t * 6 + i * 0.65)) * Math.abs(Math.cos(t * 3 - i * 0.3));
+                const barLen = 12 + freqAmp * (Math.min(w, h) * 0.18 + beatEnergy * 35);
+
+                const x1 = Math.cos(angle) * baseRadius;
+                const y1 = Math.sin(angle) * baseRadius;
+                const x2 = Math.cos(angle) * (baseRadius + barLen);
+                const y2 = Math.sin(angle) * (baseRadius + barLen);
+
+                ctx.strokeStyle = (i % 2 === 0) ? '#00d482' : '#38bdf8';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            // Inner circle stroke
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.arc(0, 0, baseRadius, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Floating Audio Particles
+            for (let p = 0; p < 18; p++) {
+                const pAngle = (p * 0.35 + t * 0.8) % (Math.PI * 2);
+                const pDist = baseRadius + 30 + ((t * 90 + p * 35) % (Math.min(w, h) * 0.3));
+                ctx.fillStyle = (p % 2 === 0) ? '#00d482' : '#f59e0b';
+                ctx.beginPath();
+                ctx.arc(Math.cos(pAngle) * pDist, Math.sin(pAngle) * pDist, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+        } else if (pattern === 'reactive-synthwave') {
+            // Outrun Synthwave Road & Glowing Mountains
+            const skyGrad = ctx.createLinearGradient(0, -h/2, 0, 0);
+            skyGrad.addColorStop(0, '#0a0518');
+            skyGrad.addColorStop(0.5, '#2e0854');
+            skyGrad.addColorStop(1, '#f43f5e');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(-w/2, -h/2, w, h/2);
+
+            // Giant Sliced Synthwave Sun
+            const sunRadius = Math.min(w, h) * 0.18;
+            const sunY = -h * 0.08;
+            const sunGrad = ctx.createLinearGradient(0, sunY - sunRadius, 0, sunY + sunRadius);
+            sunGrad.addColorStop(0, '#fef08a');
+            sunGrad.addColorStop(0.5, '#f59e0b');
+            sunGrad.addColorStop(1, '#ec4899');
+            ctx.fillStyle = sunGrad;
+            ctx.beginPath();
+            ctx.arc(0, sunY, sunRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Sun horizontal blind stripes
+            ctx.fillStyle = '#0a0518';
+            for (let s = 1; s <= 6; s++) {
+                const stripeY = sunY + (s * (sunRadius / 6));
+                ctx.fillRect(-sunRadius, stripeY, sunRadius * 2, s * 2);
+            }
+
+            // Mountain Silhouettes (bouncing to beat)
+            const beatH = Math.abs(Math.sin(t * 8)) * 15;
+            ctx.fillStyle = '#1e0836';
+            ctx.beginPath();
+            ctx.moveTo(-w/2, 0);
+            ctx.lineTo(-w * 0.25, -50 - beatH);
+            ctx.lineTo(-w * 0.05, 0);
+            ctx.lineTo(w * 0.18, -65 - beatH * 1.3);
+            ctx.lineTo(w * 0.38, -25);
+            ctx.lineTo(w/2, 0);
+            ctx.lineTo(w/2, h/2);
+            ctx.lineTo(-w/2, h/2);
+            ctx.fill();
+
+            // 3D Grid Perspective Floor
+            const floorGrad = ctx.createLinearGradient(0, 0, 0, h/2);
+            floorGrad.addColorStop(0, '#030208');
+            floorGrad.addColorStop(1, '#110426');
+            ctx.fillStyle = floorGrad;
+            ctx.fillRect(-w/2, 0, w, h/2);
+
+            // Perspective Grid Lines
+            ctx.strokeStyle = '#00d482';
+            ctx.lineWidth = 1.5;
+            const numGridV = 16;
+            for (let i = -numGridV/2; i <= numGridV/2; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(i * (w / (numGridV * 0.4)), h/2);
+                ctx.stroke();
+            }
+
+            // Moving Horizontal Floor Stripes
+            const floorOffset = (t * 120) % 35;
+            for (let y = 0; y < h/2; y += 35) {
+                const actualY = Math.pow((y + floorOffset) / (h/2), 2) * (h/2);
+                if (actualY <= h/2) {
+                    ctx.strokeStyle = 'rgba(236, 72, 153, 0.6)';
+                    ctx.beginPath();
+                    ctx.moveTo(-w/2, actualY);
+                    ctx.lineTo(w/2, actualY);
+                    ctx.stroke();
+                }
+            }
+
+        } else if (pattern === 'reactive-equalizer') {
+            // Full-Width Spectrum Equalizer Bars
+            ctx.fillStyle = '#05060b';
+            ctx.fillRect(-w/2, -h/2, w, h);
+
+            const numBars = 40;
+            const barW = (w * 0.9) / numBars;
+            const gap = 4;
+            const actualW = barW - gap;
+            const startX = -w * 0.45;
+            const baseY = h * 0.3;
+
+            for (let i = 0; i < numBars; i++) {
+                const x = startX + i * barW;
+                const freq = Math.abs(Math.sin(t * 7 + i * 0.3)) * Math.cos(t * 2.5 - i * 0.15);
+                const barH = 14 + Math.abs(freq) * (h * 0.55);
+
+                const barGrad = ctx.createLinearGradient(0, baseY - barH, 0, baseY);
+                barGrad.addColorStop(0, '#f43f5e');
+                barGrad.addColorStop(0.35, '#fbbf24');
+                barGrad.addColorStop(0.7, '#00d482');
+                barGrad.addColorStop(1, '#0284c7');
+                ctx.fillStyle = barGrad;
+
+                ctx.beginPath();
+                ctx.roundRect(x, baseY - barH, actualW, barH, 4);
+                ctx.fill();
+
+                // Peak Floating Cap
+                const peakY = baseY - barH - 6;
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(x, peakY, actualW, 3);
+            }
+
+        } else if (pattern === 'reactive-portal') {
+            // Hypnotic Kaleidoscope Portal
+            ctx.fillStyle = '#05050a';
+            ctx.fillRect(-w/2, -h/2, w, h);
+
+            const layers = 8;
+            const maxR = Math.min(w, h) * 0.45;
+            for (let l = 0; l < layers; l++) {
+                const r = maxR * ((l + (t * 0.8) % 1) / layers);
+                const rot = (l % 2 === 0 ? 1 : -1) * (t * 0.5 + l * 0.2);
+
+                ctx.save();
+                ctx.rotate(rot);
+                ctx.strokeStyle = `hsl(${(l * 45 + t * 60) % 360}, 90%, 65%)`;
+                ctx.lineWidth = 3;
+
+                // 8-point polygon / star
+                const points = 8;
+                ctx.beginPath();
+                for (let p = 0; p < points; p++) {
+                    const angle = (p / points) * Math.PI * 2;
+                    const px = Math.cos(angle) * r;
+                    const py = Math.sin(angle) * r;
+                    if (p === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+                ctx.stroke();
+                ctx.restore();
+            }
+
         } else {
             // Default Neon Orb & Grid
             const grad = ctx.createLinearGradient(-w/2, -h/2, w/2, h/2);

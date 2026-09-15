@@ -857,7 +857,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const templatesManager = new NovaCutTemplates(engine, timeline, projectManager);
     window.templatesManager = templatesManager;
 
-    // 11. Setup Interactive Responsive Panel Resizers
+    // 11. Initialize AI Visuals & Audio-Reactive Music Video Engine
+    const visualsManager = new NovaCutVisuals(timeline, engine);
+    window.visualsManager = visualsManager;
+
+    // 12. Setup Interactive Responsive Panel Resizers
     setupLayoutResizers(engine, timeline);
 
     // Always start application with the Welcome Screen & Project List
