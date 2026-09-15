@@ -70,12 +70,25 @@ Detta dokument beskriver sprintplanen för **NovaCut**, en modern, blixtsnabb oc
 * **Färgkontroller & Algoritmer:** Euklidisk RGB-färgavståndsmätning, ställbar tolerans (Similarity), kantmjukhet (Smoothness/Alpha Falloff) och spilldämpning (Spill Suppression för grön/blå reflektion på kläder och hud).
 * **Transparent Kompositering:** Högpresterande offscreen pixel-processing med `willReadFrequently` och realtidsklippning mot underliggande spår.
 
-### Sprint 13: Text Animationer & Kinetic Typography (Kommande sprint)
-* **Text Motion Presets:** In/Ut/Loop-animationer för text och undertexter (Skrivmaskin / Typewriter, Pop/Bounce In, Slide Up, Zoom Pulse, Neon Glow Pulse, Cyber Glitch).
-* **Typografi & Skuggor:** Text Stroke (konturlinje), Glow/Skugga med anpassningsbar blur & färg, bakgrundsbricka (Rounded Tag).
-* **Inspektor-integration:** Kategori-väljare för textanimationer med tidsinställning och förhandsvisning.
+### Sprint 13: Text Animationer & Kinetic Typography
+* **Text Motion Presets:** In/Loop-animationer för text och undertexter:
+  - ⌨️ **Skrivmaskin (Typewriter):** Tecken för tecken med animerad blinkande markör.
+  - ⚡ **Pop & Bounce In:** Elastisk bounce-in med dämpning.
+  - ⬆️ **Slide Up & Fade:** Mjuk glidning uppåt med kubisk ease-out.
+  - 🔄 **3D Flip In:** Vertikal 3D-rotation på textblocket.
+  - 💓 **Zoom Pulse (Loop):** Rytmisk subtil hjärtslagspuls.
+  - 🌟 **Neon Glow Pulse (Loop):** Dynamiskt pulserande neon-skuggskimmer.
+  - 👾 **Cyber Glitch (Loop):** Periodisk mikrojitter och kromatisk färgseparation.
+* **1-Klicks Stilförinställningar:** TikTok Viral (Gul Impact med svart outline), Cyber Neon, Filmisk Serif, Breaking News (Röd badge), Hacker Terminal och Minimal.
+* **Typografi, Skugga & Glow:** Konturtjocklek (1-24px), Skugga & Neon Glow med anpassningsbar färg och blurradie (0-50px).
+* **Batch-tillämpning:** Applicera stil och animationer på samtliga text- och undertextklipp med ett klick.
 
-### Sprint 14: Picture-in-Picture (PiP) & Multi-Track Reaktionslayouter
+### Sprint 14: Picture-in-Picture (PiP) & Multi-Track Reaktionslayouter (Kommande sprint)
 * **Reaktions- & Gaminglayouter:** 1-klicks förinställningar för Facecam (cirkel/rektangel i hörnet), Split Screen 50/50 (vertikal & horisontell) och Grid Collage.
 * **Smart Spårhantering:** Automatisk placering och skalning av spår V1/V2/V3 med synkroniserad uppspelning.
+
+### Sprint 15: Ljud- och Memebibliotek (SFX & Stickers)
+* **Inbyggt Ljudeffektbibliotek (SFX):** Whoosh, Pop, Ding, Kamera-klick, Glitch, Cinematic Boom, Vine Boom.
+* **Meme Overlays & Stickers:** Samling av animerade stickers och transparenter för virala klipp.
+
 
