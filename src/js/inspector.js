@@ -1,6 +1,69 @@
 /**
  * NovaCut - Inspector & Property Panel Controller
  */
+const SPEED_PRESETS = {
+    'montage': {
+        name: 'Montage',
+        points: [
+            { pos: 0.0, speed: 2.5 },
+            { pos: 0.2, speed: 0.4 },
+            { pos: 0.5, speed: 0.3 },
+            { pos: 0.8, speed: 2.0 },
+            { pos: 1.0, speed: 1.0 }
+        ]
+    },
+    'bullet-time': {
+        name: 'Bullet',
+        points: [
+            { pos: 0.0, speed: 1.0 },
+            { pos: 0.3, speed: 0.2 },
+            { pos: 0.7, speed: 0.2 },
+            { pos: 0.85, speed: 1.0 },
+            { pos: 1.0, speed: 1.0 }
+        ]
+    },
+    'flash-in': {
+        name: 'Flash In',
+        points: [
+            { pos: 0.0, speed: 4.0 },
+            { pos: 0.25, speed: 2.0 },
+            { pos: 0.5, speed: 1.0 },
+            { pos: 0.75, speed: 1.0 },
+            { pos: 1.0, speed: 1.0 }
+        ]
+    },
+    'flash-out': {
+        name: 'Flash Out',
+        points: [
+            { pos: 0.0, speed: 1.0 },
+            { pos: 0.5, speed: 1.0 },
+            { pos: 0.75, speed: 2.5 },
+            { pos: 0.9, speed: 4.5 },
+            { pos: 1.0, speed: 5.0 }
+        ]
+    },
+    'hero': {
+        name: 'Hero',
+        points: [
+            { pos: 0.0, speed: 0.5 },
+            { pos: 0.3, speed: 0.3 },
+            { pos: 0.45, speed: 3.0 },
+            { pos: 0.7, speed: 1.2 },
+            { pos: 1.0, speed: 1.0 }
+        ]
+    },
+    'custom': {
+        name: 'Anpassad',
+        points: [
+            { pos: 0.0, speed: 1.0 },
+            { pos: 0.25, speed: 1.5 },
+            { pos: 0.5, speed: 0.5 },
+            { pos: 0.75, speed: 2.0 },
+            { pos: 1.0, speed: 1.0 }
+        ]
+    }
+};
+
 class NovaCutInspector {
     constructor(engine, timeline) {
         this.engine = engine;
@@ -150,15 +213,76 @@ class NovaCutInspector {
             </div>
 
             <div class="inspector-section">
-                <div class="section-title">Uppspelning</div>
-                <div class="param-row">
-                    <span class="param-label">Hastighet</span>
-                    <select id="propSpeed" class="select-compact">
-                        <option value="0.5" ${clip.speed === 0.5 ? 'selected' : ''}>0.5x (Slow-mo)</option>
-                        <option value="1.0" ${!clip.speed || clip.speed === 1.0 ? 'selected' : ''}>1.0x (Normal)</option>
-                        <option value="1.5" ${clip.speed === 1.5 ? 'selected' : ''}>1.5x (Snabb)</option>
-                        <option value="2.0" ${clip.speed === 2.0 ? 'selected' : ''}>2.0x (Dubbel)</option>
-                    </select>
+                <div class="section-title">Uppspelning & Hastighetskurvor</div>
+                
+                <div class="speed-mode-tabs">
+                    <button class="speed-mode-tab ${!clip.speedCurve ? 'active' : ''}" id="tabSpeedNormal">Konstant</button>
+                    <button class="speed-mode-tab ${clip.speedCurve ? 'active' : ''}" id="tabSpeedCurve">Kurva (Speed Ramp)</button>
+                </div>
+
+                <!-- Konstant Hastighet -->
+                <div id="sectionSpeedNormal" style="${clip.speedCurve ? 'display: none;' : 'display: block;'}">
+                    <div class="param-row">
+                        <span class="param-label">Hastighet</span>
+                        <div class="param-input-group">
+                            <input type="range" class="slider-input" id="propSpeedSlider" min="0.1" max="10.0" step="0.1" value="${clip.speed || 1.0}">
+                            <span class="num-display" id="valSpeed">${(clip.speed || 1.0).toFixed(1)}x</span>
+                        </div>
+                    </div>
+                    <div class="speed-quick-pills">
+                        <button class="btn-speed-pill ${clip.speed === 0.2 ? 'active' : ''}" data-speed="0.2">0.2x</button>
+                        <button class="btn-speed-pill ${clip.speed === 0.5 ? 'active' : ''}" data-speed="0.5">0.5x</button>
+                        <button class="btn-speed-pill ${(!clip.speed || clip.speed === 1.0) ? 'active' : ''}" data-speed="1.0">1.0x</button>
+                        <button class="btn-speed-pill ${clip.speed === 2.0 ? 'active' : ''}" data-speed="2.0">2.0x</button>
+                        <button class="btn-speed-pill ${clip.speed === 5.0 ? 'active' : ''}" data-speed="5.0">5.0x</button>
+                    </div>
+                </div>
+
+                <!-- Hastighetskurva -->
+                <div id="sectionSpeedCurve" style="${clip.speedCurve ? 'display: block;' : 'display: none;'}">
+                    <div class="speed-curve-presets">
+                        <div class="speed-curve-card ${clip.speedCurveKey === 'montage' ? 'active' : ''}" data-preset="montage" title="Montage: Snabb start, extrem slow-mo i mitten, snabb avslutning">
+                            <span class="card-icon">⚡</span>
+                            <span class="card-title">Montage</span>
+                        </div>
+                        <div class="speed-curve-card ${clip.speedCurveKey === 'bullet-time' ? 'active' : ''}" data-preset="bullet-time" title="Bullet-Time: Matrix-liknande inbromsning till ultrarapid">
+                            <span class="card-icon">🎯</span>
+                            <span class="card-title">Bullet</span>
+                        </div>
+                        <div class="speed-curve-card ${clip.speedCurveKey === 'flash-in' ? 'active' : ''}" data-preset="flash-in" title="Flash In: Blixtsnabb start som planar ut">
+                            <span class="card-icon">🚀</span>
+                            <span class="card-title">Flash In</span>
+                        </div>
+                        <div class="speed-curve-card ${clip.speedCurveKey === 'flash-out' ? 'active' : ''}" data-preset="flash-out" title="Flash Out: Accelererar explosivt i slutet">
+                            <span class="card-icon">💥</span>
+                            <span class="card-title">Flash Out</span>
+                        </div>
+                        <div class="speed-curve-card ${clip.speedCurveKey === 'hero' ? 'active' : ''}" data-preset="hero" title="Hero Impact: Slow-mo uppbyggnad och snabb smäll">
+                            <span class="card-icon">🦸</span>
+                            <span class="card-title">Hero</span>
+                        </div>
+                        <div class="speed-curve-card ${clip.speedCurveKey === 'custom' ? 'active' : ''}" data-preset="custom" title="Anpassad: Skapa din egen kurva med dragbara punkter">
+                            <span class="card-icon">✏️</span>
+                            <span class="card-title">Anpassad</span>
+                        </div>
+                    </div>
+
+                    <div class="speed-curve-canvas-wrap" id="speedCurveWrap">
+                        <canvas class="speed-curve-canvas" id="speedCurveCanvas" width="280" height="125"></canvas>
+                    </div>
+
+                    <div class="speed-info-bar">
+                        <span id="speedCurveStatus">Dra punkter för att ändra fart</span>
+                        <span class="highlight" id="speedCurveVal">1.0x</span>
+                    </div>
+                </div>
+
+                <div class="param-row" style="margin-top: 6px;">
+                    <span class="param-label" style="font-size: 11px;">Tonhöjdskorrigering</span>
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer;">
+                        <input type="checkbox" id="propPreservesPitch" ${clip.preservesPitch !== false ? 'checked' : ''}>
+                        <span style="color: var(--text-muted);">Behåll tonhöjd</span>
+                    </label>
                 </div>
             </div>
         `;
@@ -186,11 +310,7 @@ class NovaCutInspector {
             });
         }
 
-        document.getElementById('propSpeed').addEventListener('change', (e) => {
-            clip.speed = parseFloat(e.target.value);
-            this.engine.render();
-        });
-
+        this.bindSpeedControls(clip);
         this.syncSlidersToCurrentTime();
     }
 
@@ -555,9 +675,36 @@ class NovaCutInspector {
                     </div>
                 </div>
             </div>
+
+            <div class="inspector-section">
+                <div class="section-title">Uppspelning</div>
+                <div class="param-row">
+                    <span class="param-label">Hastighet</span>
+                    <div class="param-input-group">
+                        <input type="range" class="slider-input" id="propAudioSpeed" min="0.2" max="3.0" step="0.05" value="${clip.speed || 1.0}">
+                        <span class="num-display" id="valAudioSpeed">${(clip.speed || 1.0).toFixed(2)}x</span>
+                    </div>
+                </div>
+                <div class="param-row">
+                    <span class="param-label">Tonhöjd</span>
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer;">
+                        <input type="checkbox" id="propAudioPreservesPitch" ${clip.preservesPitch !== false ? 'checked' : ''}>
+                        <span style="color: var(--text-muted);">Behåll tonhöjd</span>
+                    </label>
+                </div>
+            </div>
         `;
 
         this.bindInput('propAudioVol', 'valAudioVol', (v) => { clip.volume = parseFloat(v); return `${Math.round(parseFloat(v)*100)}%`; });
+        this.bindInput('propAudioSpeed', 'valAudioSpeed', (v) => { 
+            clip.speed = parseFloat(v); 
+            this.timeline.renderClipDOM(clip);
+            return `${parseFloat(v).toFixed(2)}x`; 
+        });
+        const chk = document.getElementById('propAudioPreservesPitch');
+        if (chk) {
+            chk.addEventListener('change', () => { clip.preservesPitch = chk.checked; });
+        }
     }
 
     updatePositionInputs(posX, posY) {
@@ -742,6 +889,373 @@ class NovaCutInspector {
                 btnNext.disabled = !nextKf;
             }
         });
+    }
+
+    bindSpeedControls(clip) {
+        const tabNormal = document.getElementById('tabSpeedNormal');
+        const tabCurve = document.getElementById('tabSpeedCurve');
+        const secNormal = document.getElementById('sectionSpeedNormal');
+        const secCurve = document.getElementById('sectionSpeedCurve');
+        const slider = document.getElementById('propSpeedSlider');
+        const valDisp = document.getElementById('valSpeed');
+        const chkPitch = document.getElementById('propPreservesPitch');
+
+        if (chkPitch) {
+            chkPitch.addEventListener('change', () => {
+                clip.preservesPitch = chkPitch.checked;
+            });
+        }
+
+        if (tabNormal && tabCurve) {
+            tabNormal.addEventListener('click', () => {
+                delete clip.speedCurve;
+                delete clip.speedCurveKey;
+                delete clip.speedCurveName;
+                tabNormal.classList.add('active');
+                tabCurve.classList.remove('active');
+                if (secNormal) secNormal.style.display = 'block';
+                if (secCurve) secCurve.style.display = 'none';
+                this.timeline.renderClipDOM(clip);
+                this.engine.render();
+            });
+
+            tabCurve.addEventListener('click', () => {
+                tabCurve.classList.add('active');
+                tabNormal.classList.remove('active');
+                if (secNormal) secNormal.style.display = 'none';
+                if (secCurve) secCurve.style.display = 'block';
+
+                if (!clip.speedCurve) {
+                    clip.speedCurveKey = 'montage';
+                    clip.speedCurveName = 'Montage';
+                    clip.speedCurve = { points: JSON.parse(JSON.stringify(SPEED_PRESETS['montage'].points)) };
+                }
+                this.initSpeedCurveEditor(clip);
+                this.timeline.renderClipDOM(clip);
+                this.engine.render();
+            });
+        }
+
+        if (slider) {
+            slider.addEventListener('input', (e) => {
+                const s = parseFloat(e.target.value);
+                clip.speed = s;
+                if (valDisp) valDisp.textContent = `${s.toFixed(1)}x`;
+                document.querySelectorAll('.btn-speed-pill').forEach(b => {
+                    b.classList.toggle('active', Math.abs(parseFloat(b.dataset.speed) - s) < 0.05);
+                });
+                this.timeline.renderClipDOM(clip);
+                this.engine.render();
+            });
+        }
+
+        document.querySelectorAll('.btn-speed-pill').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const s = parseFloat(btn.dataset.speed);
+                clip.speed = s;
+                if (slider) slider.value = s;
+                if (valDisp) valDisp.textContent = `${s.toFixed(1)}x`;
+                document.querySelectorAll('.btn-speed-pill').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this.timeline.renderClipDOM(clip);
+                this.engine.render();
+            });
+        });
+
+        // Preset cards
+        document.querySelectorAll('.speed-curve-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const key = card.dataset.preset;
+                const preset = SPEED_PRESETS[key];
+                if (!preset) return;
+
+                clip.speedCurveKey = key;
+                clip.speedCurveName = preset.name;
+                clip.speedCurve = { points: JSON.parse(JSON.stringify(preset.points)) };
+
+                document.querySelectorAll('.speed-curve-card').forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+
+                this.drawSpeedCurveCanvas(clip);
+                this.timeline.renderClipDOM(clip);
+                this.engine.render();
+            });
+        });
+
+        if (clip.speedCurve) {
+            this.initSpeedCurveEditor(clip);
+        }
+    }
+
+    initSpeedCurveEditor(clip) {
+        const canvas = document.getElementById('speedCurveCanvas');
+        if (!canvas) return;
+
+        this.speedCurveClip = clip;
+        this.draggedPointIdx = -1;
+
+        const getCoords = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: Math.max(0, Math.min(rect.width, e.clientX - rect.left)),
+                y: Math.max(0, Math.min(rect.height, e.clientY - rect.top)),
+                width: rect.width,
+                height: rect.height
+            };
+        };
+
+        const minSpeed = 0.1;
+        const maxSpeed = 6.0;
+
+        canvas.onmousedown = (e) => {
+            const { x, y, width, height } = getCoords(e);
+            const pts = clip.speedCurve.points;
+            let closest = -1;
+            let minDist = 18;
+
+            pts.forEach((p, idx) => {
+                const px = p.pos * width;
+                const py = height - ((p.speed - minSpeed) / (maxSpeed - minSpeed)) * height;
+                const dist = Math.hypot(x - px, y - py);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closest = idx;
+                }
+            });
+
+            if (closest !== -1) {
+                this.draggedPointIdx = closest;
+                const status = document.getElementById('speedCurveStatus');
+                const valEl = document.getElementById('speedCurveVal');
+                if (status) status.textContent = `Punkt ${closest + 1}/${pts.length}`;
+                if (valEl) valEl.textContent = `${pts[closest].speed.toFixed(2)}x`;
+            }
+        };
+
+        window.addEventListener('mousemove', (e) => {
+            if (this.draggedPointIdx === -1 || !this.speedCurveClip || this.speedCurveClip !== clip) return;
+            const { x, y, width, height } = getCoords(e);
+            const pts = clip.speedCurve.points;
+            const idx = this.draggedPointIdx;
+
+            // Speed from Y
+            const speedFraction = Math.max(0, Math.min(1, 1 - (y / height)));
+            const newSpeed = Math.round((minSpeed + speedFraction * (maxSpeed - minSpeed)) * 20) / 20;
+            pts[idx].speed = Math.max(minSpeed, Math.min(maxSpeed, newSpeed));
+
+            // Position from X (first and last points remain at 0.0 and 1.0)
+            if (idx > 0 && idx < pts.length - 1) {
+                const minPos = pts[idx - 1].pos + 0.04;
+                const maxPos = pts[idx + 1].pos - 0.04;
+                const newPos = Math.max(minPos, Math.min(maxPos, x / width));
+                pts[idx].pos = Math.round(newPos * 100) / 100;
+            }
+
+            clip.speedCurveKey = 'custom';
+            document.querySelectorAll('.speed-curve-card').forEach(c => {
+                c.classList.toggle('active', c.dataset.preset === 'custom');
+            });
+
+            const status = document.getElementById('speedCurveStatus');
+            const valEl = document.getElementById('speedCurveVal');
+            if (status) status.textContent = `Punkt ${idx + 1}: ${(pts[idx].pos * clip.duration).toFixed(1)}s`;
+            if (valEl) valEl.textContent = `${pts[idx].speed.toFixed(2)}x`;
+
+            this.drawSpeedCurveCanvas(clip);
+            this.engine.render();
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (this.draggedPointIdx !== -1) {
+                this.draggedPointIdx = -1;
+                this.timeline.renderClipDOM(clip);
+            }
+        });
+
+        canvas.ondblclick = (e) => {
+            const { x, y, width, height } = getCoords(e);
+            const pts = clip.speedCurve.points;
+            const clickPos = x / width;
+            const speedFraction = Math.max(0, Math.min(1, 1 - (y / height)));
+            const clickSpeed = Math.round((minSpeed + speedFraction * (maxSpeed - minSpeed)) * 10) / 10;
+
+            // Check if double-clicked existing interior point to remove it
+            let removeIdx = -1;
+            pts.forEach((p, idx) => {
+                if (idx > 0 && idx < pts.length - 1) {
+                    const px = p.pos * width;
+                    const py = height - ((p.speed - minSpeed) / (maxSpeed - minSpeed)) * height;
+                    if (Math.hypot(x - px, y - py) < 14) {
+                        removeIdx = idx;
+                    }
+                }
+            });
+
+            if (removeIdx !== -1) {
+                pts.splice(removeIdx, 1);
+            } else {
+                pts.push({ pos: Math.round(clickPos * 100) / 100, speed: clickSpeed });
+                pts.sort((a, b) => a.pos - b.pos);
+            }
+
+            clip.speedCurveKey = 'custom';
+            document.querySelectorAll('.speed-curve-card').forEach(c => {
+                c.classList.toggle('active', c.dataset.preset === 'custom');
+            });
+
+            this.drawSpeedCurveCanvas(clip);
+            this.timeline.renderClipDOM(clip);
+            this.engine.render();
+        };
+
+        this.drawSpeedCurveCanvas(clip);
+    }
+
+    drawSpeedCurveCanvas(clip) {
+        const canvas = document.getElementById('speedCurveCanvas');
+        if (!canvas || !clip || !clip.speedCurve) return;
+
+        const ctx = canvas.getContext('2d');
+        const rect = canvas.getBoundingClientRect();
+        const width = rect.width || 280;
+        const height = rect.height || 125;
+
+        canvas.width = width * (window.devicePixelRatio || 1);
+        canvas.height = height * (window.devicePixelRatio || 1);
+        ctx.resetTransform();
+        ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+
+        ctx.clearRect(0, 0, width, height);
+
+        const minSpeed = 0.1;
+        const maxSpeed = 6.0;
+        const getY = (s) => height - ((s - minSpeed) / (maxSpeed - minSpeed)) * height;
+
+        // Background grid lines
+        const gridSpeeds = [0.5, 1.0, 2.0, 4.0];
+        gridSpeeds.forEach(s => {
+            const gy = getY(s);
+            ctx.beginPath();
+            ctx.moveTo(0, gy);
+            ctx.lineTo(width, gy);
+            if (s === 1.0) {
+                ctx.strokeStyle = 'rgba(0, 212, 130, 0.4)';
+                ctx.lineWidth = 1.2;
+                ctx.setLineDash([4, 4]);
+            } else {
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([2, 4]);
+            }
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Label
+            ctx.fillStyle = (s === 1.0) ? '#00d482' : 'rgba(255, 255, 255, 0.35)';
+            ctx.font = '9px monospace';
+            ctx.textAlign = 'left';
+            ctx.fillText(`${s.toFixed(1)}x`, 6, gy - 3);
+        });
+
+        const pts = clip.speedCurve.points;
+        if (!pts || pts.length < 2) return;
+
+        // Evaluate smooth curve points
+        const steps = 80;
+        const curvePoints = [];
+        for (let i = 0; i <= steps; i++) {
+            const u = i / steps;
+            const s = this.engine.getClipInstantaneousSpeed(clip, u * clip.duration);
+            curvePoints.push({ x: u * width, y: getY(s) });
+        }
+
+        // Fill area under curve
+        const grad = ctx.createLinearGradient(0, 0, 0, height);
+        grad.addColorStop(0, 'rgba(0, 212, 130, 0.3)');
+        grad.addColorStop(1, 'rgba(0, 212, 130, 0.02)');
+        ctx.beginPath();
+        ctx.moveTo(curvePoints[0].x, height);
+        curvePoints.forEach(p => ctx.lineTo(p.x, p.y));
+        ctx.lineTo(curvePoints[curvePoints.length - 1].x, height);
+        ctx.closePath();
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // Stroke curve
+        ctx.beginPath();
+        ctx.moveTo(curvePoints[0].x, curvePoints[0].y);
+        for (let i = 1; i < curvePoints.length; i++) {
+            ctx.lineTo(curvePoints[i].x, curvePoints[i].y);
+        }
+        ctx.strokeStyle = '#00d482';
+        ctx.lineWidth = 2.5;
+        ctx.shadowColor = 'rgba(0, 212, 130, 0.6)';
+        ctx.shadowBlur = 6;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // Draw points
+        pts.forEach((p, idx) => {
+            const px = p.pos * width;
+            const py = getY(p.speed);
+
+            ctx.beginPath();
+            ctx.arc(px, py, 6, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+            ctx.strokeStyle = (this.draggedPointIdx === idx) ? '#00e5ff' : '#00d482';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            if (this.draggedPointIdx === idx) {
+                ctx.beginPath();
+                ctx.arc(px, py, 10, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(0, 229, 255, 0.5)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+        });
+
+        // Vertical playhead line if active
+        if (this.engine.currentTime >= clip.startTime && this.engine.currentTime <= (clip.startTime + clip.duration)) {
+            const localTime = this.engine.currentTime - clip.startTime;
+            const u = Math.max(0, Math.min(1.0, localTime / clip.duration));
+            const phX = u * width;
+            const currentSpeed = this.engine.getClipInstantaneousSpeed(clip, localTime);
+            const phY = getY(currentSpeed);
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([3, 2]);
+            ctx.beginPath();
+            ctx.moveTo(phX, 0);
+            ctx.lineTo(phX, height);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Animated glowing playhead dot on curve
+            ctx.beginPath();
+            ctx.arc(phX, phY, 4.5, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+            ctx.shadowColor = '#00e5ff';
+            ctx.shadowBlur = 8;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            const valEl = document.getElementById('speedCurveVal');
+            if (valEl && this.draggedPointIdx === -1) {
+                valEl.textContent = `${currentSpeed.toFixed(2)}x`;
+            }
+        }
+    }
+
+    updateSpeedCurvePlayhead() {
+        if (!this.speedCurveClip || !this.speedCurveClip.speedCurve) return;
+        const canvas = document.getElementById('speedCurveCanvas');
+        if (canvas && this.draggedPointIdx === -1) {
+            this.drawSpeedCurveCanvas(this.speedCurveClip);
+        }
     }
 
     bindInput(inputId, displayId, updateFn) {

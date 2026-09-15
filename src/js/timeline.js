@@ -227,6 +227,28 @@ class NovaCutTimeline {
         const durSpan = el.querySelector('.clip-duration');
         if (durSpan) durSpan.textContent = `${clip.duration.toFixed(1)}s`;
 
+        // Speed badge on clip
+        let speedBadge = el.querySelector('.clip-speed-badge');
+        if (clip.speedCurve) {
+            if (!speedBadge) {
+                speedBadge = document.createElement('span');
+                speedBadge.className = 'clip-speed-badge';
+                el.querySelector('.clip-content')?.appendChild(speedBadge);
+            }
+            speedBadge.textContent = `⚡ ${clip.speedCurveName || 'Ramp'}`;
+            speedBadge.style.display = 'inline-block';
+        } else if (clip.speed && clip.speed !== 1.0) {
+            if (!speedBadge) {
+                speedBadge = document.createElement('span');
+                speedBadge.className = 'clip-speed-badge';
+                el.querySelector('.clip-content')?.appendChild(speedBadge);
+            }
+            speedBadge.textContent = `${clip.speed}x`;
+            speedBadge.style.display = 'inline-block';
+        } else if (speedBadge) {
+            speedBadge.style.display = 'none';
+        }
+
         // Keyframes visual layer on timeline
         let kfLayer = el.querySelector('.clip-keyframes-layer');
         if (!kfLayer) {

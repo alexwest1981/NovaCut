@@ -348,6 +348,73 @@ class NovaCutEngine {
         return clip[propName] !== undefined ? clip[propName] : fallback;
     }
 
+    getClipInstantaneousSpeed(clip, localTime) {
+        if (!clip) return 1.0;
+        if (!clip.speedCurve || !clip.speedCurve.points || clip.speedCurve.points.length < 2) {
+            return clip.speed || 1.0;
+        }
+
+        const duration = Math.max(0.01, clip.duration);
+        const u = Math.max(0, Math.min(1.0, localTime / duration));
+        const pts = clip.speedCurve.points;
+
+        if (u <= pts[0].pos) return pts[0].speed;
+        if (u >= pts[pts.length - 1].pos) return pts[pts.length - 1].speed;
+
+        for (let i = 0; i < pts.length - 1; i++) {
+            const p1 = pts[i];
+            const p2 = pts[i + 1];
+            if (u >= p1.pos && u <= p2.pos) {
+                const span = p2.pos - p1.pos;
+                if (span <= 0.0001) return p1.speed;
+                const x = (u - p1.pos) / span;
+                const easeX = 0.5 - 0.5 * Math.cos(x * Math.PI);
+                return p1.speed + (p2.speed - p1.speed) * easeX;
+            }
+        }
+
+        return clip.speed || 1.0;
+    }
+
+    getClipSourceTime(clip, localTime) {
+        if (!clip) return 0;
+        const sourceOffset = clip.sourceOffset || 0;
+        if (!clip.speedCurve || !clip.speedCurve.points || clip.speedCurve.points.length < 2) {
+            return localTime * (clip.speed || 1.0) + sourceOffset;
+        }
+
+        const duration = Math.max(0.01, clip.duration);
+        const u = Math.max(0, Math.min(1.0, localTime / duration));
+        const pts = clip.speedCurve.points;
+
+        let integral = 0;
+        for (let i = 0; i < pts.length - 1; i++) {
+            const p1 = pts[i];
+            const p2 = pts[i + 1];
+            const span = p2.pos - p1.pos;
+            if (span <= 0.0001) continue;
+
+            if (u >= p2.pos) {
+                integral += span * ((p1.speed + p2.speed) / 2);
+            } else if (u > p1.pos) {
+                const x = (u - p1.pos) / span;
+                const term = p1.speed * x + (p2.speed - p1.speed) * (0.5 * x - (0.5 / Math.PI) * Math.sin(Math.PI * x));
+                integral += span * term;
+                break;
+            } else {
+                break;
+            }
+        }
+
+        if (u < pts[0].pos) {
+            integral = u * pts[0].speed;
+        } else if (u > pts[pts.length - 1].pos) {
+            integral += (u - pts[pts.length - 1].pos) * pts[pts.length - 1].speed;
+        }
+
+        return (integral * duration) + sourceOffset;
+    }
+
     renderMediaClip(clip, width, height) {
         const { ctx } = this;
         let mediaEl = this.mediaElements.get(clip.mediaId);
@@ -373,8 +440,13 @@ class NovaCutEngine {
             ctx.globalCompositeOperation = clip.blendMode;
         }
 
+        const localTime = Math.max(0, Math.min(clip.duration, this.currentTime - clip.startTime));
+        const clipRelativeTime = this.getClipSourceTime(clip, localTime);
+        const currentSpeed = this.getClipInstantaneousSpeed(clip, localTime);
+
         if (mediaEl && mediaEl.tagName === 'VIDEO') {
-            const clipRelativeTime = (this.currentTime - clip.startTime) * (clip.speed || 1) + (clip.sourceOffset || 0);
+            mediaEl.preservesPitch = clip.preservesPitch !== false;
+            mediaEl.playbackRate = Math.max(0.1, Math.min(16, currentSpeed));
             
             if (this.isPlaying) {
                 if (mediaEl.paused) mediaEl.play().catch(() => {});
@@ -426,8 +498,9 @@ class NovaCutEngine {
         ctx.fillStyle = grad;
         ctx.fillRect(-w/2, -h/2, w, h);
 
-        // Animated neon orb
-        const t = this.currentTime;
+        // Animated neon orb synced with speed-ramped time
+        const localTime = Math.max(0, Math.min(clip.duration, this.currentTime - clip.startTime));
+        const t = this.getClipSourceTime(clip, localTime);
         const orbX = Math.sin(t * 2) * (w * 0.25);
         const orbY = Math.cos(t * 2) * (h * 0.2);
 
@@ -1144,7 +1217,11 @@ class NovaCutEngine {
             const el = this.mediaElements.get(clip.mediaId);
             if (el && typeof el.play === 'function') {
                 el.volume = isMuted ? 0 : (clip.volume !== undefined ? clip.volume : 1.0) * this.masterVolume;
-                const clipRelativeTime = (this.currentTime - clip.startTime) + (clip.sourceOffset || 0);
+                const localTime = Math.max(0, Math.min(clip.duration, this.currentTime - clip.startTime));
+                const clipRelativeTime = this.getClipSourceTime(clip, localTime);
+                const currentSpeed = this.getClipInstantaneousSpeed(clip, localTime);
+                el.preservesPitch = clip.preservesPitch !== false;
+                el.playbackRate = Math.max(0.1, Math.min(16, currentSpeed));
 
                 if (this.isPlaying) {
                     if (el.paused) el.play().catch(() => {});
@@ -1260,6 +1337,9 @@ class NovaCutEngine {
 
         if (window.inspector && typeof window.inspector.syncSlidersToCurrentTime === 'function') {
             window.inspector.syncSlidersToCurrentTime();
+        }
+        if (window.inspector && typeof window.inspector.updateSpeedCurvePlayhead === 'function') {
+            window.inspector.updateSpeedCurvePlayhead();
         }
     }
 
