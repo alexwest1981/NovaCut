@@ -19,19 +19,19 @@ class NovaCutProjects {
 
     async init() {
         this.setupEventListeners();
-        this.showWelcome();
         await this.loadProjectList();
-        this.renderProjects();
+        this.showWelcome();
     }
 
     setupEventListeners() {
         // Top Header Home button to open Welcome / Projects Hub anytime
         const btnHome = document.getElementById('btnHomeProjects');
         if (btnHome) {
-            btnHome.addEventListener('click', () => {
-                this.saveCurrentProject(false);
-                this.loadProjectList();
-                this.showWelcome();
+            btnHome.addEventListener('click', async () => {
+                if (this.currentProjectId) {
+                    await this.saveCurrentProject(false);
+                }
+                await this.showWelcome();
             });
         }
 
@@ -102,10 +102,11 @@ class NovaCutProjects {
         }
     }
 
-    showWelcome() {
+    async showWelcome() {
         if (this.modalEl) {
             this.modalEl.classList.add('active');
             if (this.searchEl) this.searchEl.value = '';
+            await this.loadProjectList();
             this.renderProjects();
         }
     }
@@ -127,6 +128,8 @@ class NovaCutProjects {
         } else {
             this.projects = this.getLocalProjects();
         }
+        this.renderProjects();
+        return this.projects;
     }
 
     getLocalProjects() {
@@ -323,12 +326,31 @@ class NovaCutProjects {
         document.querySelectorAll('.timeline-clip').forEach(el => el.remove());
         this.timeline.clips = [];
 
+        // Restore custom tracks and layer order if saved with project
+        if (projectData.tracks && Array.isArray(projectData.tracks) && projectData.tracks.length > 0) {
+            this.timeline.restoreTracks(projectData.tracks, projectData.trackStates);
+        }
+
         // 4. Restore Media Elements & Media Library
         await this.restoreProjectMedia(projectData);
 
         // 5. Load Clips
         if (Array.isArray(projectData.clips)) {
             projectData.clips.forEach(clipData => {
+                if (clipData.cinemagraph && clipData.cinemagraph.freezeMaskData) {
+                    const img = new Image();
+                    img.onload = () => {
+                        const maskCanvas = document.createElement('canvas');
+                        maskCanvas.width = 512;
+                        maskCanvas.height = 512;
+                        const mctx = maskCanvas.getContext('2d');
+                        mctx.drawImage(img, 0, 0, 512, 512);
+                        clipData.cinemagraph.maskCanvas = maskCanvas;
+                        clipData.cinemagraph._version = (clipData.cinemagraph._version || 0) + 1;
+                        this.engine.render();
+                    };
+                    img.src = clipData.cinemagraph.freezeMaskData;
+                }
                 this.timeline.addClip(clipData);
             });
         }
@@ -388,7 +410,8 @@ class NovaCutProjects {
             let filePath = item.path;
 
             if (window.novaCut && typeof window.novaCut.locateMediaFile === 'function') {
-                const located = await window.novaCut.locateMediaFile(item.name, filePath);
+                const searchName = `${item.id || ''} ${item.name || ''}`;
+                const located = await window.novaCut.locateMediaFile(searchName, filePath);
                 if (located) {
                     filePath = located;
                     item.path = located;
@@ -400,10 +423,17 @@ class NovaCutProjects {
                 continue;
             }
 
+            const isImg = item.type === 'image' || filePath.match(/\.(png|jpg|jpeg|webp|gif|svg|bmp)$/i);
+            if (isImg) {
+                item.type = 'image';
+            }
+
             if (Array.isArray(projectData.clips)) {
                 projectData.clips.forEach(c => {
-                    if (c.mediaId === mediaId) {
+                    if (c.mediaId === mediaId || (c.title && c.title === item.name)) {
                         c.filePath = filePath;
+                        c.mediaId = mediaId;
+                        if (isImg) c.type = 'image';
                     }
                 });
             }
@@ -481,7 +511,23 @@ class NovaCutProjects {
             aspectRatio: ratio,
             duration: this.engine.duration || 10.0,
             mediaLibrary: window.projectMediaLibrary ? Array.from(window.projectMediaLibrary.values()) : [],
-            clips: this.timeline.clips.map(c => ({ ...c })),
+            tracks: this.timeline.tracks ? this.timeline.tracks.map(t => ({ ...t })) : [],
+            trackStates: this.timeline.trackStates ? { ...this.timeline.trackStates } : {},
+            clips: this.timeline.clips.map(c => {
+                const clipCopy = { ...c };
+                if (clipCopy.cinemagraph) {
+                    clipCopy.cinemagraph = { ...clipCopy.cinemagraph };
+                    if (clipCopy.cinemagraph.maskCanvas) {
+                        try {
+                            clipCopy.cinemagraph.freezeMaskData = clipCopy.cinemagraph.maskCanvas.toDataURL();
+                        } catch (e) {
+                            console.warn('[Projects] Failed to export freeze mask to dataURL:', e);
+                        }
+                        delete clipCopy.cinemagraph.maskCanvas;
+                    }
+                }
+                return clipCopy;
+            }),
             updatedAt: new Date().toISOString()
         };
 
@@ -579,19 +625,9 @@ class NovaCutProjects {
     }
 
     showToast(message) {
-        let toast = document.getElementById('novaCutToast');
-        if (!toast) {
-            toast = document.createElement('div');
-            toast.id = 'novaCutToast';
-            toast.className = 'novacut-toast';
-            document.body.appendChild(toast);
+        if (typeof window.novaCutToast === 'function') {
+            window.novaCutToast(message);
         }
-        toast.textContent = message;
-        toast.classList.add('visible');
-        clearTimeout(this.toastTimer);
-        this.toastTimer = setTimeout(() => {
-            toast.classList.remove('visible');
-        }, 2600);
     }
 }
 

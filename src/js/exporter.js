@@ -81,6 +81,7 @@ class NovaCutExporter {
         const btnOpen = document.getElementById('btnOpenExportModal');
         if (btnOpen) {
             btnOpen.addEventListener('click', () => {
+                this.cancelRequested = false;
                 // Pre-sync preset with current project aspect ratio if available
                 if (this.engine.aspectRatio === '9:16') {
                     this.applyPreset('tiktok');
@@ -90,6 +91,19 @@ class NovaCutExporter {
                     this.applyPreset('yt1080');
                 }
                 this.modal.classList.add('active');
+            });
+        }
+
+        const btnClose = this.modal?.querySelector('.close-modal-btn');
+        if (btnClose) {
+            btnClose.addEventListener('click', () => {
+                if (this.isExporting) {
+                    if (confirm('Vill du avbryta pågående export?')) {
+                        this.cancelRequested = true;
+                    }
+                } else {
+                    this.modal.classList.remove('active');
+                }
             });
         }
 
@@ -206,8 +220,12 @@ class NovaCutExporter {
         const { engine, timeline } = this;
         engine.pause();
 
+        const initialScrubTime = engine.currentTime || 0;
         const canvas = engine.canvas;
-        const totalDuration = Math.max(0.5, engine.duration || 5);
+
+        // Calculate exact duration based on active clips (without empty padding)
+        const maxClipEnd = timeline.clips.reduce((max, c) => Math.max(max, (c.startTime || 0) + (c.duration || 0)), 0);
+        const totalDuration = Math.max(0.5, maxClipEnd > 0 ? maxClipEnd : (engine.duration || 5));
         const totalFrames = Math.ceil(totalDuration * fps);
 
         // Collect all timeline audio tracks to mix via FFmpeg
@@ -274,98 +292,145 @@ class NovaCutExporter {
 
         console.log('[NovaCut Exporter] Prepared audio tracks for export:', audioTracks);
 
-        // Capture video stream from canvas
-        const stream = canvas.captureStream(fps);
+        // --- DIRECT STREAMING PIPE TO FFMPEG (1:1 Frame-Accurate Precision) ---
+        if (savePath && window.novaCut && typeof window.novaCut.exportStartPipe === 'function') {
+            engine.isExporting = true;
+            this.cancelRequested = false;
+            const prevSelectedClip = timeline?.selectedClipId;
+            if (timeline) timeline.selectedClipId = null;
 
-        let mimeType = 'video/webm;codecs=vp9';
-        if (!MediaRecorder.isTypeSupported(mimeType)) {
-            mimeType = 'video/webm;codecs=vp8';
-        }
-        if (!MediaRecorder.isTypeSupported(mimeType)) {
-            mimeType = 'video/webm';
-        }
+            let sessionId = null;
+            try {
+                this.statusText.textContent = '⚡ Initierar FFmpeg bildruts-ström & hårdvarukodare...';
+                this.progressBar.style.width = '2%';
+                this.percentText.textContent = '2%';
 
-        // Parse numerical bits per second
-        let bps = 18000000;
-        if (bitrate.endsWith('M')) {
-            bps = parseFloat(bitrate) * 1000000;
-        }
+                const startRes = await window.novaCut.exportStartPipe({
+                    outputPath: savePath,
+                    codec: codec,
+                    bitrate: bitrate,
+                    fps: fps,
+                    width: width,
+                    height: height,
+                    duration: totalDuration,
+                    audioTracks: audioTracks
+                });
 
-        const recorder = new MediaRecorder(stream, {
-            mimeType: mimeType,
-            videoBitsPerSecond: bps
-        });
+                if (!startRes || !startRes.sessionId) {
+                    throw new Error(startRes?.error || 'Kunde inte starta FFmpeg-kodning.');
+                }
+                sessionId = startRes.sessionId;
 
-        const chunks = [];
-        recorder.ondataavailable = (e) => {
-            if (e.data && e.data.size > 0) {
-                chunks.push(e.data);
-            }
-        };
+                const frameTime = 1 / fps;
+                for (let currentFrame = 0; currentFrame < totalFrames; currentFrame++) {
+                    if (this.cancelRequested) {
+                        break;
+                    }
 
-        recorder.onstop = async () => {
-            const blob = new Blob(chunks, { type: mimeType });
-            const arrayBuffer = await blob.arrayBuffer();
+                    const timestamp = currentFrame * frameTime;
+                    engine.currentTime = timestamp;
+                    engine.render();
 
-            if (savePath && window.novaCut) {
-                this.statusText.textContent = '⚡ Sparar temp-ström och förbereder ljudmixning & kodning...';
-                this.progressBar.style.width = '75%';
-                this.percentText.textContent = '75%';
+                    // Convert current rendered frame directly to JPEG blob
+                    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+                    const arrayBuffer = await blob.arrayBuffer();
 
-                const tempRes = await window.novaCut.saveTempExport(arrayBuffer);
-                if (!tempRes || !tempRes.tempPath) {
-                    alert('Kunde inte skapa temporär videofil inför kodning.');
+                    // Pipe directly into FFmpeg stdin
+                    await window.novaCut.exportPushFrame(sessionId, arrayBuffer);
+
+                    // Update UI progress
+                    const pct = Math.min(99, Math.round(((currentFrame + 1) / totalFrames) * 100));
+                    this.progressBar.style.width = `${pct}%`;
+                    this.percentText.textContent = `${pct}%`;
+                    this.statusText.textContent = `⚡ Renderar & hårdvarukodar bildruta ${currentFrame + 1} av ${totalFrames} (${pct}%)...`;
+
+                    // Minimal yield for UI update responsiveness
+                    if (currentFrame % 5 === 0) {
+                        await new Promise(r => setTimeout(r, 0));
+                    }
+                }
+
+                if (this.cancelRequested) {
+                    await window.novaCut.exportCancelPipe(sessionId);
                     this.isExporting = false;
+                    engine.isExporting = false;
+                    this.statusText.textContent = 'Exporten avbröts.';
                     return;
                 }
 
-                this.statusText.textContent = `⚡ Mixar ${audioTracks.length} ljudspår och renderar video med FFmpeg...`;
+                this.statusText.textContent = '⚡ Slutför videofil och sammanfogar strömmar...';
+                await window.novaCut.exportFinishPipe(sessionId);
 
-                try {
-                    await window.novaCut.transcodeExport({
-                        inputPath: tempRes.tempPath,
-                        outputPath: savePath,
-                        codec: codec,
-                        bitrate: bitrate,
-                        fps: fps,
-                        width: width,
-                        height: height,
-                        duration: totalDuration,
-                        audioTracks: audioTracks
-                    });
+                this.progressBar.style.width = '100%';
+                this.percentText.textContent = '100%';
+                let label = 'MP4';
+                if (codec.includes('hevc')) label = 'MP4 (HEVC)';
+                else if (codec.includes('nvenc')) label = 'MP4 (NVENC H.264)';
+                else if (codec === 'webm') label = 'WebM';
+                this.onExportComplete(savePath, label);
 
-                    this.progressBar.style.width = '100%';
-                    this.percentText.textContent = '100%';
-                    let label = 'MP4';
-                    if (codec.includes('hevc')) label = 'MP4 (HEVC)';
-                    else if (codec.includes('nvenc')) label = 'MP4 (NVENC H.264)';
-                    else if (codec === 'webm') label = 'WebM';
-                    this.onExportComplete(savePath, label);
-                } catch (err) {
-                    console.error('[Exporter] Transcode failed:', err);
-                    alert('Fel vid hårdvarukodning: ' + err.message);
-                    this.isExporting = false;
+            } catch (err) {
+                console.error('[Exporter] Direct pipe export failed:', err);
+                if (sessionId) {
+                    try { await window.novaCut.exportCancelPipe(sessionId); } catch (_) {}
                 }
-            } else {
-                // Web browser fallback download
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${document.getElementById('projectTitle')?.value || 'NovaCut'}.webm`;
-                a.click();
-                URL.revokeObjectURL(url);
-                this.onExportComplete('Nedladdningar', 'WebM');
+                alert('Fel vid videoexport: ' + err.message);
+                this.isExporting = false;
+                engine.isExporting = false;
+            } finally {
+                engine.isExporting = false;
+                if (timeline && prevSelectedClip) timeline.selectedClipId = prevSelectedClip;
+                engine.seek(initialScrubTime || 0);
+                engine.render();
             }
+            return;
+        }
+
+        // Browser Fallback (MediaRecorder)
+        engine.isExporting = true;
+        const prevSelectedClip = timeline?.selectedClipId;
+        if (timeline) timeline.selectedClipId = null;
+
+        const stream = canvas.captureStream(0);
+        const track = stream.getVideoTracks ? stream.getVideoTracks()[0] : null;
+
+        let mimeType = 'video/webm;codecs=vp9';
+        if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm;codecs=vp8';
+        if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm';
+
+        let bps = 18000000;
+        if (bitrate.endsWith('M')) bps = parseFloat(bitrate) * 1000000;
+
+        const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: bps });
+        const chunks = [];
+        recorder.ondataavailable = (e) => {
+            if (e.data && e.data.size > 0) chunks.push(e.data);
+        };
+
+        recorder.onstop = async () => {
+            engine.isExporting = false;
+            if (timeline && prevSelectedClip) timeline.selectedClipId = prevSelectedClip;
+            engine.seek(initialScrubTime || 0);
+            engine.render();
+
+            const blob = new Blob(chunks, { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${document.getElementById('projectTitle')?.value || 'NovaCut'}.webm`;
+            a.click();
+            URL.revokeObjectURL(url);
+            this.onExportComplete('Nedladdningar', 'WebM');
         };
 
         recorder.start();
 
-        // Render each frame sequentially
         const frameTime = 1 / fps;
         let currentFrame = 0;
 
-        const renderNextFrame = () => {
+        const renderNextFrame = async () => {
             if (currentFrame >= totalFrames) {
+                await new Promise(r => setTimeout(r, 250));
                 recorder.stop();
                 return;
             }
@@ -374,14 +439,17 @@ class NovaCutExporter {
             engine.currentTime = timestamp;
             engine.render();
 
+            if (track && typeof track.requestFrame === 'function') {
+                track.requestFrame();
+            }
+
             currentFrame++;
-            // Canvas rendering maps from 0% to 75%
-            const pct = Math.round((currentFrame / totalFrames) * 75);
+            const pct = Math.round((currentFrame / totalFrames) * 100);
             this.progressBar.style.width = `${pct}%`;
             this.percentText.textContent = `${pct}%`;
-            this.statusText.textContent = `Renderar bildruta ${currentFrame} av ${totalFrames} (${Math.round((currentFrame / totalFrames) * 100)}%)...`;
+            this.statusText.textContent = `Renderar bildruta ${currentFrame} av ${totalFrames} (${pct}%)...`;
 
-            setTimeout(renderNextFrame, Math.max(1, Math.floor(1000 / fps / 2)));
+            setTimeout(renderNextFrame, 16);
         };
 
         renderNextFrame();

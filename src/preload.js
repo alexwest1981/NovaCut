@@ -6,6 +6,10 @@ contextBridge.exposeInMainWorld('novaCut', {
     savePlugin: (pluginData) => ipcRenderer.invoke('plugin:save', pluginData),
     loadPlugins: () => ipcRenderer.invoke('plugin:loadAll'),
     exportFFmpeg: (options) => ipcRenderer.invoke('export:ffmpeg', options),
+    exportStartPipe: (options) => ipcRenderer.invoke('export:startPipe', options),
+    exportPushFrame: (sessionId, buffer) => ipcRenderer.invoke('export:writeFrame', sessionId, buffer),
+    exportFinishPipe: (sessionId) => ipcRenderer.invoke('export:endPipe', sessionId),
+    exportCancelPipe: (sessionId) => ipcRenderer.invoke('export:cancelPipe', sessionId),
     getHwAcceleration: () => ipcRenderer.invoke('export:getHwAcceleration'),
     saveTempExport: (buffer) => ipcRenderer.invoke('export:saveTemp', buffer),
     saveDirectExport: (buffer, filePath) => ipcRenderer.invoke('export:saveDirect', buffer, filePath),
@@ -22,6 +26,7 @@ contextBridge.exposeInMainWorld('novaCut', {
     openProjectFile: () => ipcRenderer.invoke('project:openFile'),
     transcribeAudio: (options) => ipcRenderer.invoke('captions:transcribe', options),
     generateAiImage: (options) => ipcRenderer.invoke('ai:generateImage', options),
-    locateMediaFile: (filename, fallbackPath) => ipcRenderer.invoke('media:locate', filename, fallbackPath)
+    locateMediaFile: (filename, fallbackPath) => ipcRenderer.invoke('media:locate', filename, fallbackPath),
+    extractAudioMetadata: (filePath) => ipcRenderer.invoke('audio:extractMetadata', filePath)
 });
 

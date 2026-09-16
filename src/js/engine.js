@@ -162,6 +162,9 @@ class NovaCutEngine {
         this.pause();
         const frameTime = 1 / this.fps;
         this.seek(this.currentTime + (deltaFrames * frameTime));
+        if (window.timeline) {
+            window.timeline.ensurePlayheadVisible();
+        }
     }
 
     loop() {
@@ -223,71 +226,71 @@ class NovaCutEngine {
         };
 
         const activeClips = window.timeline.getActiveClipsAt(this.currentTime);
+        const tracks = window.timeline.tracks || [
+            { id: 'text', name: 'Text', type: 'text' },
+            { id: 'effect', name: 'Effekt', type: 'effect' },
+            { id: 'overlay', name: 'Overlay', type: 'video' },
+            { id: 'video', name: 'Video', type: 'video' }
+        ];
 
-        // 2. Global Effect Layers (Active clips on effect track)
-        const effectClips = (trackStates.effect?.visible !== false)
-            ? activeClips.filter(c => c.trackId === 'effect')
-            : [];
+        // 2. Global Effect Filters (Active clips on visible effect tracks)
         let combinedFilter = 'none';
-        let customOverlays = [];
-
-        if (effectClips.length > 0) {
-            const filters = [];
-            effectClips.forEach(eff => {
-                if (eff.cssFilter) filters.push(eff.cssFilter);
-                if (eff.overlayType) customOverlays.push({ type: eff.overlayType, params: eff.params });
-            });
-            if (filters.length > 0) {
-                combinedFilter = filters.join(' ');
+        const activeFilters = [];
+        activeClips.forEach(c => {
+            const trk = tracks.find(t => t.id === c.trackId);
+            const isEff = c.type === 'effect' || (trk && trk.type === 'effect');
+            if (isEff && trackStates[c.trackId]?.visible !== false && c.cssFilter) {
+                activeFilters.push(c.cssFilter);
             }
+        });
+        if (activeFilters.length > 0) {
+            combinedFilter = activeFilters.join(' ');
         }
 
-        // Apply active filter chain to video/image rendering
-        ctx.filter = combinedFilter;
-
-        // 3. Render Main Video Track & Overlay Track
-        const videoClips = activeClips.filter(c => {
-            if (c.trackId === 'video' && trackStates.video?.visible !== false) return true;
-            if (c.trackId === 'overlay' && trackStates.overlay?.visible !== false) return true;
-            return false;
-        });
-        
-        // Sort: main video first, overlay on top
-        videoClips.sort((a, b) => (a.trackId === 'video' ? -1 : 1));
-
-        const isTextVisible = trackStates.text?.visible !== false;
-        const visibleTextClips = isTextVisible ? activeClips.filter(c => c.trackId === 'text') : [];
-
-        if (videoClips.length === 0 && visibleTextClips.length === 0) {
-            // Render friendly placeholder when project is empty
+        // 3. Render Visual Tracks in Bottom-to-Top NLE Order
+        // Visual tracks ordered in timeline: index 0 is top (foreground), index N-1 is bottom (background).
+        // Reversing gives bottom-to-top rendering order: background paints first, overlays paint on top!
+        const visualTracks = tracks.filter(t => t.type !== 'audio');
+        if (!this.isExporting && (!window.timeline || window.timeline.clips.length === 0)) {
             this.renderEmptyPlaceholder();
         }
 
-        videoClips.forEach(clip => {
-            this.renderMediaClip(clip, width, height);
-        });
+        const renderOrder = [...visualTracks].reverse();
 
-        // 4. Render Custom Overlay Effects (e.g. VHS scanlines, Vignette)
-        if (trackStates.effect?.visible !== false) {
-            customOverlays.forEach(ov => {
-                this.renderSpecialOverlay(ov.type, ov.params, width, height);
-            });
+        for (const track of renderOrder) {
+            if (trackStates[track.id]?.visible === false) continue;
+
+            const clipsOnTrack = activeClips.filter(c => c.trackId === track.id);
+            if (clipsOnTrack.length === 0) continue;
+
+            if (track.type === 'text') {
+                ctx.filter = 'none';
+                for (const clip of clipsOnTrack) {
+                    this.renderTextClip(clip, width, height);
+                }
+            } else if (track.type === 'effect') {
+                for (const clip of clipsOnTrack) {
+                    if (clip.overlayType) {
+                        this.renderSpecialOverlay(clip.overlayType, clip.params, width, height);
+                    }
+                }
+            } else {
+                // Video, overlay, image, sticker, reactive visualizer
+                ctx.filter = combinedFilter;
+                for (const clip of clipsOnTrack) {
+                    this.renderMediaClip(clip, width, height);
+                }
+            }
         }
 
-        // Reset filter for sharp text rendering
+        // Reset filter
         ctx.filter = 'none';
 
-        // 5. Render Text Layers
-        if (isTextVisible) {
-            visibleTextClips.forEach(clip => {
-                this.renderTextClip(clip, width, height);
-            });
-        }
-
-        // 6. Interactive Selection Gizmo & Snap Guidelines
-        if (window.timeline && window.timeline.selectedClipId) {
+        // 6. Interactive Selection Gizmo & Snap Guidelines (hidden during export)
+        if (!this.isExporting && window.timeline && window.timeline.selectedClipId) {
             const selClip = window.timeline.clips.find(c => c.id === window.timeline.selectedClipId);
-            if (selClip && (selClip.trackId === 'text' || selClip.trackId === 'overlay' || selClip.trackId === 'video')) {
+            const selTrack = selClip ? tracks.find(t => t.id === selClip.trackId) : null;
+            if (selClip && selTrack && selTrack.type !== 'audio') {
                 const isTrackVisible = trackStates[selClip.trackId]?.visible !== false;
                 const isActive = activeClips.some(c => c.id === selClip.id);
                 if (isActive && isTrackVisible) {
@@ -296,15 +299,17 @@ class NovaCutEngine {
             }
         }
 
-        // 7. Safe Zones Overlay (TikTok / Reels / Action & Title Safe)
-        if (this.showSafeZone) {
+        // 7. Safe Zones Overlay (TikTok / Reels / Action & Title Safe, hidden during export)
+        if (!this.isExporting && this.showSafeZone) {
             this.renderSafeZones(width, height);
         }
 
         ctx.restore();
 
-        // 6. Handle Audio Playback Sync
-        this.syncAudioTracks(activeClips);
+        // 6. Handle Audio Playback Sync (skip during offline export)
+        if (!this.isExporting) {
+            this.syncAudioTracks(activeClips);
+        }
 
         // 7. Update Timecode UI
         this.updateTimecodeUI();
@@ -339,8 +344,28 @@ class NovaCutEngine {
                 const span = k2.time - k1.time;
                 if (span <= 0.0001) return k1.value;
                 const t = (localTime - k1.time) / span;
-                // Cosine smooth easing for silky animations
-                const easeT = 0.5 - 0.5 * Math.cos(t * Math.PI);
+                const easing = k1.easing || clip.keyframeEasing || 'smooth';
+                let easeT = t;
+                if (easing === 'linear') {
+                    easeT = t;
+                } else if (easing === 'ease-in') {
+                    easeT = t * t * t;
+                } else if (easing === 'ease-out') {
+                    easeT = 1 - Math.pow(1 - t, 3);
+                } else if (easing === 'bounce') {
+                    const n1 = 7.5625, d1 = 2.75;
+                    let u = t;
+                    if (u < 1 / d1) easeT = n1 * u * u;
+                    else if (u < 2 / d1) easeT = n1 * (u -= 1.5 / d1) * u + 0.75;
+                    else if (u < 2.5 / d1) easeT = n1 * (u -= 2.25 / d1) * u + 0.9375;
+                    else easeT = n1 * (u -= 2.625 / d1) * u + 0.984375;
+                } else if (easing === 'back-out') {
+                    const c1 = 1.70158, c3 = c1 + 1;
+                    easeT = 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+                } else {
+                    // Cosine smooth easing for silky animations
+                    easeT = 0.5 - 0.5 * Math.cos(t * Math.PI);
+                }
                 return k1.value + (k2.value - k1.value) * easeT;
             }
         }
@@ -568,17 +593,46 @@ class NovaCutEngine {
             state.overlayColor = '#d946ef';
             state.overlayAlpha = (1 - p) * 0.75;
 
+        // 3D & Rotations
+        } else if (type.startsWith('cube_') || type.includes('flip') || type.includes('3d') || type.includes('door') || type.includes('page') || type.includes('fold') || type.includes('cylinder') || type.includes('plate') || type.includes('spin') || type.includes('sphere') || type.includes('prism')) {
+            state.scale *= isIntro ? (0.65 + 0.35 * p) : (1.0 - (1 - p) * 0.35);
+            if (type.includes('left') || type.includes('horiz')) state.shiftX += (isIntro ? width * 0.5 : -width * 0.5) * (1 - p);
+            else if (type.includes('right')) state.shiftX += (isIntro ? -width * 0.5 : width * 0.5) * (1 - p);
+            else if (type.includes('up') || type.includes('vert')) state.shiftY += (isIntro ? height * 0.5 : -height * 0.5) * (1 - p);
+            else if (type.includes('down')) state.shiftY += (isIntro ? -height * 0.5 : height * 0.5) * (1 - p);
+            if (type.includes('flip') || type.includes('spin') || type.includes('card') || type.includes('plate') || type.includes('hex')) {
+                state.rotDeg += (isIntro ? (1 - p) * 90 : -(1 - p) * 90);
+            }
+            state.opacity *= p;
+
         // 6. Formklipp & Wipes
-        } else if (type === 'wipe_left' || type === 'wipe_right' || type === 'wipe_up' || type === 'wipe_down' ||
-                   type === 'circle_wipe_in' || type === 'circle_wipe_out' || type === 'diamond_wipe' || type === 'split_doors') {
+        } else if (type.includes('wipe') || type.includes('split') || type.includes('curtain') || type.includes('blind') || type.includes('clock') || type.includes('checker') || type.includes('strip')) {
             state.wipeType = type;
             state.wipeP = p;
+        } else {
+            // General graceful fallback for any other transitions
+            state.opacity *= p;
         }
     }
 
     renderMediaClip(clip, width, height) {
         const { ctx } = this;
         let mediaEl = this.mediaElements.get(clip.mediaId);
+        const isImgFile = clip.type === 'image' || clip.isAiVisual || (clip.filePath && clip.filePath.match(/\.(png|jpg|jpeg|webp|gif|svg|bmp)$/i));
+        if (!mediaEl && clip.filePath) {
+            if (isImgFile) {
+                mediaEl = new Image();
+                mediaEl.src = clip.filePath;
+                mediaEl.onload = () => { if (this.render) this.render(); };
+                if (clip.mediaId) this.mediaElements.set(clip.mediaId, mediaEl);
+            } else if (clip.type === 'video') {
+                mediaEl = document.createElement('video');
+                mediaEl.src = clip.filePath;
+                mediaEl.preload = 'auto';
+                mediaEl.muted = true;
+                if (clip.mediaId) this.mediaElements.set(clip.mediaId, mediaEl);
+            }
+        }
 
         ctx.save();
 
@@ -634,8 +688,52 @@ class NovaCutEngine {
         const overlayAlpha = transState.overlayAlpha;
         const glitchActive = transState.glitchActive;
 
-        const posX = propPosX + shiftX + width / 2;
-        const posY = propPosY + shiftY + height / 2;
+        // --- Dynamic Camera Motion (Shake & Zoom Bounce) ---
+        let shakeOffsetX = 0;
+        let shakeOffsetY = 0;
+        let shakeRot = 0;
+        let vfxScaleMult = 1.0;
+
+        if (clip.vfx?.shake?.enabled) {
+            const sh = clip.vfx.shake;
+            const mode = sh.mode || 'handheld';
+            const intensity = sh.intensity !== undefined ? sh.intensity : 40;
+            const t = localTime * (sh.speed || 1.0);
+
+            if (mode === 'action') {
+                shakeOffsetX = (Math.sin(t * 29.3) * 0.7 + Math.sin(t * 43.1) * 0.3) * (intensity * 0.45);
+                shakeOffsetY = (Math.cos(t * 31.7) * 0.7 + Math.cos(t * 47.9) * 0.3) * (intensity * 0.45);
+                shakeRot = Math.sin(t * 23.4) * (intensity * 0.025);
+            } else if (mode === 'bass_drop') {
+                const beatP = (localTime % 0.5) / 0.5;
+                const decay = Math.exp(-beatP * 6.5);
+                shakeOffsetX = Math.sin(localTime * 48.0) * decay * (intensity * 0.7);
+                shakeOffsetY = Math.cos(localTime * 38.0) * decay * (intensity * 0.7);
+                shakeRot = Math.sin(localTime * 30.0) * decay * (intensity * 0.03);
+            } else { // 'handheld'
+                shakeOffsetX = (Math.sin(t * 7.3) * 0.6 + Math.sin(t * 13.7) * 0.4) * (intensity * 0.28);
+                shakeOffsetY = (Math.cos(t * 8.9) * 0.6 + Math.cos(t * 11.2) * 0.4) * (intensity * 0.28);
+                shakeRot = Math.sin(t * 5.1) * (intensity * 0.012);
+            }
+
+            // Auto-scale buffer to avoid black border reveal during shake
+            vfxScaleMult *= (1.0 + (intensity / 100) * 0.08);
+        }
+
+        if (clip.vfx?.zoomBounce?.enabled) {
+            const zb = clip.vfx.zoomBounce;
+            const freq = zb.freq === 'fast' ? 3.5 : (zb.freq === 'slow' ? 1.0 : 2.0);
+            const intensity = zb.intensity !== undefined ? zb.intensity : 35;
+            const p = (Math.sin(localTime * Math.PI * 2 * freq) + 1) * 0.5;
+            const bounceAdd = Math.pow(p, 2.5) * (intensity / 100) * 0.22;
+            vfxScaleMult *= (1.0 + bounceAdd);
+        }
+
+        scale *= vfxScaleMult;
+        rotDeg += shakeRot;
+
+        const posX = propPosX + shiftX + shakeOffsetX + width / 2;
+        const posY = propPosY + shiftY + shakeOffsetY + height / 2;
         const rotation = rotDeg * Math.PI / 180;
 
         ctx.translate(posX, posY);
@@ -681,7 +779,7 @@ class NovaCutEngine {
             } else if (transState.wipeType === 'wipe_down') {
                 const curH = height * wp;
                 ctx.rect(-width / 2, -height / 2, width, curH);
-            } else if (transState.wipeType === 'circle_wipe_in' || transState.wipeType === 'circle_wipe_out') {
+            } else if (transState.wipeType.includes('circle') || transState.wipeType.includes('iris') || transState.wipeType.includes('radial')) {
                 const rad = Math.hypot(width, height) * 0.75 * wp;
                 ctx.arc(0, 0, rad, 0, Math.PI * 2);
             } else if (transState.wipeType === 'diamond_wipe') {
@@ -691,20 +789,85 @@ class NovaCutEngine {
                 ctx.lineTo(0, size);
                 ctx.lineTo(-size, 0);
                 ctx.closePath();
-            } else if (transState.wipeType === 'split_doors') {
+            } else if (transState.wipeType === 'heart_wipe') {
+                const s = (Math.min(width, height) * 0.9 * wp) / 100;
+                ctx.moveTo(0, s * -20);
+                ctx.bezierCurveTo(s * -50, s * -70, s * -100, s * -20, 0, s * 60);
+                ctx.bezierCurveTo(s * 100, s * -20, s * 50, s * -70, 0, s * -20);
+            } else if (transState.wipeType === 'star_wipe') {
+                const outerR = Math.hypot(width, height) * 0.8 * wp;
+                const innerR = outerR * 0.45;
+                for (let i = 0; i < 10; i++) {
+                    const r = (i % 2 === 0) ? outerR : innerR;
+                    const a = (i / 10) * Math.PI * 2 - Math.PI / 2;
+                    if (i === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+                    else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+                }
+                ctx.closePath();
+            } else if (transState.wipeType === 'split_doors' || transState.wipeType.includes('curtain')) {
                 const openW = (width / 2) * wp;
                 ctx.rect(-width / 2, -height / 2, openW, height);
                 ctx.rect(width / 2 - openW, -height / 2, openW, height);
+            } else {
+                const curW = width * wp;
+                const curH = height * wp;
+                ctx.rect(-curW / 2, -curH / 2, curW, curH);
             }
             ctx.clip();
             hasWipeClip = true;
         }
 
-        // Video Masking (Circle / Rectangle / Linear / Mirror)
+        // Video Masking (Circle / Rectangle / Linear / Mirror) with optional Feather
         const hasMask = clip.mask && clip.mask.type && clip.mask.type !== 'none';
+        const maskFeather = (hasMask && clip.mask.feather > 0) ? Math.min(100, Math.max(1, clip.mask.feather)) : 0;
+
+        let targetCtx = ctx;
+        let featherBufW = 0, featherBufH = 0;
+
         if (hasMask) {
-            ctx.save();
-            this.applyClipMask(ctx, clip.mask, width, height);
+            if (maskFeather > 0) {
+                // Buffer dimensions covering potential aspect-ratio scaling
+                let maxW = width;
+                let maxH = height;
+                if (mediaEl) {
+                    const mw = mediaEl.videoWidth || mediaEl.naturalWidth || width;
+                    const mh = mediaEl.videoHeight || mediaEl.naturalHeight || height;
+                    if (mw > 0 && mh > 0) {
+                        const aspect = mw / mh;
+                        const fitMode = clip.fitMode || 'cover';
+                        if (fitMode === 'cover' || fitMode === 'blur-bg') {
+                            maxW = Math.max(width, height * aspect);
+                            maxH = Math.max(height, width / aspect);
+                        }
+                    }
+                }
+                featherBufW = Math.min(2560, Math.max(160, Math.ceil(maxW)));
+                featherBufH = Math.min(2560, Math.max(90, Math.ceil(maxH)));
+
+                if (!this.featherCanvas) {
+                    this.featherCanvas = document.createElement('canvas');
+                    this.featherCtx = this.featherCanvas.getContext('2d');
+                    this.featherMaskCanvas = document.createElement('canvas');
+                    this.featherMaskCtx = this.featherMaskCanvas.getContext('2d');
+                    this.featherShapeCanvas = document.createElement('canvas');
+                    this.featherShapeCtx = this.featherShapeCanvas.getContext('2d');
+                }
+                if (this.featherCanvas.width !== featherBufW || this.featherCanvas.height !== featherBufH) {
+                    this.featherCanvas.width = featherBufW;
+                    this.featherCanvas.height = featherBufH;
+                    this.featherMaskCanvas.width = featherBufW;
+                    this.featherMaskCtx.width = featherBufW;
+                    this.featherShapeCanvas.width = featherBufW;
+                    this.featherShapeCtx.width = featherBufW;
+                }
+                targetCtx = this.featherCtx;
+                targetCtx.clearRect(0, 0, featherBufW, featherBufH);
+                targetCtx.save();
+                targetCtx.translate(featherBufW / 2, featherBufH / 2);
+            } else {
+                ctx.save();
+                this.applyClipMask(ctx, clip.mask, width, height);
+            }
         }
 
         if (mediaEl && mediaEl.tagName === 'VIDEO') {
@@ -729,29 +892,69 @@ class NovaCutEngine {
             const vw = mediaEl.videoWidth || 1920;
             const vh = mediaEl.videoHeight || 1080;
             const aspect = vw / vh;
-            drawW = width;
-            drawH = width / aspect;
-            if (drawH < height) {
-                drawH = height;
-                drawW = height * aspect;
+            const fitMode = clip.fitMode || 'cover';
+
+            let renderSource = mediaEl;
+            if (clip.cinemagraph && clip.cinemagraph.enabled && window.motionleapEngine) {
+                const cinCanvas = window.motionleapEngine.renderFrame(mediaEl, clip.cinemagraph, localTime, width, height);
+                if (cinCanvas) renderSource = cinCanvas;
             }
 
-            if (clip.borderRadius && !hasMask) {
-                ctx.save();
-                ctx.beginPath();
-                ctx.roundRect(-drawW / 2, -drawH / 2, drawW, drawH, clip.borderRadius);
-                ctx.clip();
-            }
+            if (fitMode === 'contain') {
+                drawW = width;
+                drawH = width / aspect;
+                if (drawH > height) {
+                    drawH = height;
+                    drawW = height * aspect;
+                }
+            } else if (fitMode === 'blur-bg') {
+                targetCtx.save();
+                let bgW = width;
+                let bgH = width / aspect;
+                if (bgH < height) {
+                    bgH = height;
+                    bgW = height * aspect;
+                }
+                targetCtx.filter = 'blur(28px) brightness(0.65)';
+                targetCtx.drawImage(renderSource, -bgW / 2, -bgH / 2, bgW, bgH);
+                targetCtx.restore();
 
-            if (clip.chromaKey && clip.chromaKey.enabled) {
-                const chromaCanvas = this.processChromaKey(mediaEl, drawW, drawH, clip.chromaKey);
-                ctx.drawImage(chromaCanvas, -drawW / 2, -drawH / 2, drawW, drawH);
+                drawW = width;
+                drawH = width / aspect;
+                if (drawH > height) {
+                    drawH = height;
+                    drawW = height * aspect;
+                }
             } else {
-                ctx.drawImage(mediaEl, -drawW / 2, -drawH / 2, drawW, drawH);
+                drawW = width;
+                drawH = width / aspect;
+                if (drawH < height) {
+                    drawH = height;
+                    drawW = height * aspect;
+                }
             }
 
             if (clip.borderRadius && !hasMask) {
-                ctx.restore();
+                targetCtx.save();
+                targetCtx.beginPath();
+                targetCtx.roundRect(-drawW / 2, -drawH / 2, drawW, drawH, clip.borderRadius);
+                targetCtx.clip();
+            }
+
+            // Apply Smart Auto Cutout
+            if (clip.autoCutout && clip.autoCutout.enabled) {
+                renderSource = this.processAutoCutout(renderSource, drawW, drawH, clip.autoCutout);
+            }
+
+            // Apply Chroma Key (Green Screen)
+            if (clip.chromaKey && clip.chromaKey.enabled) {
+                renderSource = this.processChromaKey(renderSource, drawW, drawH, clip.chromaKey);
+            }
+
+            targetCtx.drawImage(renderSource, -drawW / 2, -drawH / 2, drawW, drawH);
+
+            if (clip.borderRadius && !hasMask) {
+                targetCtx.restore();
             }
 
         } else if (mediaEl && mediaEl.tagName === 'IMG') {
@@ -762,42 +965,88 @@ class NovaCutEngine {
             const iw = mediaEl.naturalWidth || width;
             const ih = mediaEl.naturalHeight || height;
             const aspect = iw / ih;
-            drawW = width;
-            drawH = width / aspect;
-            if (drawH < height) {
-                drawH = height;
-                drawW = height * aspect;
+            const fitMode = clip.fitMode || 'cover';
+
+            let renderSource = mediaEl;
+            if (clip.cinemagraph && clip.cinemagraph.enabled && window.motionleapEngine) {
+                const cinCanvas = window.motionleapEngine.renderFrame(mediaEl, clip.cinemagraph, localTime, width, height);
+                if (cinCanvas) renderSource = cinCanvas;
             }
 
-            if (clip.borderRadius && !hasMask) {
-                ctx.save();
-                ctx.beginPath();
-                ctx.roundRect(-drawW / 2, -drawH / 2, drawW, drawH, clip.borderRadius);
-                ctx.clip();
-            }
+            if (fitMode === 'contain') {
+                drawW = width;
+                drawH = width / aspect;
+                if (drawH > height) {
+                    drawH = height;
+                    drawW = height * aspect;
+                }
+            } else if (fitMode === 'blur-bg') {
+                targetCtx.save();
+                let bgW = width;
+                let bgH = width / aspect;
+                if (bgH < height) {
+                    bgH = height;
+                    bgW = height * aspect;
+                }
+                targetCtx.filter = 'blur(28px) brightness(0.65)';
+                targetCtx.drawImage(renderSource, -bgW / 2, -bgH / 2, bgW, bgH);
+                targetCtx.restore();
 
-            if (clip.chromaKey && clip.chromaKey.enabled) {
-                const chromaCanvas = this.processChromaKey(mediaEl, drawW, drawH, clip.chromaKey);
-                ctx.drawImage(chromaCanvas, -drawW / 2, -drawH / 2, drawW, drawH);
+                drawW = width;
+                drawH = width / aspect;
+                if (drawH > height) {
+                    drawH = height;
+                    drawW = height * aspect;
+                }
             } else {
-                ctx.drawImage(mediaEl, -drawW / 2, -drawH / 2, drawW, drawH);
+                drawW = width;
+                drawH = width / aspect;
+                if (drawH < height) {
+                    drawH = height;
+                    drawW = height * aspect;
+                }
             }
 
             if (clip.borderRadius && !hasMask) {
-                ctx.restore();
+                targetCtx.save();
+                targetCtx.beginPath();
+                targetCtx.roundRect(-drawW / 2, -drawH / 2, drawW, drawH, clip.borderRadius);
+                targetCtx.clip();
+            }
+
+            // Apply Smart Auto Cutout
+            if (clip.autoCutout && clip.autoCutout.enabled) {
+                renderSource = this.processAutoCutout(renderSource, drawW, drawH, clip.autoCutout);
+            }
+
+            // Apply Chroma Key (Green Screen)
+            if (clip.chromaKey && clip.chromaKey.enabled) {
+                renderSource = this.processChromaKey(renderSource, drawW, drawH, clip.chromaKey);
+            }
+
+            targetCtx.drawImage(renderSource, -drawW / 2, -drawH / 2, drawW, drawH);
+
+            if (clip.borderRadius && !hasMask) {
+                targetCtx.restore();
             }
         } else if (clip.isSticker && window.stickersManager) {
             drawW = clip.stickerWidth || 240;
             drawH = clip.stickerHeight || 160;
-            window.stickersManager.renderSticker(ctx, clip.stickerId, drawW, drawH, localTime);
+            window.stickersManager.renderSticker(targetCtx, clip.stickerId, drawW, drawH, localTime);
         } else {
             // Generated Demo Pattern (e.g. Cyberpunk Grid & Moving Orb)
-            this.renderProceduralDemo(clip, width, height);
+            this.renderProceduralDemo(clip, width, height, targetCtx);
         }
 
-        // Close Mask Clip Path
+        // Finalize Mask Clipping / Feathering
         if (hasMask) {
-            ctx.restore();
+            if (maskFeather > 0) {
+                targetCtx.restore();
+                this.applyFeatheredMask(this.featherCanvas, this.featherCtx, clip.mask, featherBufW, featherBufH, maskFeather, width, height);
+                ctx.drawImage(this.featherCanvas, -featherBufW / 2, -featherBufH / 2, featherBufW, featherBufH);
+            } else {
+                ctx.restore();
+            }
         }
 
         // PiP Border & Drop Shadow (Gaming Facecam frame)
@@ -813,21 +1062,31 @@ class NovaCutEngine {
             }
 
             if (clip.mask && clip.mask.type === 'circle') {
-                const radius = (clip.mask.size || 500) / 2;
+                const radius = (clip.mask.size !== undefined ? clip.mask.size : Math.min(width, height) * 0.7) / 2;
                 ctx.beginPath();
-                ctx.arc(0, 0, radius, 0, Math.PI * 2);
+                ctx.arc(clip.mask.x || 0, clip.mask.y || 0, radius, 0, Math.PI * 2);
                 ctx.stroke();
             } else if (clip.mask && clip.mask.type === 'rectangle') {
-                const mw = clip.mask.width || 800;
-                const mh = clip.mask.height || 600;
+                const mw = clip.mask.width !== undefined ? clip.mask.width : width * 0.75;
+                const mh = clip.mask.height !== undefined ? clip.mask.height : height * 0.75;
                 const round = clip.mask.roundness || 0;
+                const cx = clip.mask.x || 0;
+                const cy = clip.mask.y || 0;
                 ctx.beginPath();
-                ctx.roundRect(-mw / 2, -mh / 2, mw, mh, round);
+                if (typeof ctx.roundRect === 'function') {
+                    ctx.roundRect(cx - mw / 2, cy - mh / 2, mw, mh, round);
+                } else {
+                    ctx.rect(cx - mw / 2, cy - mh / 2, mw, mh);
+                }
                 ctx.stroke();
             } else {
                 const round = clip.borderRadius || 0;
                 ctx.beginPath();
-                ctx.roundRect(-drawW / 2, -drawH / 2, drawW, drawH, round);
+                if (typeof ctx.roundRect === 'function') {
+                    ctx.roundRect(-drawW / 2, -drawH / 2, drawW, drawH, round);
+                } else {
+                    ctx.rect(-drawW / 2, -drawH / 2, drawW, drawH);
+                }
                 ctx.stroke();
             }
             ctx.restore();
@@ -839,6 +1098,11 @@ class NovaCutEngine {
 
         // Color Grading Overlays (Warm/Cold Temperature, Tint, Vignette)
         this.renderClipColorGradingOverlays(ctx, clip, drawW, drawH);
+
+        // Viral VFX Overlays (RGB Split, Film Grain, VHS, Light Leak)
+        if (clip.vfx) {
+            this.renderClipViralVFXOverlays(ctx, clip, drawW, drawH, mediaEl, localTime);
+        }
 
         // Render transition glitch RGB chromatic shift
         if (glitchActive && mediaEl) {
@@ -876,17 +1140,25 @@ class NovaCutEngine {
         if (clip.saturation !== undefined && clip.saturation !== 100) {
             filters.push(`saturate(${Math.round(clip.saturation)}%)`);
         }
-        // Custom preset filters (e.g. Noir, Vintage, Cyberpunk, Sunset)
+        // Custom preset filters (e.g. Noir, Vintage, Cyberpunk, Sunset, Anime, Matrix, Kodak, Moody)
         if (clip.colorPreset === 'noir') {
             filters.push('grayscale(100%) contrast(140%) brightness(95%)');
         } else if (clip.colorPreset === 'teal_orange') {
-            filters.push('contrast(120%) saturate(115%)');
+            filters.push('contrast(125%) saturate(120%)');
         } else if (clip.colorPreset === 'cyberpunk') {
-            filters.push('hue-rotate(290deg) contrast(130%) saturate(140%)');
+            filters.push('hue-rotate(290deg) contrast(135%) saturate(145%)');
         } else if (clip.colorPreset === 'vintage') {
             filters.push('sepia(35%) contrast(110%) saturate(85%) brightness(105%)');
         } else if (clip.colorPreset === 'sunset') {
             filters.push('sepia(25%) saturate(135%) contrast(115%)');
+        } else if (clip.colorPreset === 'anime') {
+            filters.push('saturate(165%) contrast(118%) brightness(106%)');
+        } else if (clip.colorPreset === 'matrix') {
+            filters.push('hue-rotate(65deg) saturate(90%) contrast(135%) brightness(90%)');
+        } else if (clip.colorPreset === 'kodak') {
+            filters.push('sepia(18%) contrast(114%) saturate(125%) brightness(102%)');
+        } else if (clip.colorPreset === 'moody') {
+            filters.push('saturate(70%) contrast(145%) brightness(92%)');
         }
 
         return filters.length > 0 ? filters.join(' ') : '';
@@ -938,6 +1210,150 @@ class NovaCutEngine {
             ctx.fillRect(-drawW / 2, -drawH / 2, drawW, drawH);
             ctx.restore();
         }
+    }
+
+    renderClipViralVFXOverlays(ctx, clip, drawW, drawH, mediaEl, localTime) {
+        if (!clip.vfx) return;
+
+        // 1. RGB Split / Chromatic Aberration Twitch
+        if (clip.vfx.rgbSplit && clip.vfx.rgbSplit.enabled && mediaEl) {
+            const amount = (clip.vfx.rgbSplit.amount !== undefined ? clip.vfx.rgbSplit.amount : 14);
+            const twitch = Math.sin(localTime * 28.0) > 0.85 ? 1.6 : 1.0;
+            const shift = amount * twitch;
+
+            ctx.save();
+            ctx.globalCompositeOperation = 'screen';
+            ctx.globalAlpha = 0.48;
+
+            // Red channel shift right
+            ctx.drawImage(mediaEl, -drawW / 2 + shift, -drawH / 2, drawW, drawH);
+            ctx.fillStyle = 'rgba(255, 20, 60, 0.32)';
+            ctx.fillRect(-drawW / 2 + shift, -drawH / 2, drawW, drawH);
+
+            // Blue channel shift left
+            ctx.drawImage(mediaEl, -drawW / 2 - shift, -drawH / 2, drawW, drawH);
+            ctx.fillStyle = 'rgba(20, 180, 255, 0.32)';
+            ctx.fillRect(-drawW / 2 - shift, -drawH / 2, drawW, drawH);
+
+            ctx.restore();
+        }
+
+        // 2. Analog 35mm Film Grain
+        if (clip.vfx.filmGrain && clip.vfx.filmGrain.enabled) {
+            const amount = clip.vfx.filmGrain.amount !== undefined ? clip.vfx.filmGrain.amount : 45;
+            this.renderFilmGrain(ctx, drawW, drawH, amount, localTime);
+        }
+
+        // 3. VHS & Retro CRT
+        if (clip.vfx.vhs && clip.vfx.vhs.enabled) {
+            const intensity = clip.vfx.vhs.intensity !== undefined ? clip.vfx.vhs.intensity : 50;
+            this.renderVhsOverlay(ctx, drawW, drawH, intensity, clip.vfx.vhs.osd !== false, localTime);
+        }
+
+        // 4. Cinematic Light Leak
+        if (clip.vfx.lightLeak && clip.vfx.lightLeak.enabled) {
+            const amount = clip.vfx.lightLeak.amount !== undefined ? clip.vfx.lightLeak.amount : 50;
+            const tone = clip.vfx.lightLeak.tone || 'amber';
+            this.renderLightLeakOverlay(ctx, drawW, drawH, amount, tone, localTime);
+        }
+    }
+
+    renderFilmGrain(ctx, drawW, drawH, amount, localTime) {
+        if (!this.grainCanvas) {
+            this.grainCanvas = document.createElement('canvas');
+            this.grainCanvas.width = 256;
+            this.grainCanvas.height = 256;
+            this.grainCtx = this.grainCanvas.getContext('2d');
+            const imgData = this.grainCtx.createImageData(256, 256);
+            const d = imgData.data;
+            for (let i = 0; i < d.length; i += 4) {
+                const val = Math.random() * 255;
+                d[i] = val;
+                d[i + 1] = val;
+                d[i + 2] = val;
+                d[i + 3] = 255;
+            }
+            this.grainCtx.putImageData(imgData, 0, 0);
+            this.grainPattern = ctx.createPattern(this.grainCanvas, 'repeat');
+        }
+
+        ctx.save();
+        ctx.globalCompositeOperation = 'overlay';
+        ctx.globalAlpha = Math.min(0.55, (amount / 100) * 0.45);
+
+        // Shift origin based on 24fps film flutter
+        const seed = Math.floor(localTime * 24);
+        const ox = (seed * 97) % 256;
+        const oy = (seed * 131) % 256;
+        ctx.translate(ox, oy);
+
+        if (this.grainPattern) {
+            ctx.fillStyle = this.grainPattern;
+            ctx.fillRect(-drawW / 2 - ox, -drawH / 2 - oy, drawW, drawH);
+        }
+        ctx.restore();
+    }
+
+    renderVhsOverlay(ctx, drawW, drawH, intensity, showOsd, localTime) {
+        ctx.save();
+
+        // 1. CRT Scanlines
+        ctx.fillStyle = 'rgba(0, 0, 0, ' + Math.min(0.35, (intensity / 100) * 0.28) + ')';
+        for (let y = -drawH / 2; y < drawH / 2; y += 4) {
+            ctx.fillRect(-drawW / 2, y, drawW, 1.5);
+        }
+
+        // 2. Tracking glitch band
+        const trackY = ((-drawH / 2) + ((localTime * 90) % (drawH * 1.6))) - 100;
+        ctx.fillStyle = 'rgba(255, 255, 255, ' + Math.min(0.18, (intensity / 100) * 0.12) + ')';
+        ctx.fillRect(-drawW / 2, trackY, drawW, 26);
+
+        // 3. VHS OSD
+        if (showOsd) {
+            ctx.font = 'bold 16px "Courier New", monospace';
+            ctx.fillStyle = 'rgba(80, 255, 120, 0.85)';
+            ctx.shadowColor = 'rgba(80, 255, 120, 0.7)';
+            ctx.shadowBlur = 6;
+            ctx.fillText('PLAY  ▶  SP', -drawW / 2 + 24, -drawH / 2 + 36);
+
+            // Blinking colon for time
+            const blink = Math.floor(localTime * 2) % 2 === 0 ? ':' : ' ';
+            ctx.fillText(`1998-09-16  21${blink}28`, -drawW / 2 + 24, drawH / 2 - 24);
+        }
+
+        ctx.restore();
+    }
+
+    renderLightLeakOverlay(ctx, drawW, drawH, amount, tone, localTime) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        const alpha = Math.min(0.85, (amount / 100) * 0.7);
+
+        const angle = localTime * 0.6;
+        const cx = Math.sin(angle) * (drawW * 0.4);
+        const cy = -drawH * 0.35 + Math.cos(angle * 0.8) * 60;
+        const rad = Math.max(drawW, drawH) * 0.75;
+
+        const grad = ctx.createRadialGradient(cx, cy, 15, cx, cy, rad);
+
+        if (tone === 'cyan') {
+            grad.addColorStop(0, `rgba(30, 200, 255, ${alpha})`);
+            grad.addColorStop(0.4, `rgba(40, 120, 255, ${alpha * 0.6})`);
+            grad.addColorStop(0.8, `rgba(100, 50, 220, ${alpha * 0.2})`);
+        } else if (tone === 'neon') {
+            grad.addColorStop(0, `rgba(255, 40, 180, ${alpha})`);
+            grad.addColorStop(0.4, `rgba(180, 40, 255, ${alpha * 0.6})`);
+            grad.addColorStop(0.8, `rgba(40, 200, 255, ${alpha * 0.2})`);
+        } else { // amber / sunset
+            grad.addColorStop(0, `rgba(255, 190, 60, ${alpha})`);
+            grad.addColorStop(0.4, `rgba(255, 90, 40, ${alpha * 0.6})`);
+            grad.addColorStop(0.8, `rgba(240, 40, 90, ${alpha * 0.2})`);
+        }
+        grad.addColorStop(1, 'transparent');
+
+        ctx.fillStyle = grad;
+        ctx.fillRect(-drawW / 2, -drawH / 2, drawW, drawH);
+        ctx.restore();
     }
 
     applyClipMask(ctx, mask, drawW, drawH) {
@@ -1014,6 +1430,77 @@ class NovaCutEngine {
         }
     }
 
+    drawMaskShapePath(sctx, mask, w, h) {
+        sctx.beginPath();
+        const type = mask.type;
+        if (type === 'circle') {
+            const size = mask.size !== undefined ? mask.size : Math.min(w, h) * 0.7;
+            const r = Math.max(5, size / 2);
+            const cx = mask.x || 0;
+            const cy = mask.y || 0;
+            sctx.arc(cx, cy, r, 0, Math.PI * 2);
+        } else if (type === 'rectangle') {
+            const mw = mask.width !== undefined ? mask.width : w * 0.75;
+            const mh = mask.height !== undefined ? mask.height : h * 0.75;
+            const cx = mask.x || 0;
+            const cy = mask.y || 0;
+            const cr = mask.roundness || 0;
+            if (typeof sctx.roundRect === 'function') {
+                sctx.roundRect(cx - mw / 2, cy - mh / 2, mw, mh, cr);
+            } else {
+                sctx.rect(cx - mw / 2, cy - mh / 2, mw, mh);
+            }
+        } else if (type === 'linear') {
+            const angle = (mask.rotation || 0) * Math.PI / 180;
+            const pos = mask.pos || 0;
+            const diag = Math.sqrt(w * w + h * h) * 1.5;
+            sctx.save();
+            sctx.rotate(angle);
+            sctx.rect(-diag, -diag + pos, diag * 2, diag);
+            sctx.restore();
+        } else if (type === 'mirror') {
+            const size = mask.size !== undefined ? mask.size : 200;
+            const half = size / 2;
+            sctx.rect(-w, -half, w * 2, size);
+        }
+    }
+
+    applyFeatheredMask(bufferCanvas, bufferCtx, mask, bufW, bufH, feather, width, height) {
+        const sctx = this.featherShapeCtx;
+        const mctx = this.featherMaskCtx;
+        sctx.clearRect(0, 0, bufW, bufH);
+        mctx.clearRect(0, 0, bufW, bufH);
+
+        sctx.save();
+        sctx.translate(bufW / 2, bufH / 2);
+
+        if (mask.inverted) {
+            // Fill canvas with white with padding so blurring outer edges doesn't lose opacity
+            sctx.fillStyle = '#ffffff';
+            sctx.fillRect(-bufW / 2 - feather * 2, -bufH / 2 - feather * 2, bufW + feather * 4, bufH + feather * 4);
+            sctx.globalCompositeOperation = 'destination-out';
+            this.drawMaskShapePath(sctx, mask, width, height);
+            sctx.fill();
+            sctx.globalCompositeOperation = 'source-over';
+        } else {
+            sctx.fillStyle = '#ffffff';
+            this.drawMaskShapePath(sctx, mask, width, height);
+            sctx.fill();
+        }
+        sctx.restore();
+
+        // Apply blur filter to generate soft alpha edge
+        mctx.filter = `blur(${feather}px)`;
+        mctx.drawImage(this.featherShapeCanvas, 0, 0);
+        mctx.filter = 'none';
+
+        // Composite blurred alpha mask into media buffer
+        bufferCtx.save();
+        bufferCtx.globalCompositeOperation = 'destination-in';
+        bufferCtx.drawImage(this.featherMaskCanvas, 0, 0);
+        bufferCtx.restore();
+    }
+
     processChromaKey(sourceEl, drawW, drawH, chromaKey) {
         if (!this.chromaCanvas) {
             this.chromaCanvas = document.createElement('canvas');
@@ -1086,6 +1573,187 @@ class NovaCutEngine {
         return this.chromaCanvas;
     }
 
+    processAutoCutout(sourceEl, drawW, drawH, autoCutout) {
+        if (!this.cutoutCanvas) {
+            this.cutoutCanvas = document.createElement('canvas');
+            this.cutoutCtx = this.cutoutCanvas.getContext('2d', { willReadFrequently: true });
+        }
+
+        const targetW = Math.min(1280, Math.max(160, Math.round(drawW)));
+        const targetH = Math.min(720, Math.max(90, Math.round(drawH)));
+
+        if (this.cutoutCanvas.width !== targetW || this.cutoutCanvas.height !== targetH) {
+            this.cutoutCanvas.width = targetW;
+            this.cutoutCanvas.height = targetH;
+        }
+
+        const cctx = this.cutoutCtx;
+        cctx.clearRect(0, 0, targetW, targetH);
+        cctx.drawImage(sourceEl, 0, 0, targetW, targetH);
+
+        const imgData = cctx.getImageData(0, 0, targetW, targetH);
+        const data = imgData.data;
+
+        const mode = autoCutout.mode || 'auto-subject';
+        const sensitivity = autoCutout.sensitivity !== undefined ? autoCutout.sensitivity : 40;
+        const smoothness = autoCutout.smoothness !== undefined ? autoCutout.smoothness : 15;
+
+        if (mode === 'luma-dark') {
+            // Cut out black / dark background (VFX fire, smoke, sparks, explosions)
+            const threshold = (sensitivity / 100) * 128;
+            const softRange = Math.max(1, smoothness * 1.5);
+
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                const luma = 0.299 * r + 0.587 * g + 0.114 * b;
+
+                if (luma <= threshold) {
+                    data[i + 3] = 0;
+                } else if (luma < threshold + softRange) {
+                    const f = (luma - threshold) / softRange;
+                    data[i + 3] = Math.round(data[i + 3] * f);
+                }
+            }
+        } else if (mode === 'luma-bright') {
+            // Cut out white / bright background (logos, signatures, sketches)
+            const threshold = 255 - ((sensitivity / 100) * 128);
+            const softRange = Math.max(1, smoothness * 1.5);
+
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                const luma = 0.299 * r + 0.587 * g + 0.114 * b;
+
+                if (luma >= threshold) {
+                    data[i + 3] = 0;
+                } else if (luma > threshold - softRange) {
+                    const f = (threshold - luma) / softRange;
+                    data[i + 3] = Math.round(data[i + 3] * f);
+                }
+            }
+        } else {
+            // 'auto-subject': Border perimeter sampling & bilinear background estimation
+            let topR = 0, topG = 0, topB = 0, topCount = 0;
+            let btmR = 0, btmG = 0, btmB = 0, btmCount = 0;
+            let lftR = 0, lftG = 0, lftB = 0, lftCount = 0;
+            let rgtR = 0, rgtG = 0, rgtB = 0, rgtCount = 0;
+            const step = 4;
+
+            // Sample top and bottom borders
+            for (let x = 0; x < targetW; x += step) {
+                for (let y = 0; y < 2; y++) {
+                    const idx = (y * targetW + x) * 4;
+                    topR += data[idx];
+                    topG += data[idx + 1];
+                    topB += data[idx + 2];
+                    topCount++;
+                }
+                for (let y = targetH - 2; y < targetH; y++) {
+                    const idx = (y * targetW + x) * 4;
+                    btmR += data[idx];
+                    btmG += data[idx + 1];
+                    btmB += data[idx + 2];
+                    btmCount++;
+                }
+            }
+            // Sample left and right borders
+            for (let y = 0; y < targetH; y += step) {
+                for (let x = 0; x < 2; x++) {
+                    const idx = (y * targetW + x) * 4;
+                    lftR += data[idx];
+                    lftG += data[idx + 1];
+                    lftB += data[idx + 2];
+                    lftCount++;
+                }
+                for (let x = targetW - 2; x < targetW; x++) {
+                    const idx = (y * targetW + x) * 4;
+                    rgtR += data[idx];
+                    rgtG += data[idx + 1];
+                    rgtB += data[idx + 2];
+                    rgtCount++;
+                }
+            }
+
+            const avgTopR = topCount > 0 ? topR / topCount : 0;
+            const avgTopG = topCount > 0 ? topG / topCount : 0;
+            const avgTopB = topCount > 0 ? topB / topCount : 0;
+
+            const avgBtmR = btmCount > 0 ? btmR / btmCount : 0;
+            const avgBtmG = btmCount > 0 ? btmG / btmCount : 0;
+            const avgBtmB = btmCount > 0 ? btmB / btmCount : 0;
+
+            const avgLftR = lftCount > 0 ? lftR / lftCount : 0;
+            const avgLftG = lftCount > 0 ? lftG / lftCount : 0;
+            const avgLftB = lftCount > 0 ? lftB / lftCount : 0;
+
+            const avgRgtR = rgtCount > 0 ? rgtR / rgtCount : 0;
+            const avgRgtG = rgtCount > 0 ? rgtG / rgtCount : 0;
+            const avgRgtB = rgtCount > 0 ? rgtB / rgtCount : 0;
+
+            const meanBgR = (avgTopR + avgBtmR + avgLftR + avgRgtR) / 4;
+            const meanBgG = (avgTopG + avgBtmG + avgLftG + avgRgtG) / 4;
+            const meanBgB = (avgTopB + avgBtmB + avgLftB + avgRgtB) / 4;
+
+            const colLftRgtR = new Float32Array(targetW);
+            const colLftRgtG = new Float32Array(targetW);
+            const colLftRgtB = new Float32Array(targetW);
+            for (let x = 0; x < targetW; x++) {
+                const tx = x / targetW;
+                colLftRgtR[x] = (1 - tx) * avgLftR + tx * avgRgtR;
+                colLftRgtG[x] = (1 - tx) * avgLftG + tx * avgRgtG;
+                colLftRgtB[x] = (1 - tx) * avgLftB + tx * avgRgtB;
+            }
+
+            const tolerance = (sensitivity / 100) * 140 + 8;
+            const smooth = Math.max(2, smoothness * 2.0);
+
+            for (let y = 0; y < targetH; y++) {
+                const ty = y / targetH;
+                const rowTopBtmR = (1 - ty) * avgTopR + ty * avgBtmR;
+                const rowTopBtmG = (1 - ty) * avgTopG + ty * avgBtmG;
+                const rowTopBtmB = (1 - ty) * avgTopB + ty * avgBtmB;
+
+                for (let x = 0; x < targetW; x++) {
+                    const expectedR = (rowTopBtmR + colLftRgtR[x]) * 0.5;
+                    const expectedG = (rowTopBtmG + colLftRgtG[x]) * 0.5;
+                    const expectedB = (rowTopBtmB + colLftRgtB[x]) * 0.5;
+
+                    const i = (y * targetW + x) * 4;
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+
+                    // Delta to predicted background
+                    const dr = r - expectedR;
+                    const dg = g - expectedG;
+                    const db = b - expectedB;
+                    const distBi = Math.sqrt(dr * dr + dg * dg + db * db);
+
+                    // Delta to mean background
+                    const dmr = r - meanBgR;
+                    const dmg = g - meanBgG;
+                    const dmb = b - meanBgB;
+                    const distMean = Math.sqrt(dmr * dmr + dmg * dmg + dmb * dmb);
+
+                    const dist = Math.min(distBi, distMean);
+
+                    if (dist <= tolerance) {
+                        data[i + 3] = 0;
+                    } else if (dist < tolerance + smooth) {
+                        const factor = (dist - tolerance) / smooth;
+                        data[i + 3] = Math.round(data[i + 3] * factor);
+                    }
+                }
+            }
+        }
+
+        cctx.putImageData(imgData, 0, 0);
+        return this.cutoutCanvas;
+    }
+
     startColorPicker(callback) {
         const prevCursor = this.canvas.style.cursor;
         this.canvas.style.cursor = 'crosshair';
@@ -1105,15 +1773,44 @@ class NovaCutEngine {
                 const hexColor = `#${r}${g}${b}`;
                 if (typeof callback === 'function') callback(hexColor);
             } catch (err) {
-                console.warn('[Engine] Color picker read error:', err);
+                console.warn('Failed to pick color:', err);
             }
         };
 
         this.canvas.addEventListener('click', onClick, { capture: true, once: true });
     }
 
-    renderProceduralDemo(clip, width, height) {
-        const { ctx } = this;
+    getAudioReactiveData(t) {
+        if (window.audioAnalyzer && typeof window.audioAnalyzer.getReactiveData === 'function') {
+            return window.audioAnalyzer.getReactiveData(t);
+        }
+        const beatEnergy = Math.abs(Math.sin(t * 7.5)) * 0.7 + Math.abs(Math.cos(t * 3.75)) * 0.3;
+        const spectrum = new Float32Array(64);
+        for (let i = 0; i < 64; i++) {
+            spectrum[i] = Math.abs(Math.sin(t * 6 + i * 0.65)) * Math.abs(Math.cos(t * 3 - i * 0.3));
+        }
+        return {
+            bass: beatEnergy,
+            mid: Math.abs(Math.sin(t * 4)),
+            treble: Math.abs(Math.cos(t * 8)),
+            overall: (beatEnergy + 0.5) / 1.5,
+            spectrum,
+            isBeat: beatEnergy > 0.85
+        };
+    }
+
+    getTimelineAudioTitle() {
+        if (!window.timeline || !window.timeline.clips) return 'Lo-Fi Track';
+        const audioClip = window.timeline.clips.find(c => c.trackId === 'audio' || c.type === 'audio');
+        if (!audioClip) return 'Lo-Fi Track';
+        let name = audioClip.title || audioClip.name || 'Lo-Fi Track';
+        name = name.replace(/\.(mp3|wav|ogg|flac|m4a|aac)$/i, '');
+        name = name.replace(/^[🎵🎶🎧\s]+/, '').trim();
+        return name || 'Lo-Fi Track';
+    }
+
+    renderProceduralDemo(clip, width, height, targetCtx = null) {
+        const ctx = targetCtx || this.ctx;
         const w = width;
         const h = height;
         const localTime = Math.max(0, Math.min(clip.duration, this.currentTime - clip.startTime));
@@ -1366,204 +2063,828 @@ class NovaCutEngine {
             ctx.arc(0, 0, ringRadius, 0, Math.PI * 2);
             ctx.stroke();
 
-        } else if (pattern === 'reactive-circle') {
-            // Trap Nation / Monstercat Style Circular Audio Visualizer
-            const bgGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, w * 0.6);
-            bgGrad.addColorStop(0, '#09081e');
-            bgGrad.addColorStop(0.6, '#04030d');
-            bgGrad.addColorStop(1, '#000000');
-            ctx.fillStyle = bgGrad;
-            ctx.fillRect(-w/2, -h/2, w, h);
+        } else if (pattern.startsWith('reactive-')) {
+            // Real Audio Spectrum & Frequency Data
+            const audio = this.getAudioReactiveData(this.currentTime);
+            const sensitivity = clip.sensitivity || 1.0;
+            const bass = Math.min(1.0, (audio.bass || 0) * sensitivity);
+            const mid = Math.min(1.0, (audio.mid || 0) * sensitivity);
+            const treble = Math.min(1.0, (audio.treble || 0) * sensitivity);
+            const overall = Math.min(1.0, (audio.overall || 0) * sensitivity);
+            const spectrum = audio.spectrum || new Float32Array(64);
+            const isBeat = audio.isBeat || (bass > 0.65);
+            const primaryColor = clip.color1 || '#00d482';
+            const secondaryColor = clip.color2 || '#38bdf8';
+            const userBars = clip.numBars || 64;
+            const minDim = Math.min(w, h);
 
-            const beatEnergy = Math.abs(Math.sin(t * 7.5)) * 0.7 + Math.abs(Math.cos(t * 3.75)) * 0.3;
-            const baseRadius = Math.min(w, h) * 0.16 + beatEnergy * 18;
-
-            // Center Glowing Core
-            const coreGrad = ctx.createRadialGradient(0, 0, baseRadius * 0.2, 0, 0, baseRadius);
-            coreGrad.addColorStop(0, 'rgba(0, 212, 130, 0.8)');
-            coreGrad.addColorStop(0.7, 'rgba(14, 165, 233, 0.3)');
-            coreGrad.addColorStop(1, 'transparent');
-            ctx.fillStyle = coreGrad;
-            ctx.beginPath();
-            ctx.arc(0, 0, baseRadius * 1.3, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Circular Spectrum Bars (64 bars)
-            const numBars = 64;
-            ctx.save();
-            ctx.rotate(t * 0.3);
-            for (let i = 0; i < numBars; i++) {
-                const angle = (i / numBars) * Math.PI * 2;
-                const freqAmp = Math.abs(Math.sin(t * 6 + i * 0.65)) * Math.abs(Math.cos(t * 3 - i * 0.3));
-                const barLen = 12 + freqAmp * (Math.min(w, h) * 0.18 + beatEnergy * 35);
-
-                const x1 = Math.cos(angle) * baseRadius;
-                const y1 = Math.sin(angle) * baseRadius;
-                const x2 = Math.cos(angle) * (baseRadius + barLen);
-                const y2 = Math.sin(angle) * (baseRadius + barLen);
-
-                ctx.strokeStyle = (i % 2 === 0) ? '#00d482' : '#38bdf8';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.moveTo(x1, y1);
-                ctx.lineTo(x2, y2);
-                ctx.stroke();
+            if (!clip.transparentBg) {
+                const bgGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, w * 0.6);
+                bgGrad.addColorStop(0, '#0a0818');
+                bgGrad.addColorStop(0.7, '#04030a');
+                bgGrad.addColorStop(1, '#000000');
+                ctx.fillStyle = bgGrad;
+                ctx.fillRect(-w/2, -h/2, w, h);
             }
-            ctx.restore();
 
-            // Inner circle stroke
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 2.5;
-            ctx.beginPath();
-            ctx.arc(0, 0, baseRadius, 0, Math.PI * 2);
-            ctx.stroke();
-
-            // Floating Audio Particles
-            for (let p = 0; p < 18; p++) {
-                const pAngle = (p * 0.35 + t * 0.8) % (Math.PI * 2);
-                const pDist = baseRadius + 30 + ((t * 90 + p * 35) % (Math.min(w, h) * 0.3));
-                ctx.fillStyle = (p % 2 === 0) ? '#00d482' : '#f59e0b';
+            if (pattern === 'reactive-circle') {
+                // 1. Trap Nation / Monstercat Circular Visualizer
+                const baseRadius = minDim * 0.16 + bass * 25;
+                const coreGrad = ctx.createRadialGradient(0, 0, baseRadius * 0.2, 0, 0, baseRadius * 1.2);
+                coreGrad.addColorStop(0, primaryColor);
+                coreGrad.addColorStop(0.6, secondaryColor);
+                coreGrad.addColorStop(1, 'transparent');
+                ctx.fillStyle = coreGrad;
                 ctx.beginPath();
-                ctx.arc(Math.cos(pAngle) * pDist, Math.sin(pAngle) * pDist, 3, 0, Math.PI * 2);
+                ctx.arc(0, 0, baseRadius * (1.1 + bass * 0.25), 0, Math.PI * 2);
                 ctx.fill();
-            }
-
-        } else if (pattern === 'reactive-synthwave') {
-            // Outrun Synthwave Road & Glowing Mountains
-            const skyGrad = ctx.createLinearGradient(0, -h/2, 0, 0);
-            skyGrad.addColorStop(0, '#0a0518');
-            skyGrad.addColorStop(0.5, '#2e0854');
-            skyGrad.addColorStop(1, '#f43f5e');
-            ctx.fillStyle = skyGrad;
-            ctx.fillRect(-w/2, -h/2, w, h/2);
-
-            // Giant Sliced Synthwave Sun
-            const sunRadius = Math.min(w, h) * 0.18;
-            const sunY = -h * 0.08;
-            const sunGrad = ctx.createLinearGradient(0, sunY - sunRadius, 0, sunY + sunRadius);
-            sunGrad.addColorStop(0, '#fef08a');
-            sunGrad.addColorStop(0.5, '#f59e0b');
-            sunGrad.addColorStop(1, '#ec4899');
-            ctx.fillStyle = sunGrad;
-            ctx.beginPath();
-            ctx.arc(0, sunY, sunRadius, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Sun horizontal blind stripes
-            ctx.fillStyle = '#0a0518';
-            for (let s = 1; s <= 6; s++) {
-                const stripeY = sunY + (s * (sunRadius / 6));
-                ctx.fillRect(-sunRadius, stripeY, sunRadius * 2, s * 2);
-            }
-
-            // Mountain Silhouettes (bouncing to beat)
-            const beatH = Math.abs(Math.sin(t * 8)) * 15;
-            ctx.fillStyle = '#1e0836';
-            ctx.beginPath();
-            ctx.moveTo(-w/2, 0);
-            ctx.lineTo(-w * 0.25, -50 - beatH);
-            ctx.lineTo(-w * 0.05, 0);
-            ctx.lineTo(w * 0.18, -65 - beatH * 1.3);
-            ctx.lineTo(w * 0.38, -25);
-            ctx.lineTo(w/2, 0);
-            ctx.lineTo(w/2, h/2);
-            ctx.lineTo(-w/2, h/2);
-            ctx.fill();
-
-            // 3D Grid Perspective Floor
-            const floorGrad = ctx.createLinearGradient(0, 0, 0, h/2);
-            floorGrad.addColorStop(0, '#030208');
-            floorGrad.addColorStop(1, '#110426');
-            ctx.fillStyle = floorGrad;
-            ctx.fillRect(-w/2, 0, w, h/2);
-
-            // Perspective Grid Lines
-            ctx.strokeStyle = '#00d482';
-            ctx.lineWidth = 1.5;
-            const numGridV = 16;
-            for (let i = -numGridV/2; i <= numGridV/2; i++) {
-                ctx.beginPath();
-                ctx.moveTo(0, 0);
-                ctx.lineTo(i * (w / (numGridV * 0.4)), h/2);
-                ctx.stroke();
-            }
-
-            // Moving Horizontal Floor Stripes
-            const floorOffset = (t * 120) % 35;
-            for (let y = 0; y < h/2; y += 35) {
-                const actualY = Math.pow((y + floorOffset) / (h/2), 2) * (h/2);
-                if (actualY <= h/2) {
-                    ctx.strokeStyle = 'rgba(236, 72, 153, 0.6)';
-                    ctx.beginPath();
-                    ctx.moveTo(-w/2, actualY);
-                    ctx.lineTo(w/2, actualY);
-                    ctx.stroke();
-                }
-            }
-
-        } else if (pattern === 'reactive-equalizer') {
-            // Full-Width Spectrum Equalizer Bars
-            ctx.fillStyle = '#05060b';
-            ctx.fillRect(-w/2, -h/2, w, h);
-
-            const numBars = 40;
-            const barW = (w * 0.9) / numBars;
-            const gap = 4;
-            const actualW = barW - gap;
-            const startX = -w * 0.45;
-            const baseY = h * 0.3;
-
-            for (let i = 0; i < numBars; i++) {
-                const x = startX + i * barW;
-                const freq = Math.abs(Math.sin(t * 7 + i * 0.3)) * Math.cos(t * 2.5 - i * 0.15);
-                const barH = 14 + Math.abs(freq) * (h * 0.55);
-
-                const barGrad = ctx.createLinearGradient(0, baseY - barH, 0, baseY);
-                barGrad.addColorStop(0, '#f43f5e');
-                barGrad.addColorStop(0.35, '#fbbf24');
-                barGrad.addColorStop(0.7, '#00d482');
-                barGrad.addColorStop(1, '#0284c7');
-                ctx.fillStyle = barGrad;
-
-                ctx.beginPath();
-                ctx.roundRect(x, baseY - barH, actualW, barH, 4);
-                ctx.fill();
-
-                // Peak Floating Cap
-                const peakY = baseY - barH - 6;
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(x, peakY, actualW, 3);
-            }
-
-        } else if (pattern === 'reactive-portal') {
-            // Hypnotic Kaleidoscope Portal
-            ctx.fillStyle = '#05050a';
-            ctx.fillRect(-w/2, -h/2, w, h);
-
-            const layers = 8;
-            const maxR = Math.min(w, h) * 0.45;
-            for (let l = 0; l < layers; l++) {
-                const r = maxR * ((l + (t * 0.8) % 1) / layers);
-                const rot = (l % 2 === 0 ? 1 : -1) * (t * 0.5 + l * 0.2);
 
                 ctx.save();
-                ctx.rotate(rot);
-                ctx.strokeStyle = `hsl(${(l * 45 + t * 60) % 360}, 90%, 65%)`;
-                ctx.lineWidth = 3;
+                ctx.rotate(t * 0.25);
+                for (let i = 0; i < userBars; i++) {
+                    const angle = (i / userBars) * Math.PI * 2;
+                    const specIdx = Math.floor((i / userBars) * 64);
+                    const freqVal = spectrum[specIdx] || (Math.abs(Math.sin(t * 6 + i * 0.5)) * 0.4);
+                    const barLen = 10 + freqVal * (minDim * 0.22 + bass * 40);
 
-                // 8-point polygon / star
-                const points = 8;
-                ctx.beginPath();
-                for (let p = 0; p < points; p++) {
-                    const angle = (p / points) * Math.PI * 2;
-                    const px = Math.cos(angle) * r;
-                    const py = Math.sin(angle) * r;
-                    if (p === 0) ctx.moveTo(px, py);
-                    else ctx.lineTo(px, py);
+                    const x1 = Math.cos(angle) * baseRadius;
+                    const y1 = Math.sin(angle) * baseRadius;
+                    const x2 = Math.cos(angle) * (baseRadius + barLen);
+                    const y2 = Math.sin(angle) * (baseRadius + barLen);
+
+                    ctx.strokeStyle = (i % 2 === 0) ? primaryColor : secondaryColor;
+                    ctx.lineWidth = Math.max(2, (2 * Math.PI * baseRadius) / (userBars * 1.6));
+                    ctx.lineCap = 'round';
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                    ctx.stroke();
                 }
-                ctx.closePath();
+                ctx.restore();
+
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.arc(0, 0, baseRadius, 0, Math.PI * 2);
+                ctx.stroke();
+
+                for (let p = 0; p < 20; p++) {
+                    const pAngle = (p * 0.314 + t * 0.6) % (Math.PI * 2);
+                    const pDist = baseRadius + 20 + ((t * 110 + p * 35) % (minDim * 0.32));
+                    ctx.fillStyle = (p % 2 === 0) ? primaryColor : secondaryColor;
+                    ctx.beginPath();
+                    ctx.arc(Math.cos(pAngle) * pDist, Math.sin(pAngle) * pDist, 2 + bass * 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+            } else if (pattern === 'reactive-equalizer') {
+                // 2. Neon City Spectrum Equalizer Bars
+                const barCount = Math.min(userBars, 64);
+                const totalW = w * 0.88;
+                const barW = totalW / barCount;
+                const actualW = Math.max(2, barW - 3);
+                const startX = -totalW / 2;
+                const baseY = h * 0.28;
+
+                for (let i = 0; i < barCount; i++) {
+                    const x = startX + i * barW;
+                    const specIdx = Math.floor((i / barCount) * 64);
+                    const freq = spectrum[specIdx] || 0.1;
+                    const barH = 10 + freq * (h * 0.58) * (1 + bass * 0.3);
+
+                    const barGrad = ctx.createLinearGradient(0, baseY - barH, 0, baseY);
+                    barGrad.addColorStop(0, primaryColor);
+                    barGrad.addColorStop(0.5, secondaryColor);
+                    barGrad.addColorStop(1, '#1e1b4b');
+                    ctx.fillStyle = barGrad;
+
+                    ctx.beginPath();
+                    ctx.roundRect(x, baseY - barH, actualW, barH, 3);
+                    ctx.fill();
+
+                    const peakY = baseY - barH - 5;
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(x, peakY, actualW, 2.5);
+                }
+
+            } else if (pattern === 'reactive-mirrored') {
+                // 3. Modern Mirrored Stereo Spectrum (Top & Bottom)
+                const barCount = Math.min(userBars, 56);
+                const totalW = w * 0.85;
+                const barW = totalW / barCount;
+                const actualW = Math.max(2, barW - 4);
+                const startX = -totalW / 2;
+                const midY = 0;
+
+                for (let i = 0; i < barCount; i++) {
+                    const x = startX + i * barW;
+                    const specIdx = Math.floor(Math.abs(i - barCount / 2) / (barCount / 2) * 63);
+                    const freq = spectrum[specIdx] || 0.1;
+                    const halfH = 8 + freq * (h * 0.32) * (1 + bass * 0.4);
+
+                    const grad = ctx.createLinearGradient(0, -halfH, 0, halfH);
+                    grad.addColorStop(0, primaryColor);
+                    grad.addColorStop(0.5, '#ffffff');
+                    grad.addColorStop(1, secondaryColor);
+                    ctx.fillStyle = grad;
+
+                    ctx.beginPath();
+                    ctx.roundRect(x, -halfH, actualW, halfH * 2, actualW / 2);
+                    ctx.fill();
+                }
+
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(-w/2, midY);
+                ctx.lineTo(w/2, midY);
+                ctx.stroke();
+
+            } else if (pattern === 'reactive-waveform') {
+                // 4. Electric Oscilloscope Laser Waveform
+                ctx.save();
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = primaryColor;
+                ctx.strokeStyle = primaryColor;
+                ctx.lineWidth = 3 + bass * 3;
+
+                ctx.beginPath();
+                const points = 120;
+                for (let i = 0; i < points; i++) {
+                    const x = -w/2 + (i / (points - 1)) * w;
+                    const specIdx = Math.floor((i / points) * 64);
+                    const freqVal = spectrum[specIdx] || 0.1;
+                    const carrier = Math.sin(i * 0.2 + t * 6) * Math.cos(i * 0.08 - t * 3);
+                    const y = carrier * (minDim * 0.18) * (freqVal * 2.5 + bass * 0.6);
+
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+
+                ctx.shadowBlur = 0;
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1.5;
                 ctx.stroke();
                 ctx.restore();
+
+            } else if (pattern === 'reactive-portal') {
+                // 5. Hypnotic Cosmic Tunnel / Portal
+                const layers = 9;
+                const maxR = minDim * 0.48;
+                for (let l = 0; l < layers; l++) {
+                    const progress = ((l + (t * 0.7) % 1) / layers);
+                    const r = maxR * progress * (1 + bass * 0.18);
+                    const rot = (l % 2 === 0 ? 1 : -1) * (t * 0.4 + l * 0.15);
+
+                    ctx.save();
+                    ctx.rotate(rot);
+                    const color = l % 2 === 0 ? primaryColor : secondaryColor;
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 2 + (1 - progress) * 3;
+
+                    const points = 6;
+                    ctx.beginPath();
+                    for (let p = 0; p < points; p++) {
+                        const angle = (p / points) * Math.PI * 2;
+                        const px = Math.cos(angle) * r;
+                        const py = Math.sin(angle) * r;
+                        if (p === 0) ctx.moveTo(px, py);
+                        else ctx.lineTo(px, py);
+                    }
+                    ctx.closePath();
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+            } else if (pattern === 'reactive-synthwave') {
+                // 6. Outrun 80s Synthwave Sun & Mountains
+                const skyGrad = ctx.createLinearGradient(0, -h/2, 0, 0);
+                skyGrad.addColorStop(0, '#0a0518');
+                skyGrad.addColorStop(0.5, '#2e0854');
+                skyGrad.addColorStop(1, '#f43f5e');
+                ctx.fillStyle = skyGrad;
+                ctx.fillRect(-w/2, -h/2, w, h/2);
+
+                const sunRadius = minDim * 0.18 * (1 + bass * 0.15);
+                const sunY = -h * 0.08;
+                const sunGrad = ctx.createLinearGradient(0, sunY - sunRadius, 0, sunY + sunRadius);
+                sunGrad.addColorStop(0, '#fef08a');
+                sunGrad.addColorStop(0.5, '#f59e0b');
+                sunGrad.addColorStop(1, '#ec4899');
+                ctx.fillStyle = sunGrad;
+                ctx.beginPath();
+                ctx.arc(0, sunY, sunRadius, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#0a0518';
+                for (let s = 1; s <= 6; s++) {
+                    const stripeY = sunY + (s * (sunRadius / 6));
+                    ctx.fillRect(-sunRadius, stripeY, sunRadius * 2, s * 2.2);
+                }
+
+                const beatBounce = bass * 25;
+                ctx.fillStyle = '#1e0836';
+                ctx.beginPath();
+                ctx.moveTo(-w/2, 0);
+                ctx.lineTo(-w * 0.25, -45 - beatBounce);
+                ctx.lineTo(-w * 0.05, 0);
+                ctx.lineTo(w * 0.18, -60 - beatBounce * 1.4);
+                ctx.lineTo(w * 0.38, -25);
+                ctx.lineTo(w/2, 0);
+                ctx.lineTo(w/2, h/2);
+                ctx.lineTo(-w/2, h/2);
+                ctx.fill();
+
+                const floorGrad = ctx.createLinearGradient(0, 0, 0, h/2);
+                floorGrad.addColorStop(0, '#030208');
+                floorGrad.addColorStop(1, '#110426');
+                ctx.fillStyle = floorGrad;
+                ctx.fillRect(-w/2, 0, w, h/2);
+
+                ctx.strokeStyle = primaryColor;
+                ctx.lineWidth = 1.5;
+                const numGridV = 16;
+                for (let i = -numGridV/2; i <= numGridV/2; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.lineTo(i * (w / (numGridV * 0.4)), h/2);
+                    ctx.stroke();
+                }
+
+                const floorOffset = (t * 140 * (1 + bass * 0.8)) % 35;
+                for (let y = 0; y < h/2; y += 35) {
+                    const actualY = Math.pow((y + floorOffset) / (h/2), 2) * (h/2);
+                    if (actualY <= h/2) {
+                        ctx.strokeStyle = secondaryColor;
+                        ctx.beginPath();
+                        ctx.moveTo(-w/2, actualY);
+                        ctx.lineTo(w/2, actualY);
+                        ctx.stroke();
+                    }
+                }
+
+            } else if (pattern === 'reactive-vinyl') {
+                // 7. Photorealistic Lo-Fi Vinyl Turntable Disc
+                const discR = Math.min(w, h) * 0.38 * (1 + bass * 0.03);
+                const rotSpeed = clip.vinylSpeed !== undefined ? clip.vinylSpeed : 2.2;
+                const rotAngle = t * rotSpeed;
+                const projTitle = document.getElementById('projectTitle')?.value?.trim() || (window.projectManager?.currentProject?.title) || (window.timeline?.title);
+                const songTitle = clip.vinylTitle || (projTitle && projTitle !== 'Nytt Projekt' ? projTitle : this.getTimelineAudioTitle());
+
+                // 1. Vinyl Drop Shadow
+                ctx.save();
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
+                ctx.shadowBlur = 35;
+                ctx.shadowOffsetY = 12;
+                ctx.beginPath();
+                ctx.arc(0, 0, discR, 0, Math.PI * 2);
+                ctx.fillStyle = '#0a0d14';
+                ctx.fill();
+                ctx.restore();
+
+                // 2. Main Vinyl Disc Body
+                const discGrad = ctx.createRadialGradient(0, 0, discR * 0.1, 0, 0, discR);
+                discGrad.addColorStop(0.0, '#1c1e24');
+                discGrad.addColorStop(0.3, '#101216');
+                discGrad.addColorStop(0.85, '#0c0d11');
+                discGrad.addColorStop(0.98, '#181b22');
+                discGrad.addColorStop(1.0, '#050608');
+                ctx.fillStyle = discGrad;
+                ctx.beginPath();
+                ctx.arc(0, 0, discR, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 3. Rotating Grooves & Sound Track Bands
+                ctx.save();
+                ctx.rotate(rotAngle);
+
+                // Distinct track bands (Outer edge lead-in, 3 musical tracks, lead-out groove)
+                const trackBands = [
+                    { min: 0.94, max: 0.98, step: 2.5, alpha: 0.07 },
+                    { min: 0.76, max: 0.93, step: 3.5, alpha: 0.12 },
+                    { min: 0.58, max: 0.74, step: 3.0, alpha: 0.14 },
+                    { min: 0.39, max: 0.56, step: 3.0, alpha: 0.10 },
+                ];
+
+                trackBands.forEach(band => {
+                    ctx.beginPath();
+                    for (let normR = band.min; normR <= band.max; normR += (band.step / discR)) {
+                        const r = normR * discR;
+                        ctx.arc(0, 0, r, 0, Math.PI * 2);
+                    }
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${band.alpha})`;
+                    ctx.lineWidth = 0.8;
+                    ctx.stroke();
+                });
+
+                // Run-out dead wax etched matrix code (optional, disabled by default to keep vinyl 100% clean)
+                if (clip.showRunoutText === true) {
+                    ctx.save();
+                    ctx.font = '600 10px monospace';
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    const shortTitle = (songTitle.length > 20 ? songTitle.slice(0, 18) + '..' : songTitle).toUpperCase();
+                    ctx.fillText(`★ NOVACUT LO-FI • ${shortTitle} • 33-RPM ★`, 0, -discR * 0.36);
+                    ctx.restore();
+                }
+
+                // 4. Center Paper Label (Sticker)
+                const labelR = discR * 0.33;
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(0, 0, labelR, 0, Math.PI * 2);
+                ctx.clip();
+
+                let drawnCustomImage = false;
+                if (clip.vinylCoverUrl) {
+                    let coverImg = this._vinylCoverCache?.get(clip.vinylCoverUrl);
+                    if (!coverImg) {
+                        this._vinylCoverCache = this._vinylCoverCache || new Map();
+                        coverImg = new Image();
+                        coverImg.src = clip.vinylCoverUrl;
+                        coverImg.onload = () => this.render();
+                        this._vinylCoverCache.set(clip.vinylCoverUrl, coverImg);
+                    }
+                    if (coverImg.complete && coverImg.naturalWidth > 0) {
+                        ctx.drawImage(coverImg, -labelR, -labelR, labelR * 2, labelR * 2);
+                        const imgVignette = ctx.createRadialGradient(0, 0, labelR * 0.6, 0, 0, labelR);
+                        imgVignette.addColorStop(0, 'rgba(0,0,0,0)');
+                        imgVignette.addColorStop(1, 'rgba(0,0,0,0.35)');
+                        ctx.fillStyle = imgVignette;
+                        ctx.fill();
+                        drawnCustomImage = true;
+                    }
+                }
+
+                if (!drawnCustomImage) {
+                    const isVintage = clip.vinylLabelStyle === 'vintage';
+                    if (!isVintage) {
+                        // Clean, Bold, High-Readability Project Title Center Label (User requested: Enbart namnet på projektet, stort och läsbart!)
+                        const labelColor = clip.color1 || '#dc2626';
+                        const labelSecColor = clip.color2 || '#fef2f2';
+
+                        const labelGrad = ctx.createRadialGradient(0, 0, labelR * 0.1, 0, 0, labelR);
+                        labelGrad.addColorStop(0, labelSecColor);
+                        labelGrad.addColorStop(0.3, labelSecColor);
+                        labelGrad.addColorStop(0.35, labelColor);
+                        labelGrad.addColorStop(0.95, labelColor);
+                        labelGrad.addColorStop(1.0, '#450a0a');
+                        ctx.fillStyle = labelGrad;
+                        ctx.fill();
+
+                        // Crisp gold/contrast border ring
+                        ctx.strokeStyle = '#f59e0b';
+                        ctx.lineWidth = 2.5;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, labelR * 0.93, 0, Math.PI * 2);
+                        ctx.stroke();
+
+                        // Inner subtle dashed ring
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+                        ctx.lineWidth = 1;
+                        ctx.setLineDash([4, 4]);
+                        ctx.beginPath();
+                        ctx.arc(0, 0, labelR * 0.85, 0, Math.PI * 2);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+
+                        // Display Title: ENBART namnet på projektet, stort, klart och tydligt!
+                        ctx.save();
+                        const cleanTitle = (songTitle || 'NOVACUT').trim().toUpperCase();
+                        let fontSize = Math.floor(labelR * 0.30);
+                        if (cleanTitle.length <= 6) fontSize = Math.floor(labelR * 0.38);
+                        else if (cleanTitle.length <= 10) fontSize = Math.floor(labelR * 0.30);
+                        else if (cleanTitle.length <= 16) fontSize = Math.floor(labelR * 0.23);
+                        else fontSize = Math.floor(labelR * 0.18);
+                        fontSize = Math.max(16, Math.min(46, fontSize));
+
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = `900 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+                        ctx.shadowBlur = 8;
+                        ctx.shadowOffsetY = 2;
+                        ctx.fillText(cleanTitle, 0, 0);
+                        ctx.restore();
+                    } else {
+                        // Vintage Vinyl Record Label Design
+                        const labelColor = clip.color1 || '#dc2626';
+                        const labelSecColor = clip.color2 || '#fef3c7';
+
+                        const labelGrad = ctx.createRadialGradient(0, 0, labelR * 0.2, 0, 0, labelR);
+                        labelGrad.addColorStop(0, labelSecColor);
+                        labelGrad.addColorStop(0.55, labelSecColor);
+                        labelGrad.addColorStop(0.56, labelColor);
+                        labelGrad.addColorStop(0.98, labelColor);
+                        labelGrad.addColorStop(1.0, '#7f1d1d');
+                        ctx.fillStyle = labelGrad;
+                        ctx.fill();
+
+                        // Outer golden ring on paper
+                        ctx.strokeStyle = '#d97706';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, labelR * 0.92, 0, Math.PI * 2);
+                        ctx.stroke();
+
+                        // Top curved / upper badge: "STEREO • 33 ⅓ RPM"
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = 'bold 10px -apple-system, BlinkMacSystemFont, sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.shadowColor = 'rgba(0,0,0,0.7)';
+                        ctx.shadowBlur = 3;
+                        ctx.fillText('★ 33 ⅓ RPM • STEREO ★', 0, -labelR * 0.72);
+                        ctx.shadowBlur = 0;
+
+                        // Middle Song Title
+                        ctx.fillStyle = '#111827';
+                        ctx.font = '900 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+                        const displayTitle = (songTitle.length > 16 ? songTitle.slice(0, 14) + '..' : songTitle).toUpperCase();
+                        ctx.fillText(displayTitle, 0, -labelR * 0.26);
+
+                        // Subtitle / Artist / Side A
+                        ctx.fillStyle = '#4b5563';
+                        ctx.font = 'bold 9px -apple-system, BlinkMacSystemFont, sans-serif';
+                        ctx.fillText('SIDE A • LO-FI BEATS', 0, -labelR * 0.12);
+
+                        // Lower Badge
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = 'bold 9px -apple-system, BlinkMacSystemFont, sans-serif';
+                        ctx.fillText('HIGH FIDELITY', 0, labelR * 0.72);
+                    }
+                }
+
+                ctx.restore(); // End of label clip
+
+                // Spindle hole (center brass grommet & dark hole)
+                // When an image (like Pedro or cover art) or clean title is shown, skip hole by default unless specifically checked!
+                const drawCenterHole = clip.showCenterHole === true || (!drawnCustomImage && clip.vinylLabelStyle === 'vintage');
+                if (drawCenterHole) {
+                    const holeR = labelR * 0.12;
+                    const brassGrad = ctx.createRadialGradient(0, 0, holeR * 0.7, 0, 0, holeR * 1.3);
+                    brassGrad.addColorStop(0, '#78716c');
+                    brassGrad.addColorStop(0.5, '#e7e5e4');
+                    brassGrad.addColorStop(1, '#44403c');
+                    ctx.fillStyle = brassGrad;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, holeR * 1.3, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#030712';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, holeR * 0.85, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.restore(); // End of rotating disc space
+
+                // 5. Dynamic Anisotropic Specular Light Sheen (The iconic Vinyl Hourglass / Butterfly Reflection!)
+                if (typeof ctx.createConicGradient === 'function') {
+                    ctx.save();
+                    const lightAngle = -Math.PI / 4 + Math.sin(t * 0.8) * 0.08;
+                    const sheen = ctx.createConicGradient(lightAngle, 0, 0);
+
+                    const hiAlpha = 0.26 + bass * 0.12;
+                    const midAlpha = 0.06;
+                    sheen.addColorStop(0.00, `rgba(255, 255, 255, ${hiAlpha})`);
+                    sheen.addColorStop(0.08, `rgba(255, 255, 255, ${midAlpha})`);
+                    sheen.addColorStop(0.20, 'rgba(0, 0, 0, 0.4)');
+                    sheen.addColorStop(0.25, 'rgba(255, 255, 255, 0.03)');
+                    sheen.addColorStop(0.30, 'rgba(0, 0, 0, 0.4)');
+                    sheen.addColorStop(0.42, `rgba(255, 255, 255, ${midAlpha})`);
+                    sheen.addColorStop(0.50, `rgba(255, 255, 255, ${hiAlpha})`);
+                    sheen.addColorStop(0.58, `rgba(255, 255, 255, ${midAlpha})`);
+                    sheen.addColorStop(0.70, 'rgba(0, 0, 0, 0.4)');
+                    sheen.addColorStop(0.75, 'rgba(255, 255, 255, 0.03)');
+                    sheen.addColorStop(0.80, 'rgba(0, 0, 0, 0.4)');
+                    sheen.addColorStop(0.92, `rgba(255, 255, 255, ${midAlpha})`);
+                    sheen.addColorStop(1.00, `rgba(255, 255, 255, ${hiAlpha})`);
+
+                    ctx.globalCompositeOperation = 'screen';
+                    ctx.fillStyle = sheen;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, discR * 0.98, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+
+                // 6. Turntable Tonearm with Stylus Needle
+                if (clip.showTonearm !== false) {
+                    ctx.save();
+                    const armPivotX = discR * 1.05;
+                    const armPivotY = -discR * 0.95;
+                    const needleTargetX = discR * 0.65 + Math.sin(t * 0.5) * 4;
+                    const needleTargetY = -discR * 0.15 + (bass * 3);
+
+                    // Pivot base / counterweight
+                    ctx.fillStyle = '#374151';
+                    ctx.beginPath();
+                    ctx.arc(armPivotX, armPivotY, 24, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#4b5563';
+                    ctx.lineWidth = 2.5;
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#9ca3af';
+                    ctx.beginPath();
+                    ctx.arc(armPivotX, armPivotY, 12, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Curved metallic tonearm pipe
+                    ctx.strokeStyle = '#e5e7eb';
+                    ctx.lineWidth = 5;
+                    ctx.lineCap = 'round';
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+                    ctx.shadowBlur = 8;
+                    ctx.shadowOffsetY = 5;
+
+                    ctx.beginPath();
+                    ctx.moveTo(armPivotX, armPivotY);
+                    const elbowX = armPivotX - (armPivotX - needleTargetX) * 0.35;
+                    const elbowY = armPivotY + (needleTargetY - armPivotY) * 0.65;
+                    ctx.quadraticCurveTo(elbowX, elbowY - 20, needleTargetX, needleTargetY);
+                    ctx.stroke();
+
+                    // Headshell / Cartridge
+                    ctx.save();
+                    ctx.translate(needleTargetX, needleTargetY);
+                    const armAngle = Math.atan2(needleTargetY - elbowY, needleTargetX - elbowX);
+                    ctx.rotate(armAngle);
+
+                    ctx.fillStyle = '#1f2937';
+                    ctx.strokeStyle = '#00d482';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.roundRect(-14, -6, 28, 12, 3);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Stylus glowing tip indicator
+                    ctx.fillStyle = '#00f2fe';
+                    ctx.shadowColor = '#00f2fe';
+                    ctx.shadowBlur = 6;
+                    ctx.beginPath();
+                    ctx.arc(12, 0, 2.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+
+                    ctx.restore();
+                }
+
+            } else if (pattern === 'reactive-stars') {
+                // 8. 3D Galaxy Starfield Hyperspace Warp
+                const speed = 1.0 + bass * 4.0;
+                const starCount = 100;
+                for (let i = 0; i < starCount; i++) {
+                    const seed = (i * 997 + Math.floor(t * 30 * speed)) % 1000;
+                    const angle = (i / starCount) * Math.PI * 2;
+                    const dist = (seed / 1000) * (minDim * 0.6);
+                    const streak = isBeat ? (10 + bass * 25) : 3;
+
+                    const x = Math.cos(angle) * dist;
+                    const y = Math.sin(angle) * dist;
+                    const x2 = Math.cos(angle) * (dist + streak);
+                    const y2 = Math.sin(angle) * (dist + streak);
+
+                    ctx.strokeStyle = (i % 3 === 0) ? primaryColor : ((i % 3 === 1) ? secondaryColor : '#ffffff');
+                    ctx.lineWidth = 1.5 + bass;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x2, y2);
+                    ctx.stroke();
+                }
+
+            } else if (pattern === 'reactive-heartbeat') {
+                // 9. Medical EKG / Pulse Monitor
+                ctx.strokeStyle = 'rgba(239, 68, 68, 0.15)';
+                ctx.lineWidth = 1;
+                const gridStep = 40;
+                for (let x = -w/2; x <= w/2; x += gridStep) {
+                    ctx.beginPath(); ctx.moveTo(x, -h/2); ctx.lineTo(x, h/2); ctx.stroke();
+                }
+                for (let y = -h/2; y <= h/2; y += gridStep) {
+                    ctx.beginPath(); ctx.moveTo(-w/2, y); ctx.lineTo(w/2, y); ctx.stroke();
+                }
+
+                ctx.save();
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = primaryColor;
+                ctx.strokeStyle = primaryColor;
+                ctx.lineWidth = 3;
+
+                ctx.beginPath();
+                const totalPts = 100;
+                const sweepX = ((t * 180) % w) - w/2;
+                for (let i = 0; i < totalPts; i++) {
+                    const x = -w/2 + (i / totalPts) * w;
+                    let y = 0;
+                    const distFromSweep = Math.abs(x - sweepX);
+                    if (distFromSweep < 40) {
+                        const spike = (isBeat ? -1 : 1) * (distFromSweep < 20 ? (minDim * 0.3 * (0.5 + bass * 0.8)) : -(minDim * 0.15));
+                        y = spike * Math.sin(distFromSweep * 0.1);
+                    }
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                ctx.restore();
+
+                ctx.fillStyle = primaryColor;
+                ctx.font = 'bold 13px monospace';
+                ctx.fillText(`PULSE: ${isBeat ? '138 BPM 💥' : '128 BPM'}`, -w/2 + 25, -h/2 + 35);
+
+            } else if (pattern === 'reactive-fire') {
+                // 10. Audio-Reactive Flame Tongues
+                const flameCount = 36;
+                const flameW = w / flameCount;
+                const startX = -w/2;
+                const baseY = h/2;
+
+                for (let i = 0; i < flameCount; i++) {
+                    const x = startX + i * flameW;
+                    const specIdx = Math.floor((i / flameCount) * 20); // Lows & mids
+                    const freq = spectrum[specIdx] || 0.1;
+                    const flameH = (minDim * 0.2) + freq * (minDim * 0.5) * (1 + bass * 0.6);
+
+                    const flameGrad = ctx.createLinearGradient(0, baseY, 0, baseY - flameH);
+                    flameGrad.addColorStop(0, primaryColor);
+                    flameGrad.addColorStop(0.5, secondaryColor);
+                    flameGrad.addColorStop(1, '#ffffff');
+                    ctx.fillStyle = flameGrad;
+
+                    ctx.beginPath();
+                    ctx.moveTo(x - flameW * 0.5, baseY);
+                    ctx.quadraticCurveTo(x, baseY - flameH * 1.2, x + flameW * 0.5, baseY);
+                    ctx.fill();
+                }
+
+            } else if (pattern === 'reactive-matrix') {
+                // 11. Matrix Digital Rain
+                const cols = 28;
+                const colW = w / cols;
+                ctx.fillStyle = primaryColor;
+                ctx.font = 'bold 12px monospace';
+
+                for (let c = 0; c < cols; c++) {
+                    const specIdx = Math.floor((c / cols) * 64);
+                    const speed = 1.0 + (spectrum[specIdx] || 0.1) * 3.0 + bass * 2.0;
+                    const colY = ((t * 80 * speed + c * 47) % (h * 1.2)) - h * 0.6;
+                    const x = -w/2 + c * colW;
+
+                    for (let r = 0; r < 8; r++) {
+                        const y = colY - r * 16;
+                        if (y > -h/2 && y < h/2) {
+                            ctx.fillStyle = r === 0 ? '#ffffff' : primaryColor;
+                            ctx.globalAlpha = Math.max(0.15, 1 - r * 0.12);
+                            const charCode = 65 + ((c * 17 + r * 5 + Math.floor(t * 10)) % 26);
+                            ctx.fillText(String.fromCharCode(charCode), x, y);
+                        }
+                    }
+                }
+                ctx.globalAlpha = 1.0;
+
+            } else if (pattern === 'reactive-bass-flash') {
+                // 12. Bass Drop Strobe Flash & Shockwaves
+                if (isBeat) {
+                    ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(0.85, 0.3 + bass * 0.5)})`;
+                    ctx.fillRect(-w/2, -h/2, w, h);
+                }
+
+                const ringR = ((t * 300 * (1 + bass)) % (minDim * 0.7));
+                ctx.strokeStyle = primaryColor;
+                ctx.lineWidth = 4 + bass * 4;
+                ctx.beginPath();
+                ctx.arc(0, 0, ringR, 0, Math.PI * 2);
+                ctx.stroke();
+
+                ctx.fillStyle = secondaryColor;
+                ctx.beginPath();
+                ctx.arc(0, 0, minDim * 0.12 * (1 + bass * 0.3), 0, Math.PI * 2);
+                ctx.fill();
+
+            } else if (pattern === 'reactive-circular-wave') {
+                // 13. Organic Liquid Ripple Ring
+                const baseR = minDim * 0.22;
+                ctx.save();
+                ctx.strokeStyle = primaryColor;
+                ctx.fillStyle = `rgba(${primaryColor.startsWith('#') ? '0, 212, 130' : '56, 189, 248'}, 0.2)`;
+                ctx.lineWidth = 3 + bass * 2;
+
+                const verts = 72;
+                ctx.beginPath();
+                for (let v = 0; v <= verts; v++) {
+                    const angle = (v / verts) * Math.PI * 2;
+                    const specIdx = Math.floor((v % verts / verts) * 64);
+                    const waveVal = (spectrum[specIdx] || 0.1) * (minDim * 0.12) * (1 + bass * 0.5);
+                    const curR = baseR + waveVal;
+                    const vx = Math.cos(angle) * curR;
+                    const vy = Math.sin(angle) * curR;
+                    if (v === 0) ctx.moveTo(vx, vy);
+                    else ctx.lineTo(vx, vy);
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+
+            } else if (pattern === 'reactive-dual-rings') {
+                // 14. Dual Counter-Rotating Trap Rings
+                const rInner = minDim * 0.14 + bass * 15;
+                const rOuter = minDim * 0.28 + mid * 18;
+
+                ctx.save();
+                ctx.rotate(t * 0.4);
+                ctx.strokeStyle = primaryColor;
+                ctx.lineWidth = 2.5;
+                const bars1 = 36;
+                for (let i = 0; i < bars1; i++) {
+                    const a = (i / bars1) * Math.PI * 2;
+                    const specIdx = Math.floor((i / bars1) * 24);
+                    const len = (spectrum[specIdx] || 0) * (minDim * 0.12);
+                    ctx.beginPath();
+                    ctx.moveTo(Math.cos(a) * rInner, Math.sin(a) * rInner);
+                    ctx.lineTo(Math.cos(a) * (rInner + len), Math.sin(a) * (rInner + len));
+                    ctx.stroke();
+                }
+                ctx.restore();
+
+                ctx.save();
+                ctx.rotate(-t * 0.3);
+                ctx.strokeStyle = secondaryColor;
+                ctx.lineWidth = 2.5;
+                const bars2 = 48;
+                for (let i = 0; i < bars2; i++) {
+                    const a = (i / bars2) * Math.PI * 2;
+                    const specIdx = 24 + Math.floor((i / bars2) * 38);
+                    const len = (spectrum[specIdx] || 0) * (minDim * 0.15);
+                    ctx.beginPath();
+                    ctx.moveTo(Math.cos(a) * rOuter, Math.sin(a) * rOuter);
+                    ctx.lineTo(Math.cos(a) * (rOuter + len), Math.sin(a) * (rOuter + len));
+                    ctx.stroke();
+                }
+                ctx.restore();
+
+            } else if (pattern === 'reactive-frequency-dots') {
+                // 15. LED Dot Matrix Spectrum (VU-Meter Style)
+                const cols = 32;
+                const rows = 16;
+                const totalW = w * 0.84;
+                const totalH = h * 0.55;
+                const dotW = totalW / cols;
+                const dotH = totalH / rows;
+                const dotR = Math.min(dotW, dotH) * 0.38;
+                const startX = -totalW / 2;
+                const startY = h * 0.25;
+
+                for (let c = 0; c < cols; c++) {
+                    const specIdx = Math.floor((c / cols) * 64);
+                    const activeRows = Math.floor((spectrum[specIdx] || 0.05) * rows * (1 + bass * 0.4));
+                    for (let r = 0; r < rows; r++) {
+                        const cx = startX + c * dotW + dotW / 2;
+                        const cy = startY - r * dotH;
+                        const isLit = r <= activeRows;
+
+                        let dotColor = '#10b981'; // Green
+                        if (r > rows * 0.75) dotColor = '#ef4444'; // Red
+                        else if (r > rows * 0.5) dotColor = '#f59e0b'; // Amber
+
+                        ctx.fillStyle = isLit ? dotColor : '#18181b';
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, dotR, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+
+            } else if (pattern === 'reactive-cyber-tunnel') {
+                // 16. Wireframe Hexagon Cyber Tunnel
+                const hexRings = 7;
+                const maxHex = minDim * 0.5;
+                for (let r = 0; r < hexRings; r++) {
+                    const progress = ((r + (t * 0.8) % 1) / hexRings);
+                    const curSize = maxHex * progress * (1 + bass * 0.25);
+                    const rot = t * 0.3 + r * 0.1;
+
+                    ctx.save();
+                    ctx.rotate(rot);
+                    ctx.strokeStyle = r % 2 === 0 ? primaryColor : secondaryColor;
+                    ctx.lineWidth = 1.5 + (1 - progress) * 3;
+
+                    ctx.beginPath();
+                    for (let p = 0; p < 6; p++) {
+                        const a = (p / 6) * Math.PI * 2;
+                        const px = Math.cos(a) * curSize;
+                        const py = Math.sin(a) * curSize;
+                        if (p === 0) ctx.moveTo(px, py);
+                        else ctx.lineTo(px, py);
+                    }
+                    ctx.closePath();
+                    ctx.stroke();
+                    ctx.restore();
+                }
             }
 
         } else {
@@ -1932,6 +3253,18 @@ class NovaCutEngine {
             const pt = this.getCanvasCoordinates(e);
 
             if (!window.timeline) return;
+
+            // 0. Motionleap Flow & Freeze Drawing Interception
+            if (window.motionleapEngine && window.motionleapEngine.activeClipId) {
+                const sel = window.timeline.clips.find(c => c.id === window.motionleapEngine.activeClipId);
+                if (sel) {
+                    const normX = Math.max(0, Math.min(1, pt.x / this.canvas.width));
+                    const normY = Math.max(0, Math.min(1, pt.y / this.canvas.height));
+                    window.motionleapEngine.handleMouseDown(sel, normX, normY);
+                    return;
+                }
+            }
+
             const activeClips = window.timeline.getActiveClipsAt(this.currentTime);
 
             // 1. Check currently selected clip first
@@ -1970,6 +3303,17 @@ class NovaCutEngine {
         });
 
         window.addEventListener('mousemove', (e) => {
+            if (window.motionleapEngine && window.motionleapEngine.activeClipId) {
+                const sel = window.timeline?.clips.find(c => c.id === window.motionleapEngine.activeClipId);
+                if (sel) {
+                    const pt = this.getCanvasCoordinates(e);
+                    const normX = Math.max(0, Math.min(1, pt.x / this.canvas.width));
+                    const normY = Math.max(0, Math.min(1, pt.y / this.canvas.height));
+                    window.motionleapEngine.handleMouseMove(sel, normX, normY);
+                    if (window.motionleapEngine.isDrawing) return;
+                }
+            }
+
             if (this.isDraggingClip && this.dragTarget) {
                 const pt = this.getCanvasCoordinates(e);
                 const dx = pt.x - this.dragStartPos.x;
@@ -1995,6 +3339,10 @@ class NovaCutEngine {
             // Hover state cursor changes
             const rect = this.canvas.getBoundingClientRect();
             if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+                if (window.motionleapEngine && window.motionleapEngine.activeClipId) {
+                    this.canvas.style.cursor = 'crosshair';
+                    return;
+                }
                 const pt = this.getCanvasCoordinates(e);
                 if (window.timeline) {
                     const activeClips = window.timeline.getActiveClipsAt(this.currentTime);
@@ -2011,6 +3359,14 @@ class NovaCutEngine {
         });
 
         window.addEventListener('mouseup', () => {
+            if (window.motionleapEngine && window.motionleapEngine.activeClipId) {
+                const sel = window.timeline?.clips.find(c => c.id === window.motionleapEngine.activeClipId);
+                if (sel && window.motionleapEngine.isDrawing) {
+                    window.motionleapEngine.handleMouseUp(sel);
+                    return;
+                }
+            }
+
             if (this.isDraggingClip) {
                 this.isDraggingClip = false;
                 this.dragTarget = null;
@@ -2138,6 +3494,20 @@ class NovaCutEngine {
     renderSelectionGizmo(clip, width, height) {
         const { ctx } = this;
         if (!clip) return;
+
+        // If Motionleap Cinemagraph editing is active on this clip:
+        // Do NOT draw the green selection box or position pill!
+        // Render ONLY the Motionleap flow paths, anchors, and freeze brush gizmo.
+        if (window.motionleapEngine && window.motionleapEngine.activeClipId === clip.id) {
+            window.motionleapEngine.renderOverlayGizmo(ctx, width, height);
+            return;
+        }
+
+        // For full-screen background video/image:
+        // Don't show bounding box clutter unless user is actively dragging it
+        if (clip.trackId === 'video' && !this.isDraggingClip) {
+            return;
+        }
 
         const bounds = this.getClipBounds(clip);
         if (!bounds) return;
@@ -2767,8 +4137,10 @@ class NovaCutEngine {
 
     renderEmptyPlaceholder() {
         const { ctx, canvas } = this;
-        ctx.fillStyle = '#10121a';
+        ctx.fillStyle = '#0a0a0f';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        if (this.isExporting) return;
 
         ctx.fillStyle = '#5f6377';
         ctx.font = '500 24px -apple-system, sans-serif';
@@ -2822,14 +4194,33 @@ class NovaCutEngine {
     }
 
     syncAudioTracks(activeClips) {
-        const isMuted = window.timeline?.trackStates?.audio?.muted || false;
-        const audioClips = activeClips.filter(c => c.trackId === 'audio');
+        const tracks = window.timeline?.tracks || [];
+        const trackStates = window.timeline?.trackStates || {};
+
+        const audioClips = activeClips.filter(c => {
+            const trk = tracks.find(t => t.id === c.trackId);
+            return c.type === 'audio' || (trk && trk.type === 'audio');
+        });
+
+        const activeAudioMediaIds = new Set();
+
         audioClips.forEach(clip => {
-            const el = this.mediaElements.get(clip.mediaId);
+            const isMuted = trackStates[clip.trackId]?.muted || false;
+            let el = this.mediaElements.get(clip.mediaId);
+            if (!el && clip.filePath) {
+                const src = clip.filePath.startsWith('file://') ? clip.filePath : `file://${clip.filePath}`;
+                el = new Audio(src);
+                el.preload = 'auto';
+                if (clip.mediaId) this.mediaElements.set(clip.mediaId, el);
+                const cache = document.getElementById('mediaCache');
+                if (cache) cache.appendChild(el);
+            }
+
             if (el && typeof el.play === 'function') {
+                if (clip.mediaId) activeAudioMediaIds.add(clip.mediaId);
                 const localTime = Math.max(0, Math.min(clip.duration, this.currentTime - clip.startTime));
                 const computedVol = this.getClipAudioVolume(clip, localTime, activeClips);
-                el.volume = isMuted ? 0 : Math.min(1.0, computedVol);
+                el.volume = isMuted ? 0 : Math.min(1.0, Math.max(0, computedVol));
                 const clipRelativeTime = this.getClipSourceTime(clip, localTime);
                 const currentSpeed = this.getClipInstantaneousSpeed(clip, localTime);
                 el.preservesPitch = clip.preservesPitch !== false;
@@ -2844,6 +4235,17 @@ class NovaCutEngine {
                     if (!el.paused) el.pause();
                     if (Math.abs(el.currentTime - clipRelativeTime) > 0.05) {
                         el.currentTime = clipRelativeTime;
+                    }
+                }
+            }
+        });
+
+        // Pause any audio elements not currently active or if playback is stopped
+        this.mediaElements.forEach((el, mediaId) => {
+            if (el && typeof el.pause === 'function' && el.tagName === 'AUDIO') {
+                if (!this.isPlaying || !activeAudioMediaIds.has(mediaId)) {
+                    if (!el.paused) {
+                        el.pause();
                     }
                 }
             }

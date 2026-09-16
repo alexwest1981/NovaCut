@@ -2,7 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog, shell, screen } = require('electron
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const { spawn, exec, execSync } = require('child_process');
+const { spawn, exec, execSync, execFile } = require('child_process');
 const https = require('https');
 const http = require('http');
 
@@ -114,6 +114,10 @@ function createWindow() {
 
     mainWindow.loadFile(path.join(__dirname, 'index.html'));
 
+    mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+        console.log(`[Renderer] ${message} (${path.basename(sourceId || '')}:${line})`);
+    });
+
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
         shell.openExternal(url);
         return { action: 'deny' };
@@ -169,12 +173,51 @@ ipcMain.handle('media:locate', async (event, filename, fallbackPath) => {
         return fallbackPath;
     }
 
+    const userMedia = path.join(app.getPath('userData'), 'media');
+
+    // Special handler for AI generated visuals
+    if (filename && (filename.startsWith('AI:') || filename.includes('ai-visual') || filename.includes('ai-img'))) {
+        try {
+            if (fs.existsSync(userMedia)) {
+                const files = fs.readdirSync(userMedia)
+                    .filter(f => f.startsWith('ai-visual-') && (f.endsWith('.jpg') || f.endsWith('.png')))
+                    .map(f => ({
+                        file: f,
+                        path: path.join(userMedia, f),
+                        time: fs.statSync(path.join(userMedia, f)).mtimeMs
+                    }))
+                    .sort((a, b) => b.time - a.time);
+
+                if (files.length > 0) {
+                    const tsMatch = (filename + (fallbackPath || '')).match(/\d{10,}/);
+                    if (tsMatch) {
+                        const targetTs = parseInt(tsMatch[0]);
+                        let best = files[0];
+                        let minDiff = Infinity;
+                        for (const f of files) {
+                            const fTs = f.file.match(/\d{10,}/);
+                            if (fTs) {
+                                const diff = Math.abs(parseInt(fTs[0]) - targetTs);
+                                if (diff < minDiff) {
+                                    minDiff = diff;
+                                    best = f;
+                                }
+                            }
+                        }
+                        return best.path;
+                    }
+                    return files[0].path;
+                }
+            }
+        } catch (_) {}
+    }
+
     if (!filename) return null;
 
     const baseName = path.basename(filename);
     const home = app.getPath('home') || process.env.HOME || '/home/alex';
     const candidates = [
-        path.join(app.getPath('userData'), 'media', baseName),
+        path.join(userMedia, baseName),
         path.join(home, 'Downloads', baseName),
         path.join(home, 'Downloads', 'OmaDrop', 'Received', baseName),
         path.join(home, 'Music', baseName),
@@ -304,17 +347,16 @@ ipcMain.handle('font:loadCustom', async () => {
 // --- Project Management IPC Handlers ---
 ipcMain.handle('project:list', async () => {
     try {
-        const dirs = [userProjectsDir];
-        const altDir = path.join(os.homedir(), '.config', 'Electron', 'projects');
-        if (altDir !== userProjectsDir && fs.existsSync(altDir)) {
-            dirs.push(altDir);
-        }
+        const dirs = [
+            userProjectsDir,
+            path.join(os.homedir(), '.config', 'novacut', 'projects'),
+            path.join(os.homedir(), '.config', 'Electron', 'projects')
+        ].filter((d, idx, arr) => d && arr.indexOf(d) === idx && fs.existsSync(d));
 
         const seenIds = new Set();
         const projects = [];
 
         for (const dir of dirs) {
-            if (!fs.existsSync(dir)) continue;
             const files = fs.readdirSync(dir);
             for (const file of files) {
                 if (file.endsWith('.novacut') || file.endsWith('.json')) {
@@ -354,21 +396,20 @@ ipcMain.handle('project:save', async (event, projectData) => {
         const id = projectData.id || `project-${Date.now()}`;
         projectData.id = id;
         projectData.updatedAt = new Date().toISOString();
-        if (!projectData.createdAt) projectData.createdAt = projectData.updatedAt;
 
         const filePath = path.join(userProjectsDir, `${id}.novacut`);
-        fs.writeFileSync(filePath, JSON.stringify(projectData, null, 2));
+        fs.writeFileSync(filePath, JSON.stringify(projectData, null, 2), 'utf8');
 
-        // If alternate Electron project directory exists, also mirror save
-        const altDir = path.join(os.homedir(), '.config', 'Electron', 'projects');
-        if (altDir !== userProjectsDir && fs.existsSync(altDir)) {
-            try {
-                fs.writeFileSync(path.join(altDir, `${id}.novacut`), JSON.stringify(projectData, null, 2));
-            } catch (_) {}
+        // Also sync to novacut directory if different
+        const novacutDir = path.join(os.homedir(), '.config', 'novacut', 'projects');
+        if (novacutDir !== userProjectsDir) {
+            if (!fs.existsSync(novacutDir)) fs.mkdirSync(novacutDir, { recursive: true });
+            fs.writeFileSync(path.join(novacutDir, `${id}.novacut`), JSON.stringify(projectData, null, 2), 'utf8');
         }
 
-        return { success: true, project: projectData, filePath };
+        return { success: true, id, filePath };
     } catch (err) {
+        console.error('Error saving project:', err);
         return { success: false, error: err.message };
     }
 });
@@ -378,6 +419,8 @@ ipcMain.handle('project:load', async (event, projectId) => {
         const possiblePaths = [
             path.join(userProjectsDir, `${projectId}.novacut`),
             path.join(userProjectsDir, projectId),
+            path.join(os.homedir(), '.config', 'novacut', 'projects', `${projectId}.novacut`),
+            path.join(os.homedir(), '.config', 'novacut', 'projects', projectId),
             path.join(os.homedir(), '.config', 'Electron', 'projects', `${projectId}.novacut`),
             path.join(os.homedir(), '.config', 'Electron', 'projects', projectId)
         ];
@@ -395,9 +438,15 @@ ipcMain.handle('project:load', async (event, projectId) => {
 
 ipcMain.handle('project:delete', async (event, projectId) => {
     try {
-        const filePath = path.join(userProjectsDir, `${projectId}.novacut`);
-        if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
+        const targets = [
+            path.join(userProjectsDir, `${projectId}.novacut`),
+            path.join(os.homedir(), '.config', 'novacut', 'projects', `${projectId}.novacut`),
+            path.join(os.homedir(), '.config', 'Electron', 'projects', `${projectId}.novacut`)
+        ];
+        for (const filePath of targets) {
+            if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+            }
         }
         return { success: true };
     } catch (err) {
@@ -519,6 +568,200 @@ ipcMain.handle('export:getHwAcceleration', async () => {
     }
 });
 
+// Streaming Direct Pipe Export via FFmpeg
+const activeExportSessions = new Map();
+
+ipcMain.handle('export:startPipe', async (event, options) => {
+    const sessionId = `pipe-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+    const {
+        outputPath,
+        codec = 'nvenc_h264',
+        bitrate = '18M',
+        fps = 60,
+        width = 1920,
+        height = 1080,
+        duration = 5,
+        audioTracks = []
+    } = options;
+
+    let vcodec = 'h264_nvenc';
+    let extraFlags = ['-preset', 'p4', '-pix_fmt', 'yuv420p'];
+    let acodec = 'aac';
+    let extraAudioFlags = ['-b:a', '192k'];
+
+    if (codec === 'nvenc_hevc') {
+        vcodec = 'hevc_nvenc';
+        extraFlags = ['-preset', 'p4', '-pix_fmt', 'yuv420p', '-tag:v', 'hvc1'];
+    } else if (codec === 'cpu_h264') {
+        vcodec = 'libx264';
+        extraFlags = ['-preset', 'veryfast', '-pix_fmt', 'yuv420p', '-crf', '20'];
+    } else if (codec === 'webm') {
+        vcodec = 'libvpx-vp9';
+        extraFlags = ['-pix_fmt', 'yuv420p', '-crf', '26', '-b:v', bitrate || '0'];
+        acodec = 'libopus';
+        extraAudioFlags = ['-b:a', '160k'];
+    }
+
+    // Validate audio tracks on disk
+    const validAudio = [];
+    if (Array.isArray(audioTracks)) {
+        for (const t of audioTracks) {
+            if (!t || !t.filePath) continue;
+            const clean = t.filePath.replace(/^file:\/\//, '');
+            if (!fs.existsSync(clean)) continue;
+            if (/\.(png|jpe?g|webp|gif|bmp|svg|avif|tiff?)$/i.test(clean)) continue;
+            validAudio.push({ ...t, cleanPath: clean });
+        }
+    }
+
+    const args = [
+        '-y',
+        '-f', 'image2pipe',
+        '-vcodec', 'mjpeg',
+        '-r', fps.toString(),
+        '-i', 'pipe:0'
+    ];
+
+    validAudio.forEach(t => {
+        args.push('-i', t.cleanPath);
+    });
+
+    const videoFilter = `[0:v]scale=${width}:${height},setpts=N/(${fps}*TB)[vout]`;
+
+    if (validAudio.length === 1) {
+        const t = validAudio[0];
+        const delayMs = Math.max(0, Math.round((t.startTime || 0) * 1000));
+        const dur = Math.max(0.1, t.duration || duration);
+        const offset = Math.max(0, t.sourceOffset || 0);
+        const vol = t.volume !== undefined ? Number(t.volume) : 1.0;
+
+        let filter = `[1:a]atrim=start=${offset.toFixed(3)}:duration=${dur.toFixed(3)},asetpts=PTS-STARTPTS,aformat=channel_layouts=stereo:sample_rates=48000`;
+        if (delayMs > 0) filter += `,adelay=${delayMs}|${delayMs}`;
+        if (vol !== 1.0) filter += `,volume=${vol.toFixed(2)}`;
+        if (t.fadeIn > 0) filter += `,afade=t=in:ss=0:d=${Number(t.fadeIn).toFixed(3)}`;
+        if (t.fadeOut > 0) filter += `,afade=t=out:st=${Math.max(0, dur - Number(t.fadeOut)).toFixed(3)}:d=${Number(t.fadeOut).toFixed(3)}`;
+        filter += `[aout]`;
+
+        args.push('-filter_complex', `${videoFilter};${filter}`);
+        args.push('-map', '[vout]', '-map', '[aout]');
+    } else if (validAudio.length > 1) {
+        const filterParts = [videoFilter];
+        const amixInputs = [];
+
+        validAudio.forEach((t, idx) => {
+            const inputIdx = idx + 1;
+            const delayMs = Math.max(0, Math.round((t.startTime || 0) * 1000));
+            const dur = Math.max(0.1, t.duration || duration);
+            const offset = Math.max(0, t.sourceOffset || 0);
+            const vol = t.volume !== undefined ? Number(t.volume) : 1.0;
+
+            let f = `[${inputIdx}:a]atrim=start=${offset.toFixed(3)}:duration=${dur.toFixed(3)},asetpts=PTS-STARTPTS,aformat=channel_layouts=stereo:sample_rates=48000`;
+            if (delayMs > 0) f += `,adelay=${delayMs}|${delayMs}`;
+            if (vol !== 1.0) f += `,volume=${vol.toFixed(2)}`;
+            if (t.fadeIn > 0) f += `,afade=t=in:ss=0:d=${Number(t.fadeIn).toFixed(3)}`;
+            if (t.fadeOut > 0) f += `,afade=t=out:st=${Math.max(0, dur - Number(t.fadeOut)).toFixed(3)}:d=${Number(t.fadeOut).toFixed(3)}`;
+            f += `[a${idx}]`;
+
+            filterParts.push(f);
+            amixInputs.push(`[a${idx}]`);
+        });
+
+        filterParts.push(`${amixInputs.join('')}amix=inputs=${validAudio.length}:duration=first:dropout_transition=0[aout]`);
+        args.push('-filter_complex', filterParts.join(';'));
+        args.push('-map', '[vout]', '-map', '[aout]');
+    } else {
+        args.push('-filter_complex', videoFilter);
+        args.push('-map', '[vout]', '-an');
+    }
+
+    args.push('-c:v', vcodec, ...extraFlags);
+    if (bitrate && codec !== 'webm') args.push('-b:v', bitrate);
+    args.push('-r', fps.toString());
+    args.push('-t', duration.toString());
+
+    if (validAudio.length > 0) {
+        args.push('-c:a', acodec, ...extraAudioFlags);
+    }
+
+    if (codec !== 'webm') {
+        args.push('-movflags', '+faststart');
+    }
+
+    args.push(outputPath);
+
+    console.log(`[NovaCut Pipe Export] Spawning FFmpeg (${vcodec}):`, args.join(' '));
+    const proc = spawn('ffmpeg', args, { stdio: ['pipe', 'pipe', 'pipe'] });
+
+    let stderrBuffer = '';
+    proc.stderr.on('data', (d) => {
+        const str = d.toString();
+        stderrBuffer += str;
+        if (stderrBuffer.length > 20000) stderrBuffer = stderrBuffer.slice(-20000);
+    });
+
+    const session = {
+        id: sessionId,
+        proc,
+        outputPath,
+        getStderr: () => stderrBuffer,
+        promise: new Promise((res, rej) => {
+            proc.on('close', (code) => {
+                if (code === 0) {
+                    res({ success: true, outputPath });
+                } else {
+                    rej(new Error(`FFmpeg exited with code ${code}: ${stderrBuffer.slice(-600)}`));
+                }
+            });
+            proc.on('error', (err) => rej(err));
+        })
+    };
+
+    activeExportSessions.set(sessionId, session);
+    return { success: true, sessionId };
+});
+
+ipcMain.handle('export:writeFrame', async (event, sessionId, arrayBuffer) => {
+    const session = activeExportSessions.get(sessionId);
+    if (!session || !session.proc || !session.proc.stdin.writable) {
+        throw new Error(`Export session ${sessionId} is not active or stdin not writable`);
+    }
+
+    const buf = Buffer.from(arrayBuffer);
+    const canWrite = session.proc.stdin.write(buf);
+    if (!canWrite) {
+        await new Promise((res) => session.proc.stdin.once('drain', res));
+    }
+    return { success: true };
+});
+
+ipcMain.handle('export:endPipe', async (event, sessionId) => {
+    const session = activeExportSessions.get(sessionId);
+    if (!session) throw new Error(`Export session ${sessionId} not found`);
+
+    if (session.proc.stdin.writable) {
+        session.proc.stdin.end();
+    }
+    try {
+        const result = await session.promise;
+        activeExportSessions.delete(sessionId);
+        return result;
+    } catch (err) {
+        activeExportSessions.delete(sessionId);
+        throw err;
+    }
+});
+
+ipcMain.handle('export:cancelPipe', async (event, sessionId) => {
+    const session = activeExportSessions.get(sessionId);
+    if (session) {
+        try {
+            session.proc.kill('SIGKILL');
+        } catch (_) {}
+        activeExportSessions.delete(sessionId);
+    }
+    return { success: true };
+});
+
 // Save temporary WebM buffer before transcode
 ipcMain.handle('export:saveTemp', async (event, arrayBuffer) => {
     try {
@@ -624,6 +867,9 @@ ipcMain.handle('export:transcode', async (event, options) => {
                 args.push('-i', t.cleanPath);
             });
 
+            // Re-index all video presentation timestamps to exact mathematical project time (N / fps)
+            const videoFilter = `[0:v]setpts=N/(${fps}*TB)[vout]`;
+
             if (validAudio.length === 1) {
                 const t = validAudio[0];
                 const delayMs = Math.max(0, Math.round((t.startTime || 0) * 1000));
@@ -638,10 +884,10 @@ ipcMain.handle('export:transcode', async (event, options) => {
                 if (t.fadeOut > 0) filter += `,afade=t=out:st=${Math.max(0, dur - Number(t.fadeOut)).toFixed(3)}:d=${Number(t.fadeOut).toFixed(3)}`;
                 filter += `[aout]`;
 
-                args.push('-filter_complex', filter);
-                args.push('-map', '0:v', '-map', '[aout]');
+                args.push('-filter_complex', `${videoFilter};${filter}`);
+                args.push('-map', '[vout]', '-map', '[aout]');
             } else if (validAudio.length > 1) {
-                const filterParts = [];
+                const filterParts = [videoFilter];
                 const amixInputs = [];
 
                 validAudio.forEach((t, idx) => {
@@ -664,9 +910,10 @@ ipcMain.handle('export:transcode', async (event, options) => {
 
                 filterParts.push(`${amixInputs.join('')}amix=inputs=${validAudio.length}:duration=first:dropout_transition=0[aout]`);
                 args.push('-filter_complex', filterParts.join(';'));
-                args.push('-map', '0:v', '-map', '[aout]');
+                args.push('-map', '[vout]', '-map', '[aout]');
             } else {
-                args.push('-map', '0:v', '-an');
+                args.push('-filter_complex', videoFilter);
+                args.push('-map', '[vout]', '-an');
             }
 
             args.push('-c:v', selectedVCodec, ...selectedExtraFlags);
@@ -790,7 +1037,19 @@ ipcMain.handle('captions:transcribe', async (event, options = {}) => {
                     '-c:a', 'pcm_s16le',
                     tempWav
                 ]);
-                ff.on('close', (code) => code === 0 ? resolve() : reject(new Error(`FFmpeg audio extract failed (code ${code})`)));
+                let stderrStr = '';
+                ff.stderr.on('data', (d) => { stderrStr += d.toString(); });
+                ff.on('close', (code) => {
+                    if (code === 0) {
+                        resolve();
+                    } else {
+                        if (stderrStr.includes('does not contain any stream') || stderrStr.includes('does not contain any audio stream') || code === 234) {
+                            reject(new Error('Klippet saknar ljudspår (det är en bild eller en video utan ljud). Välj din musikfil i rullistan.'));
+                        } else {
+                            reject(new Error(`FFmpeg audio extract failed (code ${code}): ${stderrStr.slice(-150).trim()}`));
+                        }
+                    }
+                });
                 ff.on('error', reject);
             });
         } else if (audioBuffer) {
@@ -957,6 +1216,93 @@ ipcMain.handle('ai:generateImage', async (event, options = {}) => {
     } catch (err) {
         console.error('[NovaCut AI Image] Download failed:', err);
         return { success: false, error: err.message };
+    }
+});
+
+// Extract Embedded Album Art / Metadata from Audio Files (MP3, FLAC, M4A, etc.)
+ipcMain.handle('audio:extractMetadata', async (event, rawFilePath) => {
+    if (!rawFilePath) return { success: false, error: 'Ingen filsökväg angavs.' };
+
+    let filePath = rawFilePath;
+    if (filePath.startsWith('file://')) {
+        filePath = decodeURIComponent(filePath.replace('file://', ''));
+    }
+
+    if (!fs.existsSync(filePath)) {
+        return { success: false, error: 'Filen finns inte på disken.' };
+    }
+
+    try {
+        // 1. Run ffprobe to inspect streams and format metadata
+        const probeJsonStr = await new Promise((resolve, reject) => {
+            execFile('ffprobe', [
+                '-v', 'quiet',
+                '-print_format', 'json',
+                '-show_streams',
+                '-show_format',
+                filePath
+            ], (err, stdout) => {
+                if (err) return reject(err);
+                resolve(stdout);
+            });
+        });
+
+        const probeData = JSON.parse(probeJsonStr || '{}');
+        const streams = probeData.streams || [];
+        const format = probeData.format || {};
+        const tags = format.tags || {};
+
+        // Find cover stream (disposition.attached_pic === 1 or video stream in audio file)
+        const coverStream = streams.find(s => s.disposition?.attached_pic === 1 || (s.codec_type === 'video' && s.codec_name === 'mjpeg'));
+
+        let coverResult = null;
+        if (coverStream) {
+            const ext = (coverStream.codec_name === 'png') ? 'png' : 'jpg';
+            const baseName = path.basename(filePath, path.extname(filePath));
+            const safeBase = baseName.replace(/[^a-zA-Z0-9_\-]/g, '_').slice(0, 30);
+            const coverFilename = `cover-${safeBase}-${Date.now()}.${ext}`;
+            const destCoverPath = path.join(userMediaDir, coverFilename);
+
+            await new Promise((resolve, reject) => {
+                execFile('ffmpeg', [
+                    '-i', filePath,
+                    '-an',
+                    '-vcodec', 'copy',
+                    '-update', '1',
+                    '-y',
+                    destCoverPath
+                ], (err) => {
+                    if (err) return reject(err);
+                    resolve();
+                });
+            });
+
+            if (fs.existsSync(destCoverPath)) {
+                coverResult = {
+                    coverPath: destCoverPath,
+                    coverUrl: `file://${destCoverPath}`
+                };
+            }
+        }
+
+        return {
+            success: true,
+            hasCover: !!coverResult,
+            coverPath: coverResult?.coverPath || null,
+            coverUrl: coverResult?.coverUrl || null,
+            title: tags.title || path.basename(filePath, path.extname(filePath)),
+            artist: tags.artist || '',
+            album: tags.album || '',
+            lyrics: tags['lyrics-eng'] || tags.lyrics || tags.LYRICS || '',
+            duration: parseFloat(format.duration) || 0
+        };
+    } catch (err) {
+        console.warn('[NovaCut Audio Metadata] Extraction failed:', err.message);
+        return {
+            success: false,
+            hasCover: false,
+            error: err.message
+        };
     }
 });
 

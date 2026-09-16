@@ -108,12 +108,18 @@
             <!-- Tab: Stickers & Meme Overlays -->
             <div id="tab-stickers" class="tab-content">
                 <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <div style="position: relative;">
+                        <input type="text" id="stickersSearchInput" placeholder="🔍 Sök bland 184+ stickers..." style="width: 100%; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; padding: 7px 10px; color: var(--text-main); font-size: 11px; outline: none;">
+                    </div>
                     <div class="category-chips" id="stickersCategories">
-                        <div class="chip active sticker-chip" data-cat="all">Alla</div>
-                        <div class="chip sticker-chip" data-cat="memes">Memes</div>
-                        <div class="chip sticker-chip" data-cat="ui">UI & Status</div>
-                        <div class="chip sticker-chip" data-cat="reactions">Reaktioner</div>
-                        <div class="chip sticker-chip" data-cat="arrows">Pilar & Skyltar</div>
+                        <div class="chip active sticker-chip" data-cat="all">Alla (184)</div>
+                        <div class="chip sticker-chip" data-cat="memes">Memes (30)</div>
+                        <div class="chip sticker-chip" data-cat="social">Socialt (25)</div>
+                        <div class="chip sticker-chip" data-cat="gaming">Gaming & Stream (25)</div>
+                        <div class="chip sticker-chip" data-cat="reactions">Reaktioner (30)</div>
+                        <div class="chip sticker-chip" data-cat="arrows">Pilar & Callouts (25)</div>
+                        <div class="chip sticker-chip" data-cat="ui">UI & Status (25)</div>
+                        <div class="chip sticker-chip" data-cat="cyber">Cyber & HUD (24)</div>
                     </div>
 
                     <p style="font-size: 10px; color: var(--text-muted); margin: 0;">Klicka på en sticker för att placera den på överläggsspåret (V2).</p>
@@ -127,6 +133,9 @@
             <!-- Tab: Video Transitions (Klippövergångar) -->
             <div id="tab-transitions" class="tab-content">
                 <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <div style="position: relative;">
+                        <input type="text" id="transitionsSearchInput" placeholder="🔍 Sök bland 124+ övergångar..." style="width: 100%; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; padding: 7px 10px; color: var(--text-main); font-size: 11px; outline: none;">
+                    </div>
                     <div style="display: flex; gap: 6px;">
                         <button id="btnApplyTransitionAll" class="btn-secondary" style="flex: 1; font-size: 11px; padding: 6px 8px; justify-content: center;" title="Lägg till vald övergång på alla klipp i tidslinjen">
                             <span>⚡ Alla Klipp</span>
@@ -137,13 +146,14 @@
                     </div>
 
                     <div class="category-chips">
-                        <div class="chip active transition-chip" data-cat="all">Alla (50)</div>
-                        <div class="chip transition-chip" data-cat="soft">Mjuka (8)</div>
-                        <div class="chip transition-chip" data-cat="motion">Rörelse (10)</div>
-                        <div class="chip transition-chip" data-cat="zoom">Zoom (8)</div>
-                        <div class="chip transition-chip" data-cat="glitch">Glitch (8)</div>
-                        <div class="chip transition-chip" data-cat="light">Ljus (8)</div>
-                        <div class="chip transition-chip" data-cat="wipe">Wipes (8)</div>
+                        <div class="chip active transition-chip" data-cat="all">Alla (124)</div>
+                        <div class="chip transition-chip" data-cat="soft">Mjuka (16)</div>
+                        <div class="chip transition-chip" data-cat="motion">Rörelse (20)</div>
+                        <div class="chip transition-chip" data-cat="3d">3D & Rull (16)</div>
+                        <div class="chip transition-chip" data-cat="zoom">Zoom (18)</div>
+                        <div class="chip transition-chip" data-cat="glitch">Glitch (18)</div>
+                        <div class="chip transition-chip" data-cat="light">Ljus (18)</div>
+                        <div class="chip transition-chip" data-cat="wipe">Wipes (18)</div>
                     </div>
 
                     <p style="font-size: 10px; color: var(--text-muted); margin: 0;">Klicka eller dra en övergång direkt till ett klipp i tidslinjen.</p>
@@ -383,6 +393,7 @@
                         <option value="200">200%</option>
                     </select>
                     <button id="btnFitCanvas" class="btn-monitor-tool" title="Återställ förhandsgranskning">Passa</button>
+                    <button id="btnFullscreenMonitor" class="btn-monitor-tool" title="Helskärm (F11 / Dubbelklick)">⛶ Helskärm</button>
                     <button id="btnToggleRightPane" class="btn-monitor-tool" title="Dölj/visa inspektor för mer arbetsyta">⚙️ Inspektor</button>
                 </div>
             </div>
@@ -403,6 +414,7 @@
                     <button id="btnPlayPause" class="btn-transport play-btn" title="Spela / Pausa (Mellanslag)">▶</button>
                     <button id="btnNextFrame" class="btn-transport" title="Nästa bildruta (→)">⏭</button>
                     <button id="btnLoop" class="btn-transport" title="Loopa uppspelning">🔁</button>
+                    <button id="btnFullscreenTransport" class="btn-transport" title="Helskärmsförhandsgranskning (F11 / Dubbelklick)">⛶</button>
                 </div>
 
                 <div style="display: flex; align-items: center; gap: 8px;">
@@ -468,6 +480,33 @@
                 <button id="btnAutoCutBeats" class="tool-btn" title="Klipp automatiskt markerat videoklipp till takten (Montage Velocity Cut)">
                     <span>⚡ Auto-Cut till Takten</span>
                 </button>
+                <button id="btnRemoveSilence" class="tool-btn" title="Hitta och klipp automatiskt bort tysta pauser (Smart Silence Remover / Auto Jump-Cut)">
+                    <span>⚡ Rensa tystnader</span>
+                </button>
+                <div class="tool-divider"></div>
+                <div class="dropdown-container" style="position: relative; display: inline-block;">
+                    <button id="btnAddTrackBtn" class="tool-btn" title="Lägg till ett nytt spår/lager i tidslinjen">
+                        <span>➕ Nytt lager</span>
+                    </button>
+                    <div id="addTrackMenu" class="dropdown-menu-popup" style="display: none;">
+                        <button class="menu-item-btn" data-track-type="video">
+                            <span class="track-badge video">VID</span>
+                            <span>Video / Overlay / Bakgrund</span>
+                        </button>
+                        <button class="menu-item-btn" data-track-type="text">
+                            <span class="track-badge text">TXT</span>
+                            <span>Text / Undertext</span>
+                        </button>
+                        <button class="menu-item-btn" data-track-type="effect">
+                            <span class="track-badge effect">FX</span>
+                            <span>Effektlager</span>
+                        </button>
+                        <button class="menu-item-btn" data-track-type="audio">
+                            <span class="track-badge audio">AUD</span>
+                            <span>Ljudspår</span>
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <div class="timeline-tools-right">
@@ -486,7 +525,10 @@
         <div class="timeline-content-wrapper">
             <!-- Fixed Left Track Headers -->
             <div class="track-headers">
-                <div class="track-headers-spacer"></div>
+                <div class="track-headers-spacer">
+                    <span style="font-size: 10px; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px;">LAGER</span>
+                    <button id="btnQuickAddTrack" class="btn-track-action" title="Lägg till ett nytt lager" style="font-size: 11px; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--border-color); color: var(--accent);">➕ Nytt</button>
+                </div>
                 <div class="track-headers-scrollable" id="trackHeadersScrollable">
                     <div class="track-header" data-track-id="text">
                         <div class="track-header-left">
@@ -770,10 +812,26 @@
                 </div>
             </div>
 
-            <!-- Main Content: Templates & Projects Grid -->
+            <!-- Main Content: Projects & Templates Grid -->
             <div class="welcome-main">
-                <!-- Section 1: Viral Format Templates & Wizard -->
-                <div class="welcome-templates-section">
+                <!-- Section 1: Previous Projects -->
+                <div class="welcome-main-header">
+                    <div>
+                        <h2 class="welcome-heading">Mina Projekt</h2>
+                        <p class="welcome-subheading">Välj ett tidigare projekt för att fortsätta klippa eller öppna</p>
+                    </div>
+                    <div class="welcome-search-box">
+                        <span>🔍</span>
+                        <input type="text" id="welcomeProjectSearch" placeholder="Sök bland projekt...">
+                    </div>
+                </div>
+
+                <div class="welcome-projects-grid" id="welcomeProjectsGrid">
+                    <!-- Project cards populated dynamically by projects.js -->
+                </div>
+
+                <!-- Section 2: Viral Format Templates & Wizard -->
+                <div class="welcome-templates-section" style="margin-top: 12px; padding-top: 20px; border-top: 1px solid var(--border-color);">
                     <div class="welcome-section-header">
                         <div>
                             <h2 class="welcome-heading" style="display: flex; align-items: center; gap: 8px;">
@@ -793,22 +851,6 @@
                     <div class="welcome-templates-grid" id="welcomeTemplatesGrid">
                         <!-- Populated dynamically by templates.js -->
                     </div>
-                </div>
-
-                <!-- Section 2: Previous Projects -->
-                <div class="welcome-main-header" style="margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border-color);">
-                    <div>
-                        <h2 class="welcome-heading">Mina Projekt</h2>
-                        <p class="welcome-subheading">Välj ett tidigare projekt för att fortsätta klippa eller öppna</p>
-                    </div>
-                    <div class="welcome-search-box">
-                        <span>🔍</span>
-                        <input type="text" id="welcomeProjectSearch" placeholder="Sök bland projekt...">
-                    </div>
-                </div>
-
-                <div class="welcome-projects-grid" id="welcomeProjectsGrid">
-                    <!-- Project cards populated dynamically by projects.js -->
                 </div>
             </div>
         </div>
@@ -1028,6 +1070,8 @@
 
     <!-- Scripts -->
     <script src="js/fonts.js"></script>
+    <script src="js/audio-reactive.js"></script>
+    <script src="js/motionleap.js"></script>
     <script src="js/engine.js"></script>
     <script src="js/timeline.js"></script>
     <script src="js/inspector.js"></script>
@@ -1040,6 +1084,7 @@
     <script src="js/beats.js"></script>
     <script src="js/templates.js"></script>
     <script src="js/visuals.js"></script>
+    <script src="js/color-picker.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

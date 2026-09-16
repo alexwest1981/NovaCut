@@ -2,6 +2,24 @@
  * NovaCut - Main Application Controller
  */
 document.addEventListener('DOMContentLoaded', () => {
+    // Global Toast Notification Helper
+    window.novaCutToast = function(message) {
+        let toast = document.getElementById('novaCutGlobalToast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'novaCutGlobalToast';
+            toast.className = 'novacut-toast';
+            document.body.appendChild(toast);
+        }
+        toast.textContent = message;
+        toast.classList.add('visible');
+        clearTimeout(toast._timer);
+        toast._timer = setTimeout(() => {
+            toast.classList.remove('visible');
+        }, 2800);
+    };
+    window.showToast = window.novaCutToast;
+
     // 1. Initialize Subsystems
     const engine = new NovaCutEngine();
     window.engine = engine;
@@ -29,6 +47,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const beatsManager = new NovaCutBeats(timeline, engine);
     window.beatsManager = beatsManager;
+
+    const audioAnalyzer = new NovaCutAudioAnalyzer(engine, timeline);
+    window.audioAnalyzer = audioAnalyzer;
+
+    const motionleap = new NovaCutMotionleap(engine, timeline);
+    window.motionleap = motionleap;
+    window.motionleapEngine = motionleap;
 
     // 2. Setup Top Bar & Transport Controls
     document.getElementById('btnPlayPause').addEventListener('click', () => engine.togglePlay());
@@ -85,6 +110,88 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Fullscreen Preview System
+    const previewArea = document.querySelector('.preview-area');
+    const previewCanvas = document.getElementById('previewCanvas');
+    const btnFullscreenMonitor = document.getElementById('btnFullscreenMonitor');
+    const btnFullscreenTransport = document.getElementById('btnFullscreenTransport');
+
+    let isFullscreenPreview = false;
+    let fullscreenIdleTimer = null;
+
+    let exitBadge = previewArea?.querySelector('.fullscreen-exit-badge');
+    if (!exitBadge && previewArea) {
+        exitBadge = document.createElement('div');
+        exitBadge.className = 'fullscreen-exit-badge';
+        exitBadge.innerHTML = '<span>✕</span> Lämna helskärm (Esc)';
+        exitBadge.addEventListener('click', () => toggleFullscreenPreview(false));
+        previewArea.appendChild(exitBadge);
+    }
+
+    const toggleFullscreenPreview = (forceState) => {
+        if (!previewArea) return;
+        isFullscreenPreview = typeof forceState === 'boolean' ? forceState : !isFullscreenPreview;
+
+        if (isFullscreenPreview) {
+            previewArea.classList.add('fullscreen-preview');
+            if (btnFullscreenMonitor) btnFullscreenMonitor.classList.add('active');
+            if (btnFullscreenTransport) btnFullscreenTransport.classList.add('active');
+
+            if (!document.fullscreenElement && previewArea.requestFullscreen) {
+                previewArea.requestFullscreen().catch(() => {});
+            }
+        } else {
+            previewArea.classList.remove('fullscreen-preview');
+            const controls = previewArea.querySelector('.preview-controls');
+            if (controls) controls.classList.remove('idle-hidden');
+            if (btnFullscreenMonitor) btnFullscreenMonitor.classList.remove('active');
+            if (btnFullscreenTransport) btnFullscreenTransport.classList.remove('active');
+
+            if (document.fullscreenElement && document.exitFullscreen) {
+                document.exitFullscreen().catch(() => {});
+            }
+        }
+
+        engine.render();
+    };
+    window.toggleFullscreenPreview = toggleFullscreenPreview;
+
+    if (btnFullscreenMonitor) {
+        btnFullscreenMonitor.addEventListener('click', () => toggleFullscreenPreview());
+    }
+    if (btnFullscreenTransport) {
+        btnFullscreenTransport.addEventListener('click', () => toggleFullscreenPreview());
+    }
+
+    if (previewCanvas) {
+        previewCanvas.addEventListener('dblclick', () => toggleFullscreenPreview());
+    }
+
+    if (previewArea) {
+        previewArea.addEventListener('mousemove', () => {
+            if (!isFullscreenPreview) return;
+            const controls = previewArea.querySelector('.preview-controls');
+            if (!controls) return;
+
+            controls.classList.remove('idle-hidden');
+            clearTimeout(fullscreenIdleTimer);
+
+            if (engine.isPlaying) {
+                fullscreenIdleTimer = setTimeout(() => {
+                    if (isFullscreenPreview && engine.isPlaying) {
+                        controls.classList.add('idle-hidden');
+                    }
+                }, 2500);
+            }
+        });
+    }
+
+    document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement && isFullscreenPreview) {
+            toggleFullscreenPreview(false);
+        }
+    });
+
     // Toggle Left Pane (Media Drawer)
     const btnToggleLeft = document.getElementById('btnToggleLeftPane');
     const leftPane = document.getElementById('leftPane');
@@ -128,6 +235,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnRippleDelete = document.getElementById('btnRippleDelete');
     if (btnRippleDelete) {
         btnRippleDelete.addEventListener('click', () => timeline.rippleDeleteSelectedClip());
+    }
+
+    const btnRemoveSilence = document.getElementById('btnRemoveSilence');
+    if (btnRemoveSilence) {
+        btnRemoveSilence.addEventListener('click', () => {
+            timeline.removeSilencesFromClip();
+        });
     }
 
     const btnCloseGaps = document.getElementById('btnCloseGaps');
@@ -238,6 +352,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleImportedFile(fileObj) {
+        if (fileObj.path && fileObj.path.match(/\.(png|jpg|jpeg|webp|gif|svg|bmp)$/i)) {
+            fileObj.type = 'image';
+        } else if (fileObj.path && fileObj.path.match(/\.(mp3|wav|ogg|flac|m4a|aac)$/i)) {
+            fileObj.type = 'audio';
+        }
+
         const mediaId = fileObj.mediaId || `media-${Date.now()}-${Math.floor(Math.random()*1000)}`;
         let detectedDuration = fileObj.duration || (fileObj.type === 'image' ? 4.0 : 180.0);
 
@@ -320,6 +440,27 @@ document.addEventListener('DOMContentLoaded', () => {
             if (cache) cache.appendChild(audio);
         }
 
+        const placeCoverAsBackground = (coverPath, title) => {
+            if (!coverPath) return;
+            const coverMediaId = `cover-${Date.now()}-${Math.floor(Math.random()*1000)}`;
+            const dur = detectedDuration || 180;
+            timeline.addClip({
+                mediaId: coverMediaId,
+                filePath: coverPath,
+                title: `Bakgrund: ${title || fileObj.name}`,
+                type: 'image',
+                trackId: 'video',
+                startTime: 0,
+                duration: dur,
+                scale: 1.0,
+                opacity: 1.0
+            });
+            engine.render();
+            if (window.novaCutToast) {
+                window.novaCutToast('🖼️ Omslagsbild lades till som bakgrund på tidslinjen!');
+            }
+        };
+
         const placeAudio = (fitToVideo = false) => {
             const startTime = engine.currentTime;
             let duration = detectedDuration;
@@ -336,7 +477,74 @@ document.addEventListener('DOMContentLoaded', () => {
                 startTime: startTime,
                 duration: duration
             });
+
+            // If video track is currently completely empty and this audio has an embedded cover:
+            const videoClips = timeline.clips.filter(c => c.trackId === 'video');
+            if (videoClips.length === 0 && fileObj.coverPath) {
+                placeCoverAsBackground(fileObj.coverPath, fileObj.name);
+            }
         };
+
+        // Extract embedded album art cover from audio files (MP3, FLAC, M4A)
+        if (fileObj.type === 'audio' && fileObj.path && window.novaCut?.extractAudioMetadata) {
+            window.novaCut.extractAudioMetadata(fileObj.path).then(meta => {
+                if (meta && meta.success && meta.hasCover && meta.coverPath) {
+                    fileObj.coverPath = meta.coverPath;
+                    fileObj.coverUrl = meta.coverUrl;
+                    fileObj.lyrics = meta.lyrics;
+
+                    // Update media thumbnail with actual album cover art!
+                    const thumbEl = mediaCard.querySelector('.media-thumb');
+                    if (thumbEl) {
+                        thumbEl.innerHTML = `
+                            <img src="${meta.coverUrl}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;" alt="Omslag">
+                            <span class="media-badge">LJUD</span>
+                        `;
+                    }
+
+                    // Show "🖼️ Som bakgrund" action button in media card
+                    const actionsEl = mediaCard.querySelector('.media-card-actions');
+                    if (actionsEl && !actionsEl.querySelector('.btn-set-cover-bg')) {
+                        const btnSetBg = document.createElement('button');
+                        btnSetBg.className = 'btn-card-action btn-set-cover-bg';
+                        btnSetBg.title = 'Placera låtens omslag som bakgrundsbild på tidslinjen';
+                        btnSetBg.textContent = '🖼️ Som bakgrund';
+                        btnSetBg.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            placeCoverAsBackground(meta.coverPath, meta.title);
+                        });
+                        actionsEl.appendChild(btnSetBg);
+                    }
+
+                    // Register cover image as separate asset in media library if not already present
+                    const coverItemName = `Omslag: ${meta.title || fileObj.name}`;
+                    const alreadyExists = Array.from(window.projectMediaLibrary.values()).some(it => it.path === meta.coverPath);
+                    if (!alreadyExists) {
+                        handleImportedFile({
+                            path: meta.coverPath,
+                            name: coverItemName,
+                            type: 'image',
+                            size: 0,
+                            duration: detectedDuration || 180
+                        });
+                    }
+
+                    // If a reactive-vinyl clip exists on timeline without custom cover, automatically use this cover!
+                    timeline.clips.forEach(c => {
+                        if (c.demoPattern === 'reactive-vinyl' && !c.vinylCoverUrl) {
+                            c.vinylCoverUrl = meta.coverUrl;
+                            engine.render();
+                        }
+                    });
+
+                    if (window.novaCutToast) {
+                        window.novaCutToast(`🖼️ Hittade albumomslag för "${meta.title || fileObj.name}"!`);
+                    }
+                }
+            }).catch(err => {
+                console.warn('[NovaCut Audio Metadata] Extraction error:', err);
+            });
+        }
 
         if (fileObj.type === 'audio') {
             const btnPlaceAll = mediaCard.querySelector('.btn-place-all');
@@ -463,21 +671,48 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!whisperClipSelect) return;
             whisperClipSelect.innerHTML = '';
 
-            const mediaClips = timeline.clips.filter(c => c.trackId === 'video' || c.trackId === 'audio' || c.trackId === 'overlay');
-            if (mediaClips.length === 0) {
+            // Filter ONLY clips that actually contain audio tracks (never images, visualizers, or stickers)
+            const audioEligibleClips = timeline.clips.filter(c => {
+                if (c.trackId === 'text') return false;
+                if (c.isSticker) return false;
+                if (c.demoPattern || c.pattern) return false; // procedural visualizer
+                if (c.type === 'image' || c.isAiVisual) return false;
+                if (c.filePath && c.filePath.match(/\.(png|jpg|jpeg|webp|gif|svg|bmp)$/i)) return false;
+                return (c.trackId === 'audio' || c.type === 'audio' || c.isSfx || c.trackId === 'video');
+            });
+
+            if (audioEligibleClips.length === 0) {
                 const opt = document.createElement('option');
                 opt.value = '';
-                opt.textContent = '(Inga video- eller ljudklipp på tidslinjen än)';
+                opt.textContent = '(Inga ljud- eller videoklipp på tidslinjen än - lägg till en låt)';
                 whisperClipSelect.appendChild(opt);
                 return;
             }
 
-            mediaClips.forEach(c => {
+            // Prioritize audio clips (songs/vocals) first
+            audioEligibleClips.sort((a, b) => {
+                const aIsAudio = (a.trackId === 'audio' || a.type === 'audio') ? 0 : 1;
+                const bIsAudio = (b.trackId === 'audio' || b.type === 'audio') ? 0 : 1;
+                return aIsAudio - bIsAudio;
+            });
+
+            // Determine default selection: prefer selected clip if eligible, otherwise first audio clip
+            let selectedClipId = null;
+            const curSelected = timeline.clips.find(c => c.id === timeline.selectedClipId);
+            if (curSelected && audioEligibleClips.some(c => c.id === curSelected.id)) {
+                selectedClipId = curSelected.id;
+            } else {
+                const firstAudio = audioEligibleClips.find(c => c.trackId === 'audio' || c.type === 'audio');
+                selectedClipId = firstAudio ? firstAudio.id : audioEligibleClips[0].id;
+            }
+
+            audioEligibleClips.forEach(c => {
                 const opt = document.createElement('option');
                 opt.value = c.id;
-                const isSel = (timeline.selectedClipId === c.id);
-                opt.selected = isSel;
-                opt.textContent = `${c.title || 'Klipp'} (${c.trackId.toUpperCase()} • ${c.duration.toFixed(1)}s)`;
+                opt.selected = (c.id === selectedClipId);
+                const isAudio = (c.trackId === 'audio' || c.type === 'audio');
+                const prefix = isAudio ? '🎵 Låt/Ljud: ' : '🎬 Video: ';
+                opt.textContent = `${prefix}${c.title || 'Klipp'} (${c.duration.toFixed(1)}s)`;
                 whisperClipSelect.appendChild(opt);
             });
         };
@@ -600,19 +835,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Handle Whisper Auto Mode
                 if (source === 'whisper-auto') {
                     const chosenClipId = whisperClipSelect?.value;
-                    const targetClip = timeline.clips.find(c => c.id === chosenClipId) ||
-                                       timeline.clips.find(c => c.trackId === 'video' || c.trackId === 'audio');
+                    let targetClip = timeline.clips.find(c => c.id === chosenClipId);
+
+                    // If chosen clip is invalid or an image/visualizer, fallback to real audio clip
+                    if (!targetClip || targetClip.type === 'image' || targetClip.isAiVisual || targetClip.isSticker || targetClip.demoPattern || (targetClip.filePath && targetClip.filePath.match(/\.(png|jpg|jpeg|webp|gif|svg|bmp)$/i))) {
+                        targetClip = timeline.clips.find(c => c.trackId === 'audio' || c.type === 'audio') ||
+                                     timeline.clips.find(c => c.trackId === 'video' && c.type !== 'image' && !c.isAiVisual);
+                    }
 
                     if (!targetClip) {
-                        alert('Ingen videofil eller ljudfil hittades på tidslinjen att lyssna av.\n\nImportera en MP4/WAV/MP3 via "📁 Media" först.');
+                        alert('Ingen ljud- eller videofil hittades på tidslinjen att lyssna av.\n\nImportera eller lägg till din låt (MP3/WAV) på tidslinjen först.');
+                        return;
+                    }
+
+                    if (targetClip.type === 'image' || targetClip.isAiVisual || targetClip.isSticker || (targetClip.filePath && targetClip.filePath.match(/\.(png|jpg|jpeg|webp|gif|svg|bmp)$/i))) {
+                        alert(`Det valda klippet ("${targetClip.title || 'Klipp'}") är en bild och saknar ljudspår.\n\nVälj din musikfil i rullistan ("Välj Klipp / Ljudkälla") för att generera undertexter.`);
                         return;
                     }
 
                     const mediaEl = engine.mediaElements.get(targetClip.mediaId);
-                    const mediaSrc = mediaEl ? mediaEl.src : null;
+                    const mediaSrc = targetClip.filePath || (mediaEl ? mediaEl.src : null);
 
                     if (!mediaSrc && !targetClip.isSfx) {
-                        alert('Klippet har ingen kopplad mediefil på disk (t.ex. procedurgenererat testklipp).\n\nImportera en riktig video- eller ljudfil för att köra Whisper-taligenkänning.');
+                        alert('Klippet har ingen kopplad mediefil på disk (t.ex. procedurgenererat testklipp).\n\nVälj ditt musik- eller videospår för att köra Whisper-taligenkänning.');
                         return;
                     }
 
@@ -855,8 +1100,18 @@ document.addEventListener('DOMContentLoaded', () => {
         );
 
         if (e.key === 'Escape') {
+            if (isFullscreenPreview) {
+                toggleFullscreenPreview(false);
+                return;
+            }
             document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
             if (!isInput) timeline.selectClip(null);
+            return;
+        }
+
+        if (e.key === 'F11' || (e.shiftKey && e.key.toLowerCase() === 'f' && !isInput)) {
+            e.preventDefault();
+            toggleFullscreenPreview();
             return;
         }
 
@@ -882,10 +1137,40 @@ document.addEventListener('DOMContentLoaded', () => {
             timeline.deleteSelectedClip();
         } else if (e.key === 'ArrowLeft') {
             e.preventDefault();
-            engine.stepFrame(-1);
+            const delta = e.shiftKey ? -10 : -1;
+            engine.stepFrame(delta);
         } else if (e.key === 'ArrowRight') {
             e.preventDefault();
-            engine.stepFrame(1);
+            const delta = e.shiftKey ? 10 : 1;
+            engine.stepFrame(delta);
+        } else if (e.key === 'Home') {
+            e.preventDefault();
+            engine.seek(0);
+            if (timeline) timeline.ensurePlayheadVisible(0);
+        } else if (e.key === 'End') {
+            e.preventDefault();
+            engine.seek(engine.duration);
+            if (timeline) timeline.ensurePlayheadVisible(0.8);
+        } else if (e.key.toLowerCase() === 'j' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            // J: Rewind / Step back
+            e.preventDefault();
+            if (engine.isPlaying) {
+                engine.playbackRate = Math.max(-4, engine.playbackRate - 1);
+            } else {
+                engine.stepFrame(-5);
+            }
+        } else if (e.key.toLowerCase() === 'k' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            // K: Pause
+            e.preventDefault();
+            engine.pause();
+        } else if (e.key.toLowerCase() === 'l' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            // L: Play / Fast forward
+            e.preventDefault();
+            if (!engine.isPlaying) {
+                engine.play();
+            } else {
+                engine.playbackRate = Math.min(4, engine.playbackRate + 1);
+            }
         } else if (e.key.toLowerCase() === 'n') {
             e.preventDefault();
             snapBtn.click();

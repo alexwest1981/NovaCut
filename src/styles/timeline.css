@@ -94,13 +94,14 @@
 
 /* Track Headers Column (Left fixed) */
 .track-headers {
-    width: 160px;
+    width: 205px;
     background-color: var(--bg-surface);
     border-right: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
     z-index: 40;
     overflow: hidden;
+    flex-shrink: 0;
 }
 
 .track-headers-spacer {
@@ -111,6 +112,10 @@
     border-bottom: 1px solid var(--border-color);
     background: var(--timeline-ruler-bg);
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px;
 }
 
 .track-headers-scrollable {
@@ -127,7 +132,7 @@
     box-sizing: border-box;
     flex-shrink: 0;
     border-bottom: 1px solid var(--border-color);
-    padding: 0 10px;
+    padding: 0 8px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -145,19 +150,22 @@
 .track-header-left {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     overflow: hidden;
+    min-width: 0;
+    flex: 1;
 }
 
 .track-badge {
     display: inline-block;
-    padding: 2px 6px;
+    padding: 2px 5px;
     border-radius: 4px;
     font-size: 9px;
     font-weight: 800;
     letter-spacing: 0.5px;
     text-transform: uppercase;
     font-family: var(--font-mono);
+    flex-shrink: 0;
 }
 
 .track-badge.text {
@@ -191,24 +199,43 @@
     overflow: hidden;
     text-overflow: ellipsis;
     font-size: 11px;
+    cursor: text;
+    padding: 1px 3px;
+    border-radius: 3px;
+}
+
+.track-header-title:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.track-header-title[contenteditable="true"] {
+    background: rgba(0, 0, 0, 0.4);
+    outline: 1px solid var(--accent);
+    color: #fff;
 }
 
 .track-header-actions {
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: 2px;
+    flex-shrink: 0;
 }
 
 .btn-track-action {
     background: transparent;
     border: 1px solid transparent;
     color: var(--text-muted);
-    font-size: 11px;
+    font-size: 10px;
     cursor: pointer;
     padding: 2px 4px;
     border-radius: 4px;
     transition: all 0.12s ease;
     line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 20px;
 }
 
 .btn-track-action:hover {
@@ -221,6 +248,65 @@
     color: #ff4d4f;
     background: rgba(255, 77, 79, 0.15);
     border-color: rgba(255, 77, 79, 0.35);
+}
+
+.btn-track-action.track-delete:hover {
+    color: #ff4d4f;
+    background: rgba(255, 77, 79, 0.2);
+}
+
+.btn-track-action.track-move-up:hover,
+.btn-track-action.track-move-down:hover {
+    color: var(--accent);
+    background: rgba(0, 212, 130, 0.15);
+}
+
+/* Add Track Popup Dropdown Menu */
+.dropdown-menu-popup {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    background: #141722;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
+    padding: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 1px rgba(255, 255, 255, 0.2);
+    z-index: 1000;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    backdrop-filter: blur(12px);
+}
+
+.menu-item-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: #e2e8f0;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.12s ease;
+    width: 100%;
+}
+
+.menu-item-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #fff;
+}
+
+/* Drag over highlight on lane */
+.track-lane.drag-over {
+    outline: 2px dashed #00d482 !important;
+    outline-offset: -2px;
+    background: rgba(0, 212, 130, 0.12) !important;
 }
 
 .track-lane.locked {
@@ -340,11 +426,13 @@
     border-color: #f472b6;
 }
 .timeline-clip.type-audio {
-    background: linear-gradient(180deg, #10b981 0%, #047857 100%);
-    border-color: #34d399;
+    background: linear-gradient(180deg, #093426 0%, #041c14 100%);
+    border-color: #10b981;
 }
 
 .clip-content {
+    position: relative;
+    z-index: 3;
     padding: 0 10px;
     white-space: nowrap;
     overflow: hidden;
@@ -357,12 +445,14 @@
 
 .clip-title {
     font-weight: 600;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
 }
 
 .clip-duration {
     font-size: 10px;
-    opacity: 0.8;
+    opacity: 0.85;
     font-family: var(--font-mono);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 /* Resize Trim Handles */
@@ -501,8 +591,39 @@
     left: 0;
     right: 0;
     bottom: 0;
-    opacity: 0.22;
+    opacity: 0.9;
     pointer-events: none;
     z-index: 1;
+    overflow: hidden;
+    border-radius: 4px;
+}
+
+.clip-waveform-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.clip-filmstrip {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 1;
+    border-radius: 4px;
+}
+
+.clip-filmstrip-frame {
+    height: 100%;
+    width: 68px;
+    flex-shrink: 0;
+    object-fit: cover;
+    opacity: 0.55;
+    border-right: 1px solid rgba(0, 0, 0, 0.45);
+    background: #111;
 }
 

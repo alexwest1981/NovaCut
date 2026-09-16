@@ -127,6 +127,103 @@ class NovaCutInspector {
 
     renderMediaProperties(clip) {
         this.bodyEl.innerHTML = `
+            <!-- Layer & Track Selection -->
+            <div class="inspector-section">
+                <div class="section-title">📑 Lager & Placering</div>
+                <div class="param-row">
+                    <span class="param-label">Tidslinjespår</span>
+                    <select id="propClipTrack" class="select-input" style="flex: 1; font-size: 11px; padding: 4px; background: var(--bg-surface-elevated); color: #fff; border: 1px solid var(--border-color); border-radius: 4px;">
+                        ${this.timeline.tracks.map(t => `<option value="${t.id}" ${clip.trackId === t.id ? 'selected' : ''}>${t.name} (${t.type.toUpperCase()})</option>`).join('')}
+                    </select>
+                </div>
+                ${(clip.demoPattern || clip.type === 'overlay' || clip.isSticker) ? `
+                <div class="param-row">
+                    <span class="param-label">Genomskinlig bakgrund</span>
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer;">
+                        <input type="checkbox" id="propTransparentBg" ${clip.transparentBg !== false ? 'checked' : ''}>
+                        <span style="color: var(--text-muted);">Visa bakgrundsbild under</span>
+                    </label>
+                </div>
+                <div class="param-row">
+                    <span class="param-label">Blandningsläge</span>
+                    <select id="propBlendMode" class="select-input" style="flex: 1; font-size: 11px; padding: 4px; background: var(--bg-surface-elevated); color: #fff; border: 1px solid var(--border-color); border-radius: 4px;">
+                        <option value="source-over" ${(!clip.blendMode || clip.blendMode === 'source-over') ? 'selected' : ''}>Normal</option>
+                        <option value="screen" ${clip.blendMode === 'screen' ? 'selected' : ''}>Screen (Ljus / Glow)</option>
+                        <option value="lighter" ${clip.blendMode === 'lighter' ? 'selected' : ''}>Lighter (Additiv)</option>
+                        <option value="overlay" ${clip.blendMode === 'overlay' ? 'selected' : ''}>Overlay</option>
+                        <option value="multiply" ${clip.blendMode === 'multiply' ? 'selected' : ''}>Multiply</option>
+                    </select>
+                </div>
+                ` : ''}
+            </div>
+
+            ${clip.demoPattern === 'reactive-vinyl' ? `
+            <!-- 💿 Lo-Fi Vinyl Record Customization Section -->
+            <div class="inspector-section">
+                <div class="section-title">💿 Vinylskiva & Etikett</div>
+
+                <div class="param-row">
+                    <span class="param-label">Titel på skivan</span>
+                    <input type="text" id="propVinylTitle" class="text-input" style="flex: 1; font-size: 11px; padding: 4px 6px; background: var(--bg-surface-elevated); color: #fff; border: 1px solid var(--border-color); border-radius: 4px;" placeholder="${document.getElementById('projectTitle')?.value?.trim() || this.engine.getTimelineAudioTitle()}" value="${clip.vinylTitle || ''}">
+                </div>
+
+                <div class="param-row">
+                    <span class="param-label">Etikettstil</span>
+                    <select id="propVinylLabelStyle" class="select-compact" style="flex: 1; font-size: 11px;">
+                        <option value="clean" ${clip.vinylLabelStyle !== 'vintage' ? 'selected' : ''}>Enbart stor projekttitel (Stor & Tydlig)</option>
+                        <option value="vintage" ${clip.vinylLabelStyle === 'vintage' ? 'selected' : ''}>Klassisk Vintage (Stereo & Side A)</option>
+                    </select>
+                </div>
+
+                <div class="param-row">
+                    <span class="param-label">Etikettfärg</span>
+                    <input type="color" class="color-picker" id="propVinylColor1" value="${clip.color1 || '#dc2626'}">
+                </div>
+
+                <div class="param-row">
+                    <span class="param-label">Mittenbild</span>
+                    <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <input type="file" id="inputVinylCoverFile" accept="image/*" style="display: none;">
+                            <button class="btn-secondary" id="btnPickVinylCover" style="font-size: 11px; padding: 4px 8px; flex: 1;">
+                                ${clip.vinylCoverUrl ? '🖼️ Byt bild...' : '🖼️ Välj egen bild...'}
+                            </button>
+                            <button class="btn-secondary" id="btnPresetPedro" style="font-size: 11px; padding: 4px 8px;" title="Viral 'Pedro Pedro Pedro' Raccoon Meme">
+                                🦝 Pedro Meme
+                            </button>
+                            ${clip.vinylCoverUrl ? `
+                            <button class="btn-secondary" id="btnRemoveVinylCover" style="font-size: 11px; padding: 4px 8px; color: #ef4444;" title="Ta bort bild">✕</button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="param-row">
+                    <span class="param-label">Centrumhål</span>
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer;">
+                        <input type="checkbox" id="propVinylCenterHole" ${clip.showCenterHole === true ? 'checked' : ''}>
+                        <span style="color: var(--text-muted);">Rita hål i mitten av etiketten/bilden</span>
+                    </label>
+                </div>
+
+                <div class="param-row">
+                    <span class="param-label">Snurrhastighet</span>
+                    <div class="slider-container">
+                        <input type="range" id="propVinylSpeed" min="0.5" max="5.0" step="0.1" value="${clip.vinylSpeed !== undefined ? clip.vinylSpeed : 2.2}">
+                        <span class="num-display" id="valVinylSpeed">${(clip.vinylSpeed !== undefined ? clip.vinylSpeed : 2.2).toFixed(1)}x</span>
+                    </div>
+                </div>
+
+                <div class="param-row">
+                    <span class="param-label">Tonarm & Nål</span>
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer;">
+                        <input type="checkbox" id="propVinylTonearm" ${clip.showTonearm !== false ? 'checked' : ''}>
+                        <span style="color: var(--text-muted);">Visa rörlig tonarm på skivan</span>
+                    </label>
+                </div>
+            </div>
+            ` : ''}
+
             <!-- Picture-in-Picture & Reaktionslayouter Section -->
             <div class="inspector-section">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
@@ -206,6 +303,15 @@ class NovaCutInspector {
                 <div class="section-title">Transformering & Keyframing</div>
                 
                 <div class="param-row">
+                    <span class="param-label">Auto-Reframe / Bakgrund</span>
+                    <div style="display: flex; gap: 4px; margin-top: 4px;">
+                        <button class="btn-text-preset ${(clip.fitMode === 'cover' || !clip.fitMode) ? 'active' : ''}" data-fit-mode="cover" title="Fyll hela rutan (beskär kanter)">Fyll (Cover)</button>
+                        <button class="btn-text-preset ${clip.fitMode === 'contain' ? 'active' : ''}" data-fit-mode="contain" title="Visa hela videon utan beskärning">Passa (Fit)</button>
+                        <button class="btn-text-preset ${clip.fitMode === 'blur-bg' ? 'active' : ''}" data-fit-mode="blur-bg" title="TikTok / Shorts stil: Suddig bakgrund bakom videon">🌫️ Suddig BG</button>
+                    </div>
+                </div>
+
+                <div class="param-row">
                     <div class="param-label-row">
                         <span class="param-label">Skala (Zoom)</span>
                         <div class="keyframe-group">
@@ -283,6 +389,23 @@ class NovaCutInspector {
                     <div class="param-input-group">
                         <input type="range" class="slider-input" id="propOpacity" min="0" max="1" step="0.05" value="${clip.opacity !== undefined ? clip.opacity : 1.0}">
                         <span class="num-display" id="valOpacity">${Math.round((clip.opacity !== undefined ? clip.opacity : 1.0) * 100)}%</span>
+                    </div>
+                </div>
+
+                <!-- CapCut-style Easing Curves -->
+                <div class="param-row" style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--border-color);">
+                    <div class="param-label-row">
+                        <span class="param-label">📈 Rörelsekurva (Easing)</span>
+                    </div>
+                    <div class="param-input-group">
+                        <select id="propKeyframeEasing" class="select-input" style="width: 100%; font-size: 11px; padding: 4px 6px; background: var(--bg-surface-elevated); color: #fff; border: 1px solid var(--border-color); border-radius: 4px;">
+                            <option value="smooth" ${(!clip.keyframeEasing || clip.keyframeEasing === 'smooth') ? 'selected' : ''}>🌊 Mjuk (Ease In-Out)</option>
+                            <option value="linear" ${clip.keyframeEasing === 'linear' ? 'selected' : ''}>📏 Linjär (Jämn fart)</option>
+                            <option value="ease-in" ${clip.keyframeEasing === 'ease-in' ? 'selected' : ''}>🚀 Accelerera (Ease In)</option>
+                            <option value="ease-out" ${clip.keyframeEasing === 'ease-out' ? 'selected' : ''}>🛑 Inbromsning (Ease Out)</option>
+                            <option value="bounce" ${clip.keyframeEasing === 'bounce' ? 'selected' : ''}>🏀 Studs / Elastisk (Bounce)</option>
+                            <option value="back-out" ${clip.keyframeEasing === 'back-out' ? 'selected' : ''}>🎯 Snärt / Overshoot</option>
+                        </select>
                     </div>
                 </div>
             </div>
@@ -451,6 +574,9 @@ class NovaCutInspector {
                     <button class="btn-color-preset ${clip.colorPreset === 'cyberpunk' ? 'active' : ''}" data-preset="cyberpunk">Cyberpunk</button>
                     <button class="btn-color-preset ${clip.colorPreset === 'noir' ? 'active' : ''}" data-preset="noir">Noir B&W</button>
                     <button class="btn-color-preset ${clip.colorPreset === 'vintage' ? 'active' : ''}" data-preset="vintage">Vintage 35mm</button>
+                    <button class="btn-color-preset ${clip.colorPreset === 'anime' ? 'active' : ''}" data-preset="anime">Anime Pop</button>
+                    <button class="btn-color-preset ${clip.colorPreset === 'matrix' ? 'active' : ''}" data-preset="matrix">Matrix Green</button>
+                    <button class="btn-color-preset ${clip.colorPreset === 'kodak' ? 'active' : ''}" data-preset="kodak">Kodak Portra</button>
                 </div>
 
                 <div class="param-row">
@@ -498,6 +624,174 @@ class NovaCutInspector {
                     <div class="param-input-group">
                         <input type="range" class="slider-input" id="propColorVignette" min="0" max="100" step="5" value="${clip.vignette || 0}">
                         <span class="num-display" id="valColorVignette">${clip.vignette || 0}%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Viral VFX & Camera Motion Section -->
+            <div class="inspector-section">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <div class="section-title" style="margin-bottom: 0;">⚡ Virala Effekter & Rörelser</div>
+                    <button class="btn-secondary" id="btnResetVFX" style="font-size: 10px; padding: 2px 6px; cursor: pointer;">Återställ</button>
+                </div>
+
+                <!-- 1. Kameraskak (Camera Shake) -->
+                <div class="vfx-block" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; margin-bottom: 8px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 5px;">
+                            <span>🎬 Kameraskak (Camera Shake)</span>
+                        </span>
+                        <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer;">
+                            <input type="checkbox" id="propShakeEnabled" ${clip.vfx?.shake?.enabled ? 'checked' : ''}>
+                            <span style="color: var(--accent);">Aktiv</span>
+                        </label>
+                    </div>
+                    <div id="shakeControls" style="display: ${clip.vfx?.shake?.enabled ? 'block' : 'none'}; margin-top: 8px;">
+                        <div class="param-row">
+                            <span class="param-label">Läge</span>
+                            <select id="propShakeMode" class="select-input" style="flex: 1; padding: 3px 6px; font-size: 11px; background: var(--bg-tertiary); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 4px;">
+                                <option value="handheld" ${(!clip.vfx?.shake?.mode || clip.vfx?.shake?.mode === 'handheld') ? 'selected' : ''}>🖐️ Handhållen (Organisk drift)</option>
+                                <option value="action" ${clip.vfx?.shake?.mode === 'action' ? 'selected' : ''}>💥 Action (Hög energi)</option>
+                                <option value="bass_drop" ${clip.vfx?.shake?.mode === 'bass_drop' ? 'selected' : ''}>🥁 Bas-puls / Impact</option>
+                            </select>
+                        </div>
+                        <div class="param-row">
+                            <span class="param-label">Styrka</span>
+                            <div class="param-input-group">
+                                <input type="range" class="slider-input" id="propShakeIntensity" min="5" max="100" step="5" value="${clip.vfx?.shake?.intensity || 40}">
+                                <span class="num-display" id="valShakeIntensity">${clip.vfx?.shake?.intensity || 40}%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Zoom Bounce / Impact Puls -->
+                <div class="vfx-block" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; margin-bottom: 8px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 5px;">
+                            <span>💥 Zoom-studs (Zoom Bounce)</span>
+                        </span>
+                        <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer;">
+                            <input type="checkbox" id="propZoomBounceEnabled" ${clip.vfx?.zoomBounce?.enabled ? 'checked' : ''}>
+                            <span style="color: var(--accent);">Aktiv</span>
+                        </label>
+                    </div>
+                    <div id="zoomBounceControls" style="display: ${clip.vfx?.zoomBounce?.enabled ? 'block' : 'none'}; margin-top: 8px;">
+                        <div class="param-row">
+                            <span class="param-label">Rytm</span>
+                            <select id="propZoomBounceFreq" class="select-input" style="flex: 1; padding: 3px 6px; font-size: 11px; background: var(--bg-tertiary); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 4px;">
+                                <option value="beat" ${(!clip.vfx?.zoomBounce?.freq || clip.vfx?.zoomBounce?.freq === 'beat') ? 'selected' : ''}>⚡ Beat Puls (120 BPM)</option>
+                                <option value="fast" ${clip.vfx?.zoomBounce?.freq === 'fast' ? 'selected' : ''}>🚀 Snabb studsslag</option>
+                                <option value="slow" ${clip.vfx?.zoomBounce?.freq === 'slow' ? 'selected' : ''}>🌊 Mjuk vågrörelse</option>
+                            </select>
+                        </div>
+                        <div class="param-row">
+                            <span class="param-label">Styrka</span>
+                            <div class="param-input-group">
+                                <input type="range" class="slider-input" id="propZoomBounceIntensity" min="5" max="100" step="5" value="${clip.vfx?.zoomBounce?.intensity || 35}">
+                                <span class="num-display" id="valZoomBounceIntensity">${clip.vfx?.zoomBounce?.intensity || 35}%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. RGB Split / Chromatic Aberration Twitch -->
+                <div class="vfx-block" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; margin-bottom: 8px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 5px;">
+                            <span>🌈 RGB Split (Chromatic Glitch)</span>
+                        </span>
+                        <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer;">
+                            <input type="checkbox" id="propRgbSplitEnabled" ${clip.vfx?.rgbSplit?.enabled ? 'checked' : ''}>
+                            <span style="color: var(--accent);">Aktiv</span>
+                        </label>
+                    </div>
+                    <div id="rgbSplitControls" style="display: ${clip.vfx?.rgbSplit?.enabled ? 'block' : 'none'}; margin-top: 8px;">
+                        <div class="param-row">
+                            <span class="param-label">Förskjutning</span>
+                            <div class="param-input-group">
+                                <input type="range" class="slider-input" id="propRgbSplitAmount" min="2" max="40" step="1" value="${clip.vfx?.rgbSplit?.amount || 14}">
+                                <span class="num-display" id="valRgbSplitAmount">${clip.vfx?.rgbSplit?.amount || 14}px</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Filmkorn (35mm Film Grain) -->
+                <div class="vfx-block" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; margin-bottom: 8px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 5px;">
+                            <span>🎞️ Analogt Filmkorn (35mm Grain)</span>
+                        </span>
+                        <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer;">
+                            <input type="checkbox" id="propFilmGrainEnabled" ${clip.vfx?.filmGrain?.enabled ? 'checked' : ''}>
+                            <span style="color: var(--accent);">Aktiv</span>
+                        </label>
+                    </div>
+                    <div id="filmGrainControls" style="display: ${clip.vfx?.filmGrain?.enabled ? 'block' : 'none'}; margin-top: 8px;">
+                        <div class="param-row">
+                            <span class="param-label">Mängd korn</span>
+                            <div class="param-input-group">
+                                <input type="range" class="slider-input" id="propFilmGrainAmount" min="5" max="100" step="5" value="${clip.vfx?.filmGrain?.amount || 45}">
+                                <span class="num-display" id="valFilmGrainAmount">${clip.vfx?.filmGrain?.amount || 45}%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. VHS & Y2K Retro Camcorder -->
+                <div class="vfx-block" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; margin-bottom: 8px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 5px;">
+                            <span>📼 VHS & Retro CRT</span>
+                        </span>
+                        <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer;">
+                            <input type="checkbox" id="propVhsEnabled" ${clip.vfx?.vhs?.enabled ? 'checked' : ''}>
+                            <span style="color: var(--accent);">Aktiv</span>
+                        </label>
+                    </div>
+                    <div id="vhsControls" style="display: ${clip.vfx?.vhs?.enabled ? 'block' : 'none'}; margin-top: 8px;">
+                        <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer; margin-bottom: 6px;">
+                            <input type="checkbox" id="propVhsOsd" ${clip.vfx?.vhs?.osd !== false ? 'checked' : ''}>
+                            <span style="color: var(--text-muted);">Visa PLAY 1998 OSD-tidsstämpel</span>
+                        </label>
+                        <div class="param-row">
+                            <span class="param-label">Störningsnivå</span>
+                            <div class="param-input-group">
+                                <input type="range" class="slider-input" id="propVhsIntensity" min="10" max="100" step="5" value="${clip.vfx?.vhs?.intensity || 50}">
+                                <span class="num-display" id="valVhsIntensity">${clip.vfx?.vhs?.intensity || 50}%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. Ljusläcka & Blixt (Light Leak / Flash Pop) -->
+                <div class="vfx-block" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 5px;">
+                            <span>✨ Filmisk Ljusläcka (Light Leak)</span>
+                        </span>
+                        <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer;">
+                            <input type="checkbox" id="propLightLeakEnabled" ${clip.vfx?.lightLeak?.enabled ? 'checked' : ''}>
+                            <span style="color: var(--accent);">Aktiv</span>
+                        </label>
+                    </div>
+                    <div id="lightLeakControls" style="display: ${clip.vfx?.lightLeak?.enabled ? 'block' : 'none'}; margin-top: 8px;">
+                        <div class="param-row">
+                            <span class="param-label">Färgton</span>
+                            <select id="propLightLeakTone" class="select-input" style="flex: 1; padding: 3px 6px; font-size: 11px; background: var(--bg-tertiary); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 4px;">
+                                <option value="amber" ${(!clip.vfx?.lightLeak?.tone || clip.vfx?.lightLeak?.tone === 'amber') ? 'selected' : ''}>🌅 Varm Gyllene Sol</option>
+                                <option value="cyan" ${clip.vfx?.lightLeak?.tone === 'cyan' ? 'selected' : ''}>❄️ Kall Anamorfisk Blå</option>
+                                <option value="neon" ${clip.vfx?.lightLeak?.tone === 'neon' ? 'selected' : ''}>🔮 Neon Cyber Magenta</option>
+                            </select>
+                        </div>
+                        <div class="param-row">
+                            <span class="param-label">Styrka</span>
+                            <div class="param-input-group">
+                                <input type="range" class="slider-input" id="propLightLeakAmount" min="10" max="100" step="5" value="${clip.vfx?.lightLeak?.amount || 50}">
+                                <span class="num-display" id="valLightLeakAmount">${clip.vfx?.lightLeak?.amount || 50}%</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -597,6 +891,14 @@ class NovaCutInspector {
                     </div>
                 </div>
 
+                <div class="param-row" id="rowMaskFeather" style="display: ${clip.mask && clip.mask.type !== 'none' ? 'flex' : 'none'}; margin-top: 6px;">
+                    <span class="param-label">Luddighet (Feather)</span>
+                    <div class="param-input-group">
+                        <input type="range" class="slider-input" id="propMaskFeather" min="0" max="100" step="1" value="${clip.mask?.feather || 0}">
+                        <span class="num-display" id="valMaskFeather">${clip.mask?.feather || 0}px</span>
+                    </div>
+                </div>
+
                 <div class="param-row" id="rowMaskInvert" style="display: ${clip.mask && clip.mask.type !== 'none' ? 'flex' : 'none'}; margin-top: 6px;">
                     <span class="param-label">Invertera</span>
                     <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer;">
@@ -606,59 +908,309 @@ class NovaCutInspector {
                 </div>
             </div>
 
-            <!-- Chroma Key & Green Screen Section -->
+            <!-- Smart Cutout & Chroma Key Section -->
             <div class="inspector-section">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                    <div class="section-title" style="margin-bottom: 0;">🟩 Chroma Key (Green Screen)</div>
-                    <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer;">
-                        <input type="checkbox" id="propChromaEnabled" ${clip.chromaKey?.enabled ? 'checked' : ''}>
-                        <span style="color: var(--accent);">Aktiv</span>
-                    </label>
+                    <div class="section-title" style="margin-bottom: 0;">✂️ Utskärning & Bakgrund</div>
                 </div>
 
-                <div id="chromaKeyControls" style="display: ${clip.chromaKey?.enabled ? 'block' : 'none'};">
-                    <div class="param-row">
-                        <span class="param-label">Nyckelfärg</span>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <input type="color" id="propChromaColor" value="${clip.chromaKey?.color || '#00ff00'}" style="background: transparent; border: 1px solid var(--border-color); border-radius: 4px; width: 36px; height: 26px; cursor: pointer; padding: 1px;">
-                            <button class="btn-secondary" id="btnChromaEyedropper" title="Klicka på förhandsgranskningen för att välja färg" style="font-size: 11px; padding: 4px 8px; display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                                <span>🎯 Pipett</span>
-                            </button>
-                        </div>
+                <!-- Sub-section 1: Smart Auto Cutout -->
+                <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; margin-bottom: 8px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: ${clip.autoCutout?.enabled ? '8px' : '0'};">
+                        <span style="font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                            <span>✨ Smart Auto Cutout</span>
+                        </span>
+                        <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer;">
+                            <input type="checkbox" id="propCutoutEnabled" ${clip.autoCutout?.enabled ? 'checked' : ''}>
+                            <span style="color: var(--accent);">Aktiv</span>
+                        </label>
                     </div>
 
-                    <div class="param-row">
-                        <span class="param-label">Tolerans</span>
-                        <div class="param-input-group">
-                            <input type="range" class="slider-input" id="propChromaTolerance" min="1" max="100" step="1" value="${clip.chromaKey?.tolerance !== undefined ? clip.chromaKey.tolerance : 35}">
-                            <span class="num-display" id="valChromaTolerance">${clip.chromaKey?.tolerance !== undefined ? clip.chromaKey.tolerance : 35}%</span>
+                    <div id="autoCutoutControls" style="display: ${clip.autoCutout?.enabled ? 'block' : 'none'};">
+                        <div class="param-row">
+                            <span class="param-label">Läge</span>
+                            <select id="propCutoutMode" class="select-input" style="flex: 1; padding: 3px 6px; font-size: 11px; background: var(--bg-tertiary); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 4px;">
+                                <option value="auto-subject" ${(!clip.autoCutout?.mode || clip.autoCutout?.mode === 'auto-subject') ? 'selected' : ''}>👤 Auto Motiv (Smart isolering)</option>
+                                <option value="luma-dark" ${clip.autoCutout?.mode === 'luma-dark' ? 'selected' : ''}>🌑 Ta bort svart bakgrund (VFX)</option>
+                                <option value="luma-bright" ${clip.autoCutout?.mode === 'luma-bright' ? 'selected' : ''}>⚪ Ta bort vit bakgrund (Logos)</option>
+                            </select>
+                        </div>
+
+                        <div class="param-row">
+                            <span class="param-label">Känslighet</span>
+                            <div class="param-input-group">
+                                <input type="range" class="slider-input" id="propCutoutSensitivity" min="1" max="100" step="1" value="${clip.autoCutout?.sensitivity !== undefined ? clip.autoCutout.sensitivity : 40}">
+                                <span class="num-display" id="valCutoutSensitivity">${clip.autoCutout?.sensitivity !== undefined ? clip.autoCutout.sensitivity : 40}%</span>
+                            </div>
+                        </div>
+
+                        <div class="param-row">
+                            <span class="param-label">Kantmjukhet</span>
+                            <div class="param-input-group">
+                                <input type="range" class="slider-input" id="propCutoutSmooth" min="0" max="50" step="1" value="${clip.autoCutout?.smoothness !== undefined ? clip.autoCutout.smoothness : 15}">
+                                <span class="num-display" id="valCutoutSmooth">${clip.autoCutout?.smoothness !== undefined ? clip.autoCutout.smoothness : 15}</span>
+                            </div>
                         </div>
                     </div>
+                </div>
 
-                    <div class="param-row">
-                        <span class="param-label">Mjukhet (Edge)</span>
-                        <div class="param-input-group">
-                            <input type="range" class="slider-input" id="propChromaSmooth" min="0" max="50" step="1" value="${clip.chromaKey?.smooth !== undefined ? clip.chromaKey.smooth : 10}">
-                            <span class="num-display" id="valChromaSmooth">${clip.chromaKey?.smooth !== undefined ? clip.chromaKey.smooth : 10}</span>
-                        </div>
+                <!-- Sub-section 2: Chroma Key (Green Screen) -->
+                <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: ${clip.chromaKey?.enabled ? '8px' : '0'};">
+                        <span style="font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                            <span>🟩 Chroma Key (Green Screen)</span>
+                        </span>
+                        <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer;">
+                            <input type="checkbox" id="propChromaEnabled" ${clip.chromaKey?.enabled ? 'checked' : ''}>
+                            <span style="color: var(--accent);">Aktiv</span>
+                        </label>
                     </div>
 
-                    <div class="param-row">
-                        <span class="param-label">Spilldämpning</span>
-                        <div class="param-input-group">
-                            <input type="range" class="slider-input" id="propChromaSpill" min="0" max="100" step="5" value="${clip.chromaKey?.spill !== undefined ? clip.chromaKey.spill : 40}">
-                            <span class="num-display" id="valChromaSpill">${clip.chromaKey?.spill !== undefined ? clip.chromaKey.spill : 40}%</span>
+                    <div id="chromaKeyControls" style="display: ${clip.chromaKey?.enabled ? 'block' : 'none'};">
+                        <div class="param-row">
+                            <span class="param-label">Nyckelfärg</span>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <input type="color" id="propChromaColor" value="${clip.chromaKey?.color || '#00ff00'}" style="background: transparent; border: 1px solid var(--border-color); border-radius: 4px; width: 36px; height: 26px; cursor: pointer; padding: 1px;">
+                                <button class="btn-secondary" id="btnChromaEyedropper" title="Klicka på förhandsgranskningen för att välja färg" style="font-size: 11px; padding: 4px 8px; display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                                    <span>🎯 Pipett</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="param-row">
+                            <span class="param-label">Tolerans</span>
+                            <div class="param-input-group">
+                                <input type="range" class="slider-input" id="propChromaTolerance" min="1" max="100" step="1" value="${clip.chromaKey?.tolerance !== undefined ? clip.chromaKey.tolerance : 35}">
+                                <span class="num-display" id="valChromaTolerance">${clip.chromaKey?.tolerance !== undefined ? clip.chromaKey.tolerance : 35}%</span>
+                            </div>
+                        </div>
+
+                        <div class="param-row">
+                            <span class="param-label">Mjukhet (Edge)</span>
+                            <div class="param-input-group">
+                                <input type="range" class="slider-input" id="propChromaSmooth" min="0" max="50" step="1" value="${clip.chromaKey?.smooth !== undefined ? clip.chromaKey.smooth : 10}">
+                                <span class="num-display" id="valChromaSmooth">${clip.chromaKey?.smooth !== undefined ? clip.chromaKey.smooth : 10}</span>
+                            </div>
+                        </div>
+
+                        <div class="param-row">
+                            <span class="param-label">Spilldämpning</span>
+                            <div class="param-input-group">
+                                <input type="range" class="slider-input" id="propChromaSpill" min="0" max="100" step="5" value="${clip.chromaKey?.spill !== undefined ? clip.chromaKey.spill : 40}">
+                                <span class="num-display" id="valChromaSpill">${clip.chromaKey?.spill !== undefined ? clip.chromaKey.spill : 40}%</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Motionleap Cinemagraph (Photo Flow) Section -->
+            <div class="inspector-section">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <div class="section-title" style="margin-bottom: 0;">🌊 Levande Foto (Motionleap Flow)</div>
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer;">
+                        <input type="checkbox" id="propCinemagraphEnabled" ${clip.cinemagraph?.enabled ? 'checked' : ''}>
+                        <span style="color: #00f2fe; font-weight: 600;">Aktiv</span>
+                    </label>
+                </div>
+
+                <div id="cinemagraphControls" style="display: ${clip.cinemagraph?.enabled ? 'block' : 'none'};">
+                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px; line-height: 1.4;">
+                        Animera vatten, moln, rök och eld i sömlösa loopar genom att rita flödespilar och frysa stillastående områden på videorutan.
+                    </div>
+
+                    <!-- Tool Buttons -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px;">
+                        <button class="btn-secondary btn-cin-tool active" id="btnCinToolPath" data-tool="path" style="font-size: 11px; padding: 6px 8px; text-align: left; display: flex; align-items: center; gap: 6px; border-color: #00f2fe;">
+                            <span>🏹 Flödespil</span>
+                        </button>
+                        <button class="btn-secondary btn-cin-tool" id="btnCinToolFreeze" data-tool="freeze" style="font-size: 11px; padding: 6px 8px; text-align: left; display: flex; align-items: center; gap: 6px;">
+                            <span>🧊 Frys-pensel</span>
+                        </button>
+                        <button class="btn-secondary btn-cin-tool" id="btnCinToolUnfreeze" data-tool="unfreeze" style="font-size: 11px; padding: 6px 8px; text-align: left; display: flex; align-items: center; gap: 6px;">
+                            <span>🧹 Radera frys</span>
+                        </button>
+                        <button class="btn-secondary btn-cin-tool" id="btnCinToolAnchor" data-tool="anchor" style="font-size: 11px; padding: 6px 8px; text-align: left; display: flex; align-items: center; gap: 6px;">
+                            <span>📌 Fästpunkt</span>
+                        </button>
+                    </div>
+
+                    <!-- Flow Speed & Distortion Sliders -->
+                    <div class="param-row">
+                        <span class="param-label">Flödeshastighet</span>
+                        <div class="slider-container">
+                            <input type="range" id="propCinSpeed" min="0.2" max="3.0" step="0.1" value="${clip.cinemagraph?.speed !== undefined ? clip.cinemagraph.speed : 1.0}">
+                            <span class="num-display" id="valCinSpeed">${(clip.cinemagraph?.speed !== undefined ? clip.cinemagraph.speed : 1.0).toFixed(1)}x</span>
+                        </div>
+                    </div>
+
+                    <div class="param-row">
+                        <span class="param-label">Rörelsestyrka</span>
+                        <div class="slider-container">
+                            <input type="range" id="propCinScale" min="0.2" max="2.5" step="0.1" value="${clip.cinemagraph?.scale !== undefined ? clip.cinemagraph.scale : 1.0}">
+                            <span class="num-display" id="valCinScale">${(clip.cinemagraph?.scale !== undefined ? clip.cinemagraph.scale : 1.0).toFixed(1)}x</span>
+                        </div>
+                    </div>
+
+                    <div class="param-row">
+                        <span class="param-label">Penselstorlek</span>
+                        <div class="slider-container">
+                            <input type="range" id="propCinBrush" min="15" max="120" step="5" value="40">
+                            <span class="num-display" id="valCinBrush">40px</span>
+                        </div>
+                    </div>
+
+                    <!-- Presets Grid -->
+                    <div style="margin-top: 10px; margin-bottom: 8px;">
+                        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">⚡ Snabbmallar:</div>
+                        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                            <button class="btn-secondary btn-cin-preset" data-preset="waterfall" style="font-size: 10px; padding: 3px 6px;">💧 Vattenfall</button>
+                            <button class="btn-secondary btn-cin-preset" data-preset="river" style="font-size: 10px; padding: 3px 6px;">🌊 Flod</button>
+                            <button class="btn-secondary btn-cin-preset" data-preset="clouds" style="font-size: 10px; padding: 3px 6px;">☁️ Molndrift</button>
+                            <button class="btn-secondary btn-cin-preset" data-preset="smoke" style="font-size: 10px; padding: 3px 6px;">🔥 Rök/Eld</button>
+                            <button class="btn-secondary btn-cin-preset" data-preset="nebula" style="font-size: 10px; padding: 3px 6px;">🌌 Virvel</button>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
+                        <button class="btn-secondary" id="btnCinClearAll" style="font-size: 10px; color: #ef4444; border-color: rgba(239,68,68,0.3); padding: 4px 8px;">
+                            🗑️ Rensa alla flöden & masker
+                        </button>
+                    </div>
+                </div>
+            </div>
         `;
+
+        // Track selection listener
+        const trackSel = document.getElementById('propClipTrack');
+        if (trackSel) {
+            trackSel.addEventListener('change', (e) => {
+                const newTrkId = e.target.value;
+                clip.trackId = newTrkId;
+                this.timeline.renderClipDOM(clip);
+                this.engine.render();
+                if (window.novaCutToast) {
+                    const trk = this.timeline.tracks.find(t => t.id === newTrkId);
+                    window.novaCutToast(`Klipp flyttat till ${trk ? trk.name : newTrkId}`);
+                }
+            });
+        }
+
+        // Transparent background toggle listener
+        const transCheck = document.getElementById('propTransparentBg');
+        if (transCheck) {
+            transCheck.addEventListener('change', (e) => {
+                clip.transparentBg = e.target.checked;
+                this.engine.render();
+            });
+        }
+
+        // Blend mode listener
+        const blendSel = document.getElementById('propBlendMode');
+        if (blendSel) {
+            blendSel.addEventListener('change', (e) => {
+                clip.blendMode = e.target.value;
+                this.engine.render();
+            });
+        }
+
+        // 💿 Vinyl Record Event Handlers
+        const inputVinylTitle = document.getElementById('propVinylTitle');
+        if (inputVinylTitle) {
+            inputVinylTitle.addEventListener('input', (e) => {
+                clip.vinylTitle = e.target.value;
+                this.engine.render();
+            });
+        }
+
+        const selLabelStyle = document.getElementById('propVinylLabelStyle');
+        if (selLabelStyle) {
+            selLabelStyle.addEventListener('change', (e) => {
+                clip.vinylLabelStyle = e.target.value;
+                this.engine.render();
+            });
+        }
+
+        const inputVinylColor1 = document.getElementById('propVinylColor1');
+        if (inputVinylColor1) {
+            inputVinylColor1.addEventListener('input', (e) => {
+                clip.color1 = e.target.value;
+                this.engine.render();
+            });
+        }
+
+        const chkCenterHole = document.getElementById('propVinylCenterHole');
+        if (chkCenterHole) {
+            chkCenterHole.addEventListener('change', (e) => {
+                clip.showCenterHole = e.target.checked;
+                this.engine.render();
+            });
+        }
+
+        const btnPedro = document.getElementById('btnPresetPedro');
+        if (btnPedro) {
+            btnPedro.addEventListener('click', () => {
+                const PEDRO_SVG = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240"><defs><radialGradient id="pBg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="%2334d399"/><stop offset="70%" stop-color="%23059669"/><stop offset="100%" stop-color="%23047857"/></radialGradient><radialGradient id="fur" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="%2394a3b8"/><stop offset="100%" stop-color="%23475569"/></radialGradient></defs><circle cx="120" cy="120" r="118" fill="url(%23pBg)" stroke="%23fcd34d" stroke-width="5"/><circle cx="120" cy="120" r="108" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-dasharray="6,4"/><circle cx="70" cy="72" r="26" fill="%23334155"/><circle cx="70" cy="72" r="16" fill="%23f1f5f9"/><circle cx="170" cy="72" r="26" fill="%23334155"/><circle cx="170" cy="72" r="16" fill="%23f1f5f9"/><ellipse cx="120" cy="132" rx="68" ry="58" fill="url(%23fur)"/><path d="M 62 120 C 75 104, 100 110, 120 122 C 140 110, 165 104, 178 120 C 185 132, 168 146, 142 140 C 128 137, 120 134, 120 134 C 120 134, 112 137, 98 140 C 72 146, 55 132, 62 120 Z" fill="%230f172a"/><ellipse cx="88" cy="122" rx="14" ry="16" fill="%23ffffff"/><ellipse cx="152" cy="122" rx="14" ry="16" fill="%23ffffff"/><circle cx="89" cy="123" r="10" fill="%23000000"/><circle cx="86" cy="120" r="3.5" fill="%23ffffff"/><circle cx="91" cy="125" r="1.5" fill="%23ffffff"/><circle cx="151" cy="123" r="10" fill="%23000000"/><circle cx="148" cy="120" r="3.5" fill="%23ffffff"/><circle cx="153" cy="125" r="1.5" fill="%23ffffff"/><ellipse cx="120" cy="148" rx="22" ry="16" fill="%23f8fafc"/><polygon points="113,142 127,142 120,149" fill="%2309090b"/><path d="M 120 149 Q 120 155 114 156 M 120 149 Q 120 155 126 156" stroke="%2309090b" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="68" cy="138" r="9" fill="%23fb7185" opacity="0.6"/><circle cx="172" cy="138" r="9" fill="%23fb7185" opacity="0.6"/><ellipse cx="80" cy="180" rx="16" ry="12" fill="%23334155"/><ellipse cx="160" cy="180" rx="16" ry="12" fill="%23334155"/><path id="textArc" d="M 28 120 A 92 92 0 0 1 212 120" fill="none"/><text font-family="system-ui, sans-serif" font-weight="900" font-size="13" fill="%23fef08a" letter-spacing="2"><textPath href="%23textArc" startOffset="50%" text-anchor="middle">★ PEDRO • PEDRO • PEDRO ★</textPath></text></svg>`;
+                clip.vinylCoverUrl = PEDRO_SVG;
+                clip.showCenterHole = false;
+                this.update(clip);
+                this.engine.render();
+            });
+        }
+
+        const btnPickCover = document.getElementById('btnPickVinylCover');
+        const fileCoverInput = document.getElementById('inputVinylCoverFile');
+        if (btnPickCover && fileCoverInput) {
+            btnPickCover.addEventListener('click', () => fileCoverInput.click());
+            fileCoverInput.addEventListener('change', (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    clip.vinylCoverUrl = ev.target.result;
+                    this.update(clip);
+                    this.engine.render();
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        const btnRemoveCover = document.getElementById('btnRemoveVinylCover');
+        if (btnRemoveCover) {
+            btnRemoveCover.addEventListener('click', () => {
+                delete clip.vinylCoverUrl;
+                this.update(clip);
+                this.engine.render();
+            });
+        }
+
+        this.bindInput('propVinylSpeed', 'valVinylSpeed', (v) => {
+            clip.vinylSpeed = parseFloat(v);
+            this.engine.render();
+            return `${parseFloat(v).toFixed(1)}x`;
+        });
+
+        const chkTonearm = document.getElementById('propVinylTonearm');
+        if (chkTonearm) {
+            chkTonearm.addEventListener('change', (e) => {
+                clip.showTonearm = e.target.checked;
+                this.engine.render();
+            });
+        }
 
         this.bindKeyframeControl(clip, 'scale', 'propScale', 'valScale', (v) => `${v.toFixed(2)}x`);
         this.bindKeyframeControl(clip, 'posX', 'propPosX', 'valPosX', (v) => Math.round(v));
         this.bindKeyframeControl(clip, 'posY', 'propPosY', 'valPosY', (v) => Math.round(v));
         this.bindKeyframeControl(clip, 'rotation', 'propRotation', 'valRotation', (v) => `${Math.round(v)}°`);
         this.bindKeyframeControl(clip, 'opacity', 'propOpacity', 'valOpacity', (v) => `${Math.round(v * 100)}%`);
+
+        const easingSel = document.getElementById('propKeyframeEasing');
+        if (easingSel) {
+            easingSel.addEventListener('change', (e) => {
+                clip.keyframeEasing = e.target.value;
+                this.engine.render();
+            });
+        }
 
         this.bindInput('propVideoVol', 'valVideoVol', (v) => {
             clip.volume = parseFloat(v);
@@ -739,6 +1291,173 @@ class NovaCutInspector {
             });
         }
 
+        // --- Viral VFX & Motion Event Handlers ---
+        // 1. Shake
+        const chkShake = document.getElementById('propShakeEnabled');
+        const shakeControls = document.getElementById('shakeControls');
+        const selShakeMode = document.getElementById('propShakeMode');
+        if (chkShake) {
+            chkShake.addEventListener('change', (e) => {
+                clip.vfx = clip.vfx || {};
+                clip.vfx.shake = clip.vfx.shake || { mode: 'handheld', intensity: 40 };
+                clip.vfx.shake.enabled = e.target.checked;
+                if (shakeControls) shakeControls.style.display = e.target.checked ? 'block' : 'none';
+                this.engine.render();
+            });
+        }
+        if (selShakeMode) {
+            selShakeMode.addEventListener('change', (e) => {
+                clip.vfx = clip.vfx || {};
+                clip.vfx.shake = clip.vfx.shake || { enabled: true };
+                clip.vfx.shake.mode = e.target.value;
+                this.engine.render();
+            });
+        }
+        this.bindInput('propShakeIntensity', 'valShakeIntensity', (v) => {
+            clip.vfx = clip.vfx || {};
+            clip.vfx.shake = clip.vfx.shake || { enabled: true };
+            clip.vfx.shake.intensity = parseFloat(v);
+            this.engine.render();
+            return `${v}%`;
+        });
+
+        // 2. Zoom Bounce
+        const chkZoomBounce = document.getElementById('propZoomBounceEnabled');
+        const zoomBounceControls = document.getElementById('zoomBounceControls');
+        const selZoomBounceFreq = document.getElementById('propZoomBounceFreq');
+        if (chkZoomBounce) {
+            chkZoomBounce.addEventListener('change', (e) => {
+                clip.vfx = clip.vfx || {};
+                clip.vfx.zoomBounce = clip.vfx.zoomBounce || { freq: 'beat', intensity: 35 };
+                clip.vfx.zoomBounce.enabled = e.target.checked;
+                if (zoomBounceControls) zoomBounceControls.style.display = e.target.checked ? 'block' : 'none';
+                this.engine.render();
+            });
+        }
+        if (selZoomBounceFreq) {
+            selZoomBounceFreq.addEventListener('change', (e) => {
+                clip.vfx = clip.vfx || {};
+                clip.vfx.zoomBounce = clip.vfx.zoomBounce || { enabled: true };
+                clip.vfx.zoomBounce.freq = e.target.value;
+                this.engine.render();
+            });
+        }
+        this.bindInput('propZoomBounceIntensity', 'valZoomBounceIntensity', (v) => {
+            clip.vfx = clip.vfx || {};
+            clip.vfx.zoomBounce = clip.vfx.zoomBounce || { enabled: true };
+            clip.vfx.zoomBounce.intensity = parseFloat(v);
+            this.engine.render();
+            return `${v}%`;
+        });
+
+        // 3. RGB Split
+        const chkRgb = document.getElementById('propRgbSplitEnabled');
+        const rgbControls = document.getElementById('rgbSplitControls');
+        if (chkRgb) {
+            chkRgb.addEventListener('change', (e) => {
+                clip.vfx = clip.vfx || {};
+                clip.vfx.rgbSplit = clip.vfx.rgbSplit || { amount: 14 };
+                clip.vfx.rgbSplit.enabled = e.target.checked;
+                if (rgbControls) rgbControls.style.display = e.target.checked ? 'block' : 'none';
+                this.engine.render();
+            });
+        }
+        this.bindInput('propRgbSplitAmount', 'valRgbSplitAmount', (v) => {
+            clip.vfx = clip.vfx || {};
+            clip.vfx.rgbSplit = clip.vfx.rgbSplit || { enabled: true };
+            clip.vfx.rgbSplit.amount = parseFloat(v);
+            this.engine.render();
+            return `${v}px`;
+        });
+
+        // 4. Film Grain
+        const chkGrain = document.getElementById('propFilmGrainEnabled');
+        const grainControls = document.getElementById('filmGrainControls');
+        if (chkGrain) {
+            chkGrain.addEventListener('change', (e) => {
+                clip.vfx = clip.vfx || {};
+                clip.vfx.filmGrain = clip.vfx.filmGrain || { amount: 45 };
+                clip.vfx.filmGrain.enabled = e.target.checked;
+                if (grainControls) grainControls.style.display = e.target.checked ? 'block' : 'none';
+                this.engine.render();
+            });
+        }
+        this.bindInput('propFilmGrainAmount', 'valFilmGrainAmount', (v) => {
+            clip.vfx = clip.vfx || {};
+            clip.vfx.filmGrain = clip.vfx.filmGrain || { enabled: true };
+            clip.vfx.filmGrain.amount = parseFloat(v);
+            this.engine.render();
+            return `${v}%`;
+        });
+
+        // 5. VHS
+        const chkVhs = document.getElementById('propVhsEnabled');
+        const vhsControls = document.getElementById('vhsControls');
+        const chkVhsOsd = document.getElementById('propVhsOsd');
+        if (chkVhs) {
+            chkVhs.addEventListener('change', (e) => {
+                clip.vfx = clip.vfx || {};
+                clip.vfx.vhs = clip.vfx.vhs || { intensity: 50, osd: true };
+                clip.vfx.vhs.enabled = e.target.checked;
+                if (vhsControls) vhsControls.style.display = e.target.checked ? 'block' : 'none';
+                this.engine.render();
+            });
+        }
+        if (chkVhsOsd) {
+            chkVhsOsd.addEventListener('change', (e) => {
+                clip.vfx = clip.vfx || {};
+                clip.vfx.vhs = clip.vfx.vhs || { enabled: true };
+                clip.vfx.vhs.osd = e.target.checked;
+                this.engine.render();
+            });
+        }
+        this.bindInput('propVhsIntensity', 'valVhsIntensity', (v) => {
+            clip.vfx = clip.vfx || {};
+            clip.vfx.vhs = clip.vfx.vhs || { enabled: true };
+            clip.vfx.vhs.intensity = parseFloat(v);
+            this.engine.render();
+            return `${v}%`;
+        });
+
+        // 6. Light Leak
+        const chkLeak = document.getElementById('propLightLeakEnabled');
+        const leakControls = document.getElementById('lightLeakControls');
+        const selLeakTone = document.getElementById('propLightLeakTone');
+        if (chkLeak) {
+            chkLeak.addEventListener('change', (e) => {
+                clip.vfx = clip.vfx || {};
+                clip.vfx.lightLeak = clip.vfx.lightLeak || { amount: 50, tone: 'amber' };
+                clip.vfx.lightLeak.enabled = e.target.checked;
+                if (leakControls) leakControls.style.display = e.target.checked ? 'block' : 'none';
+                this.engine.render();
+            });
+        }
+        if (selLeakTone) {
+            selLeakTone.addEventListener('change', (e) => {
+                clip.vfx = clip.vfx || {};
+                clip.vfx.lightLeak = clip.vfx.lightLeak || { enabled: true };
+                clip.vfx.lightLeak.tone = e.target.value;
+                this.engine.render();
+            });
+        }
+        this.bindInput('propLightLeakAmount', 'valLightLeakAmount', (v) => {
+            clip.vfx = clip.vfx || {};
+            clip.vfx.lightLeak = clip.vfx.lightLeak || { enabled: true };
+            clip.vfx.lightLeak.amount = parseFloat(v);
+            this.engine.render();
+            return `${v}%`;
+        });
+
+        // Reset VFX Button
+        const btnResetVFX = document.getElementById('btnResetVFX');
+        if (btnResetVFX) {
+            btnResetVFX.addEventListener('click', () => {
+                delete clip.vfx;
+                this.render(clip);
+                this.engine.render();
+            });
+        }
+
         // Mask Type Tabs
         const maskTabs = document.getElementById('maskTypeTabs');
         const grpCircle = document.getElementById('maskGroupCircle');
@@ -746,6 +1465,7 @@ class NovaCutInspector {
         const grpLinear = document.getElementById('maskGroupLinear');
         const grpMirror = document.getElementById('maskGroupMirror');
         const rowInvert = document.getElementById('rowMaskInvert');
+        const rowFeather = document.getElementById('rowMaskFeather');
 
         if (maskTabs) {
             maskTabs.querySelectorAll('.btn-mask-tab').forEach(btn => {
@@ -760,6 +1480,7 @@ class NovaCutInspector {
                         if (grpLinear) grpLinear.style.display = 'none';
                         if (grpMirror) grpMirror.style.display = 'none';
                         if (rowInvert) rowInvert.style.display = 'none';
+                        if (rowFeather) rowFeather.style.display = 'none';
                     } else {
                         clip.mask = clip.mask || {};
                         clip.mask.type = type;
@@ -773,6 +1494,7 @@ class NovaCutInspector {
                         if (grpLinear) grpLinear.style.display = type === 'linear' ? 'block' : 'none';
                         if (grpMirror) grpMirror.style.display = type === 'mirror' ? 'block' : 'none';
                         if (rowInvert) rowInvert.style.display = 'flex';
+                        if (rowFeather) rowFeather.style.display = 'flex';
                     }
 
                     this.engine.render();
@@ -790,6 +1512,12 @@ class NovaCutInspector {
         }
 
         // Mask Sliders
+        this.bindInput('propMaskFeather', 'valMaskFeather', (v) => {
+            if (!clip.mask) clip.mask = { type: 'circle' };
+            clip.mask.feather = parseFloat(v);
+            this.engine.render();
+            return `${v}px`;
+        });
         this.bindInput('propMaskCircleSize', 'valMaskCircleSize', (v) => {
             if (!clip.mask) clip.mask = { type: 'circle' };
             clip.mask.size = parseFloat(v);
@@ -842,6 +1570,47 @@ class NovaCutInspector {
                 this.engine.render();
             });
         }
+
+        // Smart Auto Cutout Event Handlers
+        const chkCutout = document.getElementById('propCutoutEnabled');
+        const cutoutControls = document.getElementById('autoCutoutControls');
+        const selCutoutMode = document.getElementById('propCutoutMode');
+
+        if (chkCutout) {
+            chkCutout.addEventListener('change', (e) => {
+                const enabled = e.target.checked;
+                clip.autoCutout = clip.autoCutout || {
+                    mode: 'auto-subject',
+                    sensitivity: 40,
+                    smoothness: 15
+                };
+                clip.autoCutout.enabled = enabled;
+                if (cutoutControls) cutoutControls.style.display = enabled ? 'block' : 'none';
+                this.engine.render();
+            });
+        }
+
+        if (selCutoutMode) {
+            selCutoutMode.addEventListener('change', (e) => {
+                clip.autoCutout = clip.autoCutout || { enabled: true };
+                clip.autoCutout.mode = e.target.value;
+                this.engine.render();
+            });
+        }
+
+        this.bindInput('propCutoutSensitivity', 'valCutoutSensitivity', (v) => {
+            clip.autoCutout = clip.autoCutout || { enabled: true };
+            clip.autoCutout.sensitivity = parseFloat(v);
+            this.engine.render();
+            return `${v}%`;
+        });
+
+        this.bindInput('propCutoutSmooth', 'valCutoutSmooth', (v) => {
+            clip.autoCutout = clip.autoCutout || { enabled: true };
+            clip.autoCutout.smoothness = parseFloat(v);
+            this.engine.render();
+            return `${v}`;
+        });
 
         // Chroma Key Event Handlers
         const chkChroma = document.getElementById('propChromaEnabled');
@@ -903,6 +1672,99 @@ class NovaCutInspector {
             this.engine.render();
             return `${v}%`;
         });
+
+        // Motionleap Cinemagraph Handlers
+        const chkCin = document.getElementById('propCinemagraphEnabled');
+        const cinControls = document.getElementById('cinemagraphControls');
+
+        if (window.motionleapEngine) {
+            window.motionleapEngine.activeClipId = clip.cinemagraph?.enabled ? clip.id : null;
+        }
+
+        if (chkCin) {
+            chkCin.addEventListener('change', (e) => {
+                const enabled = e.target.checked;
+                clip.cinemagraph = clip.cinemagraph || {
+                    speed: 1.0,
+                    scale: 1.0,
+                    paths: [],
+                    anchors: [],
+                    _version: 1
+                };
+                clip.cinemagraph.enabled = enabled;
+                if (cinControls) cinControls.style.display = enabled ? 'block' : 'none';
+                if (window.motionleapEngine) {
+                    window.motionleapEngine.activeClipId = enabled ? clip.id : null;
+                }
+                this.engine.render();
+            });
+        }
+
+        // Cinemagraph Tool Switching (Arrow, Freeze, Unfreeze, Anchor)
+        document.querySelectorAll('.btn-cin-tool').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.btn-cin-tool').forEach(b => {
+                    b.classList.remove('active');
+                    b.style.borderColor = 'var(--border-color)';
+                });
+                btn.classList.add('active');
+                btn.style.borderColor = '#00f2fe';
+                if (window.motionleapEngine) {
+                    window.motionleapEngine.activeTool = btn.dataset.tool;
+                    window.motionleapEngine.activeClipId = clip.id;
+                    this.engine.render();
+                }
+            });
+        });
+
+        this.bindInput('propCinSpeed', 'valCinSpeed', (v) => {
+            clip.cinemagraph = clip.cinemagraph || { enabled: true };
+            clip.cinemagraph.speed = parseFloat(v);
+            this.engine.render();
+            return `${parseFloat(v).toFixed(1)}x`;
+        });
+
+        this.bindInput('propCinScale', 'valCinScale', (v) => {
+            clip.cinemagraph = clip.cinemagraph || { enabled: true };
+            clip.cinemagraph.scale = parseFloat(v);
+            this.engine.render();
+            return `${parseFloat(v).toFixed(1)}x`;
+        });
+
+        this.bindInput('propCinBrush', 'valCinBrush', (v) => {
+            if (window.motionleapEngine) {
+                window.motionleapEngine.brushRadius = parseInt(v);
+            }
+            return `${v}px`;
+        });
+
+        // Presets
+        document.querySelectorAll('.btn-cin-preset').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const presetId = btn.dataset.preset;
+                if (window.motionleapEngine) {
+                    window.motionleapEngine.applyPreset(clip, presetId);
+                    if (window.novaCutToast) {
+                        window.novaCutToast(`🌊 Mall "${btn.textContent.trim()}" applicerad!`);
+                    }
+                    this.update(clip);
+                }
+            });
+        });
+
+        // Clear all
+        const btnCinClear = document.getElementById('btnCinClearAll');
+        if (btnCinClear) {
+            btnCinClear.addEventListener('click', () => {
+                if (window.motionleapEngine) {
+                    window.motionleapEngine.clearAll(clip);
+                    if (window.novaCutToast) {
+                        window.novaCutToast('Rensade alla flödespilar och masker.');
+                    }
+                    this.engine.render();
+                }
+            });
+        }
 
         // Picture-in-Picture & Layout Presets
         const pipRow = document.getElementById('pipPresetsRow');
@@ -968,6 +1830,18 @@ class NovaCutInspector {
                     }
 
                     this.render(clip);
+                    this.engine.render();
+                });
+            });
+        }
+
+        const fitModeBtns = document.querySelectorAll('[data-fit-mode]');
+        if (fitModeBtns.length > 0) {
+            fitModeBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const mode = e.currentTarget.getAttribute('data-fit-mode');
+                    clip.fitMode = mode;
+                    fitModeBtns.forEach(b => b.classList.toggle('active', b.getAttribute('data-fit-mode') === mode));
                     this.engine.render();
                 });
             });
