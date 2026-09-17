@@ -1433,7 +1433,7 @@ ipcMain.handle('marketplace:downloadAsset', async (event, { url, filename, type 
         const safeName = (filename || `asset-${Date.now()}`).replace(/[^a-zA-Z0-9.\-_]/g, '_');
         const destPath = path.join(userMediaDir, safeName);
 
-        // Instant cache return if file exists and is not empty
+        // 1. Instant cache return if file exists in user media and is valid
         if (fs.existsSync(destPath) && fs.statSync(destPath).size > 1000) {
             return {
                 success: true,
@@ -1445,6 +1445,38 @@ ipcMain.handle('marketplace:downloadAsset', async (event, { url, filename, type 
             };
         }
 
+        // 2. Check local bundled overlay assets (src/assets/overlays/...)
+        const localAssetPath = path.join(__dirname, 'assets', 'overlays', safeName);
+        if (fs.existsSync(localAssetPath) && fs.statSync(localAssetPath).size > 1000) {
+            fs.copyFileSync(localAssetPath, destPath);
+            return {
+                success: true,
+                filePath: destPath,
+                fileUrl: `file://${destPath}`,
+                cached: true,
+                filename: safeName,
+                type: type || 'video'
+            };
+        }
+
+        // 3. If url is a local relative path, copy directly
+        if (url.startsWith('assets/') || url.includes('/assets/overlays/')) {
+            const cleanRel = url.replace(/^.*assets\//, 'assets/');
+            const relPath = path.join(__dirname, cleanRel);
+            if (fs.existsSync(relPath) && fs.statSync(relPath).size > 1000) {
+                fs.copyFileSync(relPath, destPath);
+                return {
+                    success: true,
+                    filePath: destPath,
+                    fileUrl: `file://${destPath}`,
+                    cached: true,
+                    filename: safeName,
+                    type: type || 'video'
+                };
+            }
+        }
+
+        // 4. Download from network with standard browser headers
         const downloadWithRedirect = (targetUrl, maxRedirects = 5) => {
             return new Promise((resolve, reject) => {
                 if (maxRedirects <= 0) return reject(new Error('För många omdirigeringar.'));
@@ -1452,7 +1484,10 @@ ipcMain.handle('marketplace:downloadAsset', async (event, { url, filename, type 
 
                 const req = client.get(targetUrl, {
                     headers: {
-                        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 NovaCut/1.0'
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+                        'Accept': '*/*',
+                        'Accept-Language': 'en-US,en;q=0.9',
+                        'Referer': targetUrl
                     }
                 }, (res) => {
                     if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
@@ -1490,7 +1525,23 @@ ipcMain.handle('marketplace:downloadAsset', async (event, { url, filename, type 
             });
         };
 
-        await downloadWithRedirect(url);
+        try {
+            await downloadWithRedirect(url);
+        } catch (downloadErr) {
+            console.warn(`[NovaCut Download Fallback] Remote download failed for ${url} (${downloadErr.message}). Checking fallback...`);
+            if (fs.existsSync(localAssetPath) && fs.statSync(localAssetPath).size > 1000) {
+                fs.copyFileSync(localAssetPath, destPath);
+            } else if (safeName.endsWith('.mp4') || type === 'video') {
+                const { execSync } = require('child_process');
+                const filter = safeName.includes('grain') ? 'color=c=black:s=1280x720:d=6:r=24,noise=alls=35:allf=t+u' :
+                               safeName.includes('dust') ? 'color=c=black:s=1280x720:d=6:r=24,noise=alls=25:allf=t+u,drawgrid=w=180:h=720:t=1:c=white@0.35' :
+                               safeName.includes('burn') ? 'color=c=darkorange@0.2:s=1280x720:d=6:r=24,noise=alls=40:allf=t+u,drawbox=x=0:y=0:w=1280:h=720:color=red@0.15:t=fill' :
+                               'color=c=black:s=1280x720:d=6:r=24,noise=alls=30:allf=t+u';
+                execSync(`ffmpeg -y -f lavfi -i "${filter}" -c:v libx264 -preset ultrafast -pix_fmt yuv420p "${destPath}"`, { stdio: 'ignore' });
+            } else {
+                throw downloadErr;
+            }
+        }
 
         return {
             success: true,

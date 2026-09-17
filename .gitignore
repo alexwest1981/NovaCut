@@ -4,3 +4,4 @@ dist/
 .DS_Store
 RESEARCH_VIDEO_EDITORS.md
 models/*.bin
+src/assets/overlays/*.mp4
