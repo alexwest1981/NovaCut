@@ -30,6 +30,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const inspector = new NovaCutInspector(engine, timeline);
     window.inspector = inspector;
 
+    const transitions = new NovaCutTransitions(engine, timeline);
+    window.transitions = transitions;
+
     const marketplace = new NovaCutMarketplace(timeline, engine);
     window.marketplace = marketplace;
 
@@ -41,9 +44,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const sfxManager = new NovaCutSFX(timeline, engine);
     window.sfxManager = sfxManager;
-
-    const transitions = new NovaCutTransitions(engine, timeline);
-    window.transitions = transitions;
 
     const stickersManager = new NovaCutStickers(timeline, engine);
     window.stickersManager = stickersManager;
@@ -291,6 +291,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const tabId = btn.dataset.tab;
             const content = document.getElementById(`tab-${tabId}`);
             if (content) content.classList.add('active');
+
+            // Re-render dynamically populated tabs when opened
+            if (tabId === 'transitions' && window.transitions) {
+                window.transitions.renderGrid(window.transitions.activeCategory || 'all');
+            }
+            if (tabId === 'marketplace' && window.marketplace) {
+                window.marketplace.renderMarketplace();
+            }
+            if (tabId === 'effects' && window.marketplace) {
+                window.marketplace.renderEffectsTab();
+            }
         });
     });
 

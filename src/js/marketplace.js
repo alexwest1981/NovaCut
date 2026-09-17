@@ -767,12 +767,20 @@ class NovaCutMarketplace {
         }
 
         // 2. Filter Online Assets (Curated Library + Freesound results)
-        const isOnlineCat = ['all', 'online-sfx', 'online-vfx', 'online-music'].includes(this.activeCategory);
+        const isOnlineCat = ['all', 'online-sfx', 'online-vfx', 'online-music', 'overlay', 'transition'].includes(this.activeCategory);
         let filteredOnlineAssets = [];
         if (isOnlineCat) {
             const combined = [...(this.freesoundResults || []), ...(this.onlineAssets || [])];
             filteredOnlineAssets = combined.filter(asset => {
-                const matchesCat = this.activeCategory === 'all' || asset.category === this.activeCategory;
+                let matchesCat = this.activeCategory === 'all';
+                if (this.activeCategory === 'online-vfx' || this.activeCategory === 'overlay') {
+                    matchesCat = asset.category === 'online-vfx' || asset.category === 'overlay';
+                } else if (this.activeCategory === 'transition') {
+                    matchesCat = asset.category === 'transition';
+                } else {
+                    matchesCat = asset.category === this.activeCategory;
+                }
+
                 const q = this.searchQuery;
                 const matchesSearch = !q || 
                     asset.name.toLowerCase().includes(q) || 
@@ -782,11 +790,19 @@ class NovaCutMarketplace {
             });
         }
 
-        // 3. Filter Plugins
+        // 3. Filter Plugins (Filters & Procedural Live Overlays)
         let filteredPlugins = [];
-        if (!['font', 'online-sfx', 'online-vfx', 'online-music'].includes(this.activeCategory)) {
+        if (!['font', 'online-sfx', 'online-music'].includes(this.activeCategory)) {
             filteredPlugins = this.plugins.filter(p => {
-                const matchesCat = this.activeCategory === 'all' || p.category === this.activeCategory;
+                let matchesCat = this.activeCategory === 'all';
+                if (this.activeCategory === 'overlay' || this.activeCategory === 'online-vfx') {
+                    matchesCat = p.category === 'overlay';
+                } else if (this.activeCategory === 'filter') {
+                    matchesCat = p.category === 'filter';
+                } else {
+                    matchesCat = this.activeCategory === 'all' || p.category === this.activeCategory;
+                }
+
                 const matchesSearch = !this.searchQuery || 
                     p.name.toLowerCase().includes(this.searchQuery) || 
                     p.description.toLowerCase().includes(this.searchQuery);
@@ -794,7 +810,16 @@ class NovaCutMarketplace {
             });
         }
 
-        // 4. Filter Fonts (Curated Google Fonts + Custom Fonts)
+        // 4. Filter Built-in Transitions (124+ Transitions from library)
+        let filteredTransitions = [];
+        if (['transition', 'all'].includes(this.activeCategory) && window.transitions && window.transitions.library) {
+            const q = this.searchQuery;
+            filteredTransitions = window.transitions.library.filter(t => {
+                return !q || t.name.toLowerCase().includes(q) || (t.description && t.description.toLowerCase().includes(q));
+            });
+        }
+
+        // 5. Filter Fonts (Curated Google Fonts + Custom Fonts)
         let filteredFonts = [];
         if (['font', 'all'].includes(this.activeCategory) && window.fontManager) {
             const curated = window.fontManager.getCuratedFonts();
@@ -816,7 +841,7 @@ class NovaCutMarketplace {
             });
         }
 
-        if (filteredOnlineAssets.length === 0 && filteredPlugins.length === 0 && filteredFonts.length === 0) {
+        if (filteredOnlineAssets.length === 0 && filteredPlugins.length === 0 && filteredFonts.length === 0 && filteredTransitions.length === 0) {
             const emptyMsg = document.createElement('div');
             emptyMsg.style.color = 'var(--text-muted)';
             emptyMsg.style.textAlign = 'center';
@@ -847,6 +872,10 @@ class NovaCutMarketplace {
                 bannerClass = 'banner-music';
                 icon = '🎵';
                 catName = 'Royalty-fri Musik';
+            } else if (asset.category === 'transition') {
+                bannerClass = 'banner-transition';
+                icon = '⧗';
+                catName = 'Övergångspaket';
             }
 
             const isAudio = asset.category === 'online-sfx' || asset.category === 'online-music';
@@ -1001,6 +1030,76 @@ class NovaCutMarketplace {
 
             card.querySelector('.btn-add-effect').addEventListener('click', () => {
                 this.addPluginToTimeline(plugin);
+            });
+
+            this.listEl.appendChild(card);
+        });
+
+        // 8. Render Transition Cards (124+ Transitions from library)
+        const displayTransitions = (this.activeCategory === 'all' && !this.searchQuery)
+            ? filteredTransitions.slice(0, 16)
+            : filteredTransitions;
+
+        if (this.activeCategory === 'all' && !this.searchQuery && filteredTransitions.length > 16) {
+            const transNotice = document.createElement('div');
+            transNotice.style.display = 'flex';
+            transNotice.style.alignItems = 'center';
+            transNotice.style.justifyContent = 'space-between';
+            transNotice.style.padding = '8px 12px';
+            transNotice.style.background = 'rgba(99, 102, 241, 0.12)';
+            transNotice.style.border = '1px solid rgba(99, 102, 241, 0.3)';
+            transNotice.style.borderRadius = '8px';
+            transNotice.style.marginBottom = '8px';
+            transNotice.innerHTML = `
+                <span style="font-size: 11px; color: #c7d2fe;">⧗ Visar 16 av ${filteredTransitions.length} övergångar</span>
+                <button class="btn-xs" style="background: #4f46e5; color: white; border: none; border-radius: 4px; padding: 4px 10px; font-size: 10px; cursor: pointer; font-weight: 600;">Visa alla 124+ övergångar</button>
+            `;
+            transNotice.querySelector('button').addEventListener('click', () => {
+                const chip = document.querySelector('#tab-marketplace .chip[data-cat="transition"]');
+                if (chip) chip.click();
+            });
+            this.listEl.appendChild(transNotice);
+        }
+
+        displayTransitions.forEach(trans => {
+            const card = document.createElement('div');
+            card.className = 'plugin-card transition-market-card';
+            card.innerHTML = `
+                <div class="plugin-banner" style="background: linear-gradient(135deg, #4f46e5 0%, #1e1b4b 100%); display: flex; align-items: center; justify-content: space-between; padding: 12px 14px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 22px;">${trans.icon || '⧗'}</span>
+                        <span class="plugin-category-badge" style="background: rgba(99, 102, 241, 0.35); border: 1px solid #6366f1; color: #e0e7ff;">
+                            ⧗ ${trans.category ? trans.category.toUpperCase() : 'TRANSITION'}
+                        </span>
+                    </div>
+                    <span style="font-size: 11px; color: #a5b4fc; font-weight: 500;">${trans.defaultDuration || 0.5}s</span>
+                </div>
+                <div class="plugin-info">
+                    <div class="plugin-title-row">
+                        <span class="plugin-name">${trans.name}</span>
+                        <span style="font-size: 10px; color: var(--accent);">✔ Inbyggd Pro</span>
+                    </div>
+                    <p class="plugin-desc">${trans.description || 'Högkvalitativ klippövergång klar att användas.'}</p>
+                    <div class="plugin-actions" style="margin-top: 8px; display: flex; gap: 6px; justify-content: flex-end; align-items: center;">
+                        <button class="btn-primary btn-apply-trans-market" style="font-size: 11px; padding: 5px 12px; background: var(--accent); color: #000;">+ Använd på Klipp</button>
+                    </div>
+                </div>
+            `;
+
+            card.querySelector('.btn-apply-trans-market').addEventListener('click', () => {
+                const selId = this.timeline?.selectedClipId;
+                if (window.transitions) {
+                    if (selId) {
+                        window.transitions.applyTransitionToClip(selId, trans.id);
+                    } else {
+                        const firstVideo = this.timeline?.clips.find(c => c.trackId === 'video' || c.trackId === 'overlay');
+                        if (firstVideo) {
+                            window.transitions.applyTransitionToClip(firstVideo.id, trans.id);
+                        } else if (window.novaCutToast) {
+                            window.novaCutToast(`✨ Valde "${trans.name}"! Markera ett videoklipp i tidslinjen.`);
+                        }
+                    }
+                }
             });
 
             this.listEl.appendChild(card);
@@ -1161,6 +1260,37 @@ class NovaCutMarketplace {
     }
 
     async downloadAndImportOnlineAsset(asset, btnElement) {
+        if (asset.category === 'transition') {
+            if (btnElement) {
+                btnElement.classList.add('installed');
+                btnElement.innerHTML = `<span>✔</span> <span>Aktiverad!</span>`;
+                setTimeout(() => {
+                    btnElement.innerHTML = `<span>+</span> <span>Använd</span>`;
+                }, 2500);
+            }
+            const selId = this.timeline?.selectedClipId;
+            let appliedTrans = 'dissolve';
+            if (asset.id.includes('whip') || asset.id.includes('zoom')) appliedTrans = 'whip_left';
+            else if (asset.id.includes('glitch') || asset.id.includes('cyber')) appliedTrans = 'glitch_rgb';
+            else if (asset.id.includes('film') || asset.id.includes('burn')) appliedTrans = 'film_burn';
+            else if (asset.id.includes('3d') || asset.id.includes('cube')) appliedTrans = 'cube_spin';
+            else if (asset.id.includes('soft') || asset.id.includes('blur')) appliedTrans = 'blur_fade';
+
+            if (window.transitions) {
+                if (selId) {
+                    window.transitions.applyTransitionToClip(selId, appliedTrans);
+                } else {
+                    const firstVideo = this.timeline?.clips.find(c => c.trackId === 'video' || c.trackId === 'overlay');
+                    if (firstVideo) window.transitions.applyTransitionToClip(firstVideo.id, appliedTrans);
+                }
+            }
+
+            if (window.novaCutToast) {
+                window.novaCutToast(`🎉 ${asset.name} är tillgängligt! Övergång tillagd på klippet.`);
+            }
+            return;
+        }
+
         if (!window.novaCut || typeof window.novaCut.downloadOnlineAsset !== 'function') {
             alert('Nedladdning från Online Hub är endast tillgänglig i NovaCut-appen.');
             return;

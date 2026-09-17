@@ -317,6 +317,10 @@
     background: linear-gradient(135deg, #10b981 0%, #0284c7 100%);
 }
 
+.online-asset-banner.banner-transition {
+    background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+}
+
 .asset-badge {
     font-size: 10px;
     font-weight: 700;
