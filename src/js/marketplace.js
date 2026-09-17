@@ -9,6 +9,12 @@ class NovaCutMarketplace {
         this.plugins = [];
         this.activeCategory = 'all';
         this.searchQuery = '';
+        this.onlineAssets = window.NOVACUT_ONLINE_ASSETS || [];
+        this.currentAudioPreview = null;
+        this.currentPlayingCardId = null;
+        this.freesoundResults = [];
+        this.isSearchingFreesound = false;
+        this.activeVideoPreviewAsset = null;
 
         this.listEl = document.getElementById('marketplaceList');
         this.effectsGrid = document.getElementById('effectsGrid');
@@ -17,6 +23,9 @@ class NovaCutMarketplace {
     }
 
     async init() {
+        if (!this.onlineAssets || this.onlineAssets.length === 0) {
+            this.onlineAssets = window.NOVACUT_ONLINE_ASSETS || [];
+        }
         await this.loadInstalledPlugins();
         this.setupEventListeners();
         this.renderMarketplace();
@@ -757,9 +766,25 @@ class NovaCutMarketplace {
             this.listEl.appendChild(importBanner);
         }
 
-        // 2. Filter Plugins
+        // 2. Filter Online Assets (Curated Library + Freesound results)
+        const isOnlineCat = ['all', 'online-sfx', 'online-vfx', 'online-music'].includes(this.activeCategory);
+        let filteredOnlineAssets = [];
+        if (isOnlineCat) {
+            const combined = [...(this.freesoundResults || []), ...(this.onlineAssets || [])];
+            filteredOnlineAssets = combined.filter(asset => {
+                const matchesCat = this.activeCategory === 'all' || asset.category === this.activeCategory;
+                const q = this.searchQuery;
+                const matchesSearch = !q || 
+                    asset.name.toLowerCase().includes(q) || 
+                    (asset.description && asset.description.toLowerCase().includes(q)) ||
+                    (asset.tags && asset.tags.some(t => t.toLowerCase().includes(q)));
+                return matchesCat && matchesSearch;
+            });
+        }
+
+        // 3. Filter Plugins
         let filteredPlugins = [];
-        if (this.activeCategory !== 'font') {
+        if (!['font', 'online-sfx', 'online-vfx', 'online-music'].includes(this.activeCategory)) {
             filteredPlugins = this.plugins.filter(p => {
                 const matchesCat = this.activeCategory === 'all' || p.category === this.activeCategory;
                 const matchesSearch = !this.searchQuery || 
@@ -769,9 +794,9 @@ class NovaCutMarketplace {
             });
         }
 
-        // 3. Filter Fonts (Curated Google Fonts + Custom Fonts)
+        // 4. Filter Fonts (Curated Google Fonts + Custom Fonts)
         let filteredFonts = [];
-        if ((this.activeCategory === 'font' || this.activeCategory === 'all') && window.fontManager) {
+        if (['font', 'all'].includes(this.activeCategory) && window.fontManager) {
             const curated = window.fontManager.getCuratedFonts();
             const custom = window.fontManager.getCustomFonts();
 
@@ -791,18 +816,101 @@ class NovaCutMarketplace {
             });
         }
 
-        if (filteredPlugins.length === 0 && filteredFonts.length === 0) {
+        if (filteredOnlineAssets.length === 0 && filteredPlugins.length === 0 && filteredFonts.length === 0) {
             const emptyMsg = document.createElement('div');
             emptyMsg.style.color = 'var(--text-muted)';
             emptyMsg.style.textAlign = 'center';
-            emptyMsg.style.padding = '24px';
+            emptyMsg.style.padding = '30px 16px';
             emptyMsg.style.fontSize = '12px';
-            emptyMsg.textContent = 'Inga resurser matchade din sökning.';
+            emptyMsg.innerHTML = `
+                <div style="font-size: 24px; margin-bottom: 8px;">🔍</div>
+                <div>Inga resurser matchade "${this.searchQuery}".</div>
+                <div style="margin-top: 6px; font-size: 11px; color: var(--text-secondary);">Testa att söka på Freesound.org eller välja en annan kategori ovan.</div>
+            `;
             this.listEl.appendChild(emptyMsg);
             return;
         }
 
-        // 4. Render Font Cards
+        // 5. Render Online Assets (SFX, VFX Overlays, Music, Freesound)
+        filteredOnlineAssets.forEach(asset => {
+            const card = document.createElement('div');
+            card.className = 'online-asset-card';
+            
+            let bannerClass = 'banner-sfx';
+            let icon = '💥';
+            let catName = 'Gratis SFX';
+            if (asset.category === 'online-vfx') {
+                bannerClass = 'banner-vfx';
+                icon = '🎬';
+                catName = 'Video Overlay';
+            } else if (asset.category === 'online-music') {
+                bannerClass = 'banner-music';
+                icon = '🎵';
+                catName = 'Royalty-fri Musik';
+            }
+
+            const isAudio = asset.category === 'online-sfx' || asset.category === 'online-music';
+            const durationStr = asset.duration ? (typeof asset.duration === 'number' ? asset.duration.toFixed(1) + 's' : asset.duration) : 'Loop';
+
+            card.innerHTML = `
+                <div class="online-asset-banner ${bannerClass}">
+                    <div class="asset-badge">
+                        <span>${icon}</span>
+                        <span>${catName}</span>
+                    </div>
+                    <span class="asset-duration-tag">${durationStr}</span>
+                </div>
+                <div class="online-asset-info">
+                    <div class="online-asset-title-row">
+                        <span class="online-asset-name" title="${asset.name}">${asset.name}</span>
+                        <span class="online-asset-source">${asset.source || 'Webb'} • ${asset.license || 'CC0'}</span>
+                    </div>
+                    <div class="online-asset-desc">${asset.description || 'Royalty-fri resurs klar att användas i dina projekt.'}</div>
+                    <div class="online-asset-actions">
+                        ${isAudio ? `
+                            <button class="btn-preview-audio" data-preview-id="${asset.id}">
+                                <span>▶</span> <span>Provlyssna</span>
+                            </button>
+                        ` : `
+                            <button class="btn-preview-audio btn-preview-video" data-video-id="${asset.id}">
+                                <span>👁️</span> <span>Förhandsgranska</span>
+                            </button>
+                        `}
+                        <button class="btn-import-asset" data-import-id="${asset.id}">
+                            <span>📥</span> <span>Hämta & Använd</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            // Audio preview listener
+            const previewBtn = card.querySelector(`[data-preview-id="${asset.id}"]`);
+            if (previewBtn) {
+                previewBtn.addEventListener('click', () => {
+                    this.toggleAudioPreview(asset, previewBtn);
+                });
+            }
+
+            // Video preview listener
+            const videoPreviewBtn = card.querySelector(`[data-video-id="${asset.id}"]`);
+            if (videoPreviewBtn) {
+                videoPreviewBtn.addEventListener('click', () => {
+                    this.openVideoPreview(asset);
+                });
+            }
+
+            // Download & Import listener
+            const importBtn = card.querySelector(`[data-import-id="${asset.id}"]`);
+            if (importBtn) {
+                importBtn.addEventListener('click', () => {
+                    this.downloadAndImportOnlineAsset(asset, importBtn);
+                });
+            }
+
+            this.listEl.appendChild(card);
+        });
+
+        // 6. Render Font Cards
         filteredFonts.forEach(font => {
             const selectedClip = this.timeline.getSelectedClip ? this.timeline.getSelectedClip() : 
                 (this.timeline.clips.find(c => c.id === this.timeline.selectedClipId));
@@ -869,7 +977,7 @@ class NovaCutMarketplace {
             this.listEl.appendChild(card);
         });
 
-        // 5. Render Plugin Cards (Filters, Overlays)
+        // 7. Render Plugin Cards (Filters, Overlays)
         filteredPlugins.forEach(plugin => {
             const card = document.createElement('div');
             card.className = 'plugin-card';
@@ -981,13 +1089,279 @@ class NovaCutMarketplace {
         }
     }
 
+    // =========================================================================
+    // Online Asset Hub & Audio/Video Preview Helpers
+    // =========================================================================
+
+    toggleAudioPreview(asset, btnElement) {
+        if (this.currentAudioPreview && this.currentPlayingCardId === asset.id) {
+            this.stopAudioPreview();
+            return;
+        }
+
+        this.stopAudioPreview();
+
+        if (!asset.previewUrl) {
+            if (window.novaCutToast) window.novaCutToast('Ingen ljudförhandsgranskning tillgänglig.');
+            return;
+        }
+
+        const audio = new Audio(asset.previewUrl);
+        this.currentAudioPreview = audio;
+        this.currentPlayingCardId = asset.id;
+        
+        btnElement.classList.add('playing');
+        btnElement.innerHTML = `<span>⏸</span> <span>Stoppa</span>`;
+
+        audio.play().catch(e => {
+            console.warn('Audio preview play failed:', e);
+            this.stopAudioPreview();
+        });
+
+        audio.addEventListener('ended', () => {
+            this.stopAudioPreview();
+        });
+
+        audio.addEventListener('error', () => {
+            this.stopAudioPreview();
+            if (window.novaCutToast) window.novaCutToast('Kunde inte läsa förhandsgranskningsljud.');
+        });
+    }
+
+    stopAudioPreview() {
+        if (this.currentAudioPreview) {
+            try { this.currentAudioPreview.pause(); } catch (_) {}
+            this.currentAudioPreview = null;
+        }
+        if (this.currentPlayingCardId && this.listEl) {
+            const btn = this.listEl.querySelector(`[data-preview-id="${this.currentPlayingCardId}"]`);
+            if (btn) {
+                btn.classList.remove('playing');
+                btn.innerHTML = `<span>▶</span> <span>Provlyssna</span>`;
+            }
+        }
+        this.currentPlayingCardId = null;
+    }
+
+    openVideoPreview(asset) {
+        this.activeVideoPreviewAsset = asset;
+        const modal = document.getElementById('videoPreviewModal');
+        const player = document.getElementById('videoPreviewPlayer');
+        const title = document.getElementById('videoPreviewModalTitle');
+        const desc = document.getElementById('videoPreviewDesc');
+
+        if (title) title.textContent = asset.name;
+        if (desc) desc.textContent = `${asset.description || ''} • Källa: ${asset.source || 'Webb'} (${asset.license || 'CC0'})`;
+        if (player) {
+            player.src = asset.previewUrl;
+            player.currentTime = 0;
+            player.play().catch(() => {});
+        }
+        if (modal) modal.classList.add('active');
+    }
+
+    async downloadAndImportOnlineAsset(asset, btnElement) {
+        if (!window.novaCut || typeof window.novaCut.downloadOnlineAsset !== 'function') {
+            alert('Nedladdning från Online Hub är endast tillgänglig i NovaCut-appen.');
+            return;
+        }
+
+        const originalText = btnElement ? btnElement.innerHTML : '';
+        if (btnElement) {
+            btnElement.disabled = true;
+            btnElement.innerHTML = `<span>⏳</span> <span>Hämtar...</span>`;
+        }
+
+        try {
+            const res = await window.novaCut.downloadOnlineAsset({
+                url: asset.downloadUrl,
+                filename: asset.downloadFileName || `${asset.id}.mp4`,
+                type: asset.category === 'online-vfx' ? 'video' : 'audio'
+            });
+
+            if (!res.success) {
+                throw new Error(res.error || 'Okänt nedladdningsfel');
+            }
+
+            // 1. Add file to project media library
+            if (typeof window.handleImportedFile === 'function') {
+                window.handleImportedFile({
+                    path: res.filePath,
+                    name: asset.name,
+                    type: res.type,
+                    size: 0
+                });
+            }
+
+            // 2. Add clip to timeline at current playhead
+            const trackId = asset.defaultTrack || (asset.category === 'online-vfx' ? 'overlay' : 'audio');
+            const clip = this.timeline.addClip({
+                mediaId: `media-${Date.now()}`,
+                filePath: res.filePath,
+                title: asset.name,
+                type: res.type,
+                trackId: trackId,
+                startTime: this.engine.currentTime || 0,
+                duration: asset.duration || (res.type === 'audio' ? 4.0 : 8.0),
+                blendMode: asset.blendMode || 'normal'
+            });
+
+            if (this.engine) this.engine.render();
+
+            if (btnElement) {
+                btnElement.disabled = false;
+                btnElement.classList.add('installed');
+                btnElement.innerHTML = `<span>✔</span> <span>Tillagd!</span>`;
+                setTimeout(() => {
+                    btnElement.innerHTML = `<span>+</span> <span>Lägg till</span>`;
+                }, 3000);
+            }
+
+            if (window.novaCutToast) {
+                window.novaCutToast(`🎉 "${asset.name}" hämtades & placerades på tidslinjen vid ${this.engine.currentTime.toFixed(1)}s!`);
+            }
+        } catch (err) {
+            console.error('[Marketplace Download] Error:', err);
+            if (btnElement) {
+                btnElement.disabled = false;
+                btnElement.innerHTML = originalText || `<span>📥</span> <span>Försök igen</span>`;
+            }
+            alert(`Kunde inte ladda ner resurs: ${err.message}`);
+        }
+    }
+
+    async performFreesoundSearch(query) {
+        if (!window.novaCut || typeof window.novaCut.searchFreesound !== 'function') return;
+
+        const liveBar = document.getElementById('freesoundLiveSearchBar');
+        const triggerBtn = document.getElementById('btnTriggerFreesoundSearch');
+        if (triggerBtn) triggerBtn.textContent = 'Söker...';
+
+        try {
+            const res = await window.novaCut.searchFreesound({ query, pageSize: 20 });
+            if (res.requiresApiKey) {
+                const proceed = confirm('Freesound.org kräver en gratis API-nyckel för obegränsad live-sökning bland 550 000+ ljud.\n\nVill du ange din gratisnyckel nu?');
+                if (proceed) {
+                    this.openFreesoundConfigModal();
+                }
+                return;
+            }
+
+            if (!res.success) {
+                alert(`Freesound sökfel: ${res.error}`);
+                return;
+            }
+
+            this.freesoundResults = res.results || [];
+            if (window.novaCutToast) {
+                window.novaCutToast(`🌐 Hittade ${this.freesoundResults.length} ljud på Freesound.org!`);
+            }
+
+            this.activeCategory = 'online-sfx';
+            document.querySelectorAll('#tab-marketplace .category-chips .chip').forEach(c => {
+                c.classList.toggle('active', c.dataset.cat === 'online-sfx');
+            });
+
+            this.renderMarketplace();
+        } catch (err) {
+            alert(`Sökfel: ${err.message}`);
+        } finally {
+            if (triggerBtn) triggerBtn.textContent = 'Sök Freesound';
+        }
+    }
+
+    async openFreesoundConfigModal() {
+        const modal = document.getElementById('freesoundConfigModal');
+        const input = document.getElementById('freesoundApiKeyInput');
+        if (modal) {
+            if (window.novaCut && typeof window.novaCut.getFreesoundConfig === 'function') {
+                const cfg = await window.novaCut.getFreesoundConfig();
+                if (input) input.value = cfg.apiKey || '';
+            }
+            modal.classList.add('active');
+        }
+    }
+
     setupEventListeners() {
         // Search
         const searchInput = document.getElementById('marketplaceSearch');
+        const freesoundLiveBar = document.getElementById('freesoundLiveSearchBar');
+        const freesoundLabel = document.getElementById('freesoundSearchLabel');
+
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
                 this.searchQuery = e.target.value.toLowerCase().trim();
+                
+                if (freesoundLiveBar) {
+                    if (this.searchQuery.length >= 2 || this.activeCategory === 'online-sfx') {
+                        freesoundLiveBar.style.display = 'block';
+                        if (freesoundLabel) {
+                            freesoundLabel.textContent = `🌐 Sök "${this.searchQuery || 'ljud'}" på Freesound.org:`;
+                        }
+                    } else {
+                        freesoundLiveBar.style.display = 'none';
+                    }
+                }
+
                 this.renderMarketplace();
+            });
+        }
+
+        // Trigger Freesound Live Search button
+        const btnTriggerFreesound = document.getElementById('btnTriggerFreesoundSearch');
+        if (btnTriggerFreesound) {
+            btnTriggerFreesound.addEventListener('click', () => {
+                const q = this.searchQuery || 'whoosh';
+                this.performFreesoundSearch(q);
+            });
+        }
+
+        // Freesound Config Modal button
+        const btnFreesoundConfig = document.getElementById('btnFreesoundConfig');
+        if (btnFreesoundConfig) {
+            btnFreesoundConfig.addEventListener('click', () => this.openFreesoundConfigModal());
+        }
+
+        // Save Freesound API Key
+        const btnSaveFreesoundKey = document.getElementById('btnSaveFreesoundApiKey');
+        if (btnSaveFreesoundKey) {
+            btnSaveFreesoundKey.addEventListener('click', async () => {
+                const input = document.getElementById('freesoundApiKeyInput');
+                const key = input ? input.value.trim() : '';
+                if (window.novaCut && typeof window.novaCut.saveFreesoundConfig === 'function') {
+                    await window.novaCut.saveFreesoundConfig({ apiKey: key });
+                }
+                const modal = document.getElementById('freesoundConfigModal');
+                if (modal) modal.classList.remove('active');
+                if (window.novaCutToast) window.novaCutToast('✅ Freesound API-nyckel sparades!');
+                if (this.searchQuery) {
+                    this.performFreesoundSearch(this.searchQuery);
+                }
+            });
+        }
+
+        // Explore Online Hub Banner
+        const btnExploreOnlineHub = document.getElementById('btnExploreOnlineHub');
+        if (btnExploreOnlineHub) {
+            btnExploreOnlineHub.addEventListener('click', () => {
+                this.activeCategory = 'online-sfx';
+                document.querySelectorAll('#tab-marketplace .category-chips .chip').forEach(c => {
+                    c.classList.toggle('active', c.dataset.cat === 'online-sfx');
+                });
+                if (freesoundLiveBar) freesoundLiveBar.style.display = 'block';
+                this.renderMarketplace();
+            });
+        }
+
+        // Import from Video Preview Modal
+        const btnImportVideo = document.getElementById('btnImportFromVideoPreview');
+        if (btnImportVideo) {
+            btnImportVideo.addEventListener('click', () => {
+                if (this.activeVideoPreviewAsset) {
+                    this.downloadAndImportOnlineAsset(this.activeVideoPreviewAsset, btnImportVideo);
+                    const modal = document.getElementById('videoPreviewModal');
+                    if (modal) modal.classList.remove('active');
+                }
             });
         }
 
@@ -997,6 +1371,15 @@ class NovaCutMarketplace {
                 document.querySelectorAll('#tab-marketplace .category-chips .chip').forEach(c => c.classList.remove('active'));
                 chip.classList.add('active');
                 this.activeCategory = chip.dataset.cat;
+
+                if (freesoundLiveBar) {
+                    if (this.activeCategory === 'online-sfx' || (this.searchQuery && this.searchQuery.length >= 2)) {
+                        freesoundLiveBar.style.display = 'block';
+                    } else {
+                        freesoundLiveBar.style.display = 'none';
+                    }
+                }
+
                 this.renderMarketplace();
             });
         });

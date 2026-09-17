@@ -40,6 +40,12 @@ contextBridge.exposeInMainWorld('novaCut', {
     publishYoutubeUpload: (data) => ipcRenderer.invoke('publish:youtubeUpload', data),
     onYoutubeUploadProgress: (callback) => {
         ipcRenderer.on('publish:youtubeProgress', (event, data) => callback(data));
-    }
+    },
+
+    // Online Marketplace & Asset Hub APIs
+    downloadOnlineAsset: (options) => ipcRenderer.invoke('marketplace:downloadAsset', options),
+    searchFreesound: (options) => ipcRenderer.invoke('marketplace:searchFreesound', options),
+    getFreesoundConfig: () => ipcRenderer.invoke('marketplace:getFreesoundConfig'),
+    saveFreesoundConfig: (config) => ipcRenderer.invoke('marketplace:saveFreesoundConfig', config)
 });
 

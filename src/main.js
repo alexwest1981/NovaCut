@@ -1348,4 +1348,163 @@ ipcMain.handle('publish:youtubeUpload', async (event, data) => {
     });
 });
 
+// ==========================================
+// Online Asset Hub & Marketplace IPC Handlers
+// ==========================================
+const freesoundConfigPath = path.join(app.getPath('userData'), 'freesound_config.json');
+
+ipcMain.handle('marketplace:getFreesoundConfig', async () => {
+    if (fs.existsSync(freesoundConfigPath)) {
+        try {
+            return JSON.parse(fs.readFileSync(freesoundConfigPath, 'utf8'));
+        } catch (_) {}
+    }
+    return { apiKey: '' };
+});
+
+ipcMain.handle('marketplace:saveFreesoundConfig', async (event, config) => {
+    try {
+        fs.writeFileSync(freesoundConfigPath, JSON.stringify(config, null, 2), 'utf8');
+        return { success: true };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('marketplace:searchFreesound', async (event, { query, page = 1, pageSize = 24 }) => {
+    try {
+        let apiKey = '';
+        if (fs.existsSync(freesoundConfigPath)) {
+            try {
+                const cfg = JSON.parse(fs.readFileSync(freesoundConfigPath, 'utf8'));
+                apiKey = cfg.apiKey || '';
+            } catch (_) {}
+        }
+
+        if (!apiKey) {
+            return {
+                success: false,
+                requiresApiKey: true,
+                error: 'Ingen Freesound API-nyckel konfigurerad. Ange en gratis API-nyckel under kugghjulsikonen.'
+            };
+        }
+
+        const endpoint = `https://freesound.org/apiv2/search/text/?query=${encodeURIComponent(query)}&token=${encodeURIComponent(apiKey)}&fields=id,name,description,previews,duration,username,license,tags,filesize&page_size=${pageSize}&page=${page}`;
+        
+        const res = await fetch(endpoint, {
+            headers: {
+                'User-Agent': 'NovaCut Video Editor (Linux)'
+            }
+        });
+
+        if (!res.ok) {
+            const errText = await res.text();
+            return { success: false, error: `Freesound API fel (${res.status}): ${errText}` };
+        }
+
+        const data = await res.json();
+        const results = (data.results || []).map(item => ({
+            id: `fs-${item.id}`,
+            name: item.name,
+            author: item.username,
+            duration: Math.round(item.duration * 10) / 10,
+            license: item.license,
+            previewUrl: item.previews ? (item.previews['preview-hq-mp3'] || item.previews['preview-lq-mp3']) : null,
+            downloadUrl: item.previews ? (item.previews['preview-hq-mp3'] || item.previews['preview-lq-mp3']) : null,
+            tags: item.tags || [],
+            source: 'Freesound.org',
+            category: 'online-sfx'
+        }));
+
+        return {
+            success: true,
+            count: data.count,
+            page,
+            results
+        };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('marketplace:downloadAsset', async (event, { url, filename, type }) => {
+    try {
+        if (!url) return { success: false, error: 'Ingen URL angavs.' };
+        const safeName = (filename || `asset-${Date.now()}`).replace(/[^a-zA-Z0-9.\-_]/g, '_');
+        const destPath = path.join(userMediaDir, safeName);
+
+        // Instant cache return if file exists and is not empty
+        if (fs.existsSync(destPath) && fs.statSync(destPath).size > 1000) {
+            return {
+                success: true,
+                filePath: destPath,
+                fileUrl: `file://${destPath}`,
+                cached: true,
+                filename: safeName,
+                type: type || (safeName.match(/\.(mp3|wav|ogg|aac|flac)$/i) ? 'audio' : 'video')
+            };
+        }
+
+        const downloadWithRedirect = (targetUrl, maxRedirects = 5) => {
+            return new Promise((resolve, reject) => {
+                if (maxRedirects <= 0) return reject(new Error('För många omdirigeringar.'));
+                const client = targetUrl.startsWith('http:') ? http : https;
+
+                const req = client.get(targetUrl, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 NovaCut/1.0'
+                    }
+                }, (res) => {
+                    if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+                        let nextUrl = res.headers.location;
+                        if (nextUrl.startsWith('/')) {
+                            const parsed = new URL(targetUrl);
+                            nextUrl = `${parsed.protocol}//${parsed.host}${nextUrl}`;
+                        }
+                        return resolve(downloadWithRedirect(nextUrl, maxRedirects - 1));
+                    }
+
+                    if (res.statusCode !== 200) {
+                        return reject(new Error(`Servern svarade med HTTP ${res.statusCode}`));
+                    }
+
+                    const fileStream = fs.createWriteStream(destPath);
+                    res.pipe(fileStream);
+
+                    fileStream.on('finish', () => {
+                        fileStream.close(() => resolve(destPath));
+                    });
+                    fileStream.on('error', (err) => {
+                        try { fs.unlinkSync(destPath); } catch (_) {}
+                        reject(err);
+                    });
+                });
+
+                req.on('error', (err) => {
+                    try { fs.unlinkSync(destPath); } catch (_) {}
+                    reject(err);
+                });
+                req.setTimeout(45000, () => {
+                    req.destroy(new Error('Nedladdningen tog för lång tid (timeout).'));
+                });
+            });
+        };
+
+        await downloadWithRedirect(url);
+
+        return {
+            success: true,
+            filePath: destPath,
+            fileUrl: `file://${destPath}`,
+            cached: false,
+            filename: safeName,
+            type: type || (safeName.match(/\.(mp3|wav|ogg|aac|flac)$/i) ? 'audio' : 'video')
+        };
+    } catch (err) {
+        console.error('[NovaCut Marketplace Download] Error:', err);
+        return { success: false, error: err.message };
+    }
+});
+
+
 

@@ -286,21 +286,45 @@
                 </div>
             </div>
 
-            <!-- Tab 5: Community Marketplace -->
+            <!-- Tab 5: Community Marketplace & Online Asset Hub -->
             <div id="tab-marketplace" class="tab-content">
-                <div class="create-filter-banner" id="btnOpenCreatePluginModal">
-                    <h4>🛠️ Skapa Eget Filter / Plugin</h4>
-                    <p>Bygg egna reglage & shaders – exportera och dela med communityn</p>
+                <!-- Top Action Header Banner -->
+                <div class="marketplace-banner-row">
+                    <div class="online-hub-banner" id="btnExploreOnlineHub">
+                        <div class="banner-icon">🌐</div>
+                        <div class="banner-text">
+                            <div class="banner-title">Online Resursbibliotek</div>
+                            <div class="banner-sub">Gratis SFX, VFX Overlays & Musik direkt från webben</div>
+                        </div>
+                    </div>
+                    <div class="create-filter-banner-compact" id="btnOpenCreatePluginModal" title="Bygg egna reglage & shaders">
+                        <span>🛠️ Eget Filter</span>
+                    </div>
                 </div>
 
                 <div class="marketplace-header">
-                    <input type="text" id="marketplaceSearch" class="marketplace-search" placeholder="Sök i community marketplace...">
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <input type="text" id="marketplaceSearch" class="marketplace-search" placeholder="🔍 Sök SFX, overlays, musik, LUTs...">
+                        <button id="btnFreesoundConfig" class="btn-icon" style="flex-shrink: 0; width: 34px; height: 34px; border-radius: 8px;" title="Konfigurera Freesound.org API">⚙️</button>
+                    </div>
+
+                    <!-- Freesound Live Search Bar (shown when typing or in sfx mode) -->
+                    <div id="freesoundLiveSearchBar" class="freesound-search-bar" style="display: none;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                            <span id="freesoundSearchLabel" style="font-size: 11px; color: #f59e0b; font-weight: 600;">🌐 Sök på Freesound.org (550 000+ ljud)</span>
+                            <button id="btnTriggerFreesoundSearch" class="btn-primary btn-xs" style="padding: 4px 10px; font-size: 10px;">Sök Freesound</button>
+                        </div>
+                    </div>
+
                     <div class="category-chips">
                         <div class="chip active" data-cat="all">Alla</div>
-                        <div class="chip" data-cat="filter">Filter</div>
+                        <div class="chip" data-cat="online-sfx">💥 Gratis SFX</div>
+                        <div class="chip" data-cat="online-vfx">🎬 Video Overlays</div>
+                        <div class="chip" data-cat="online-music">🎵 Gratis Musik</div>
+                        <div class="chip" data-cat="filter">🎨 Film LUTs</div>
                         <div class="chip" data-cat="font">🔤 Typsnitt</div>
-                        <div class="chip" data-cat="overlay">Effektlager</div>
-                        <div class="chip" data-cat="transition">Övergångar</div>
+                        <div class="chip" data-cat="overlay">🪄 Procedural FX</div>
+                        <div class="chip" data-cat="transition">⧗ Övergångar</div>
                     </div>
                 </div>
 
@@ -962,6 +986,61 @@
         </div>
     </div>
 
+    <!-- Freesound.org API Key Configuration Modal -->
+    <div id="freesoundConfigModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 480px;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 18px;">🌐</span>
+                    <span style="font-weight: 700;">Freesound.org API Inställningar</span>
+                </div>
+                <button class="btn-icon close-modal-btn">✕</button>
+            </div>
+            <div class="modal-body" style="padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+                <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin: 0;">
+                    Med en gratis Freesound API-nyckel kan du söka och ladda ner direkt bland <strong>550 000+ gratis ljudeffekter (CC0 / Creative Commons)</strong> rakt in i NovaCut.
+                </p>
+                <div class="form-group">
+                    <label>Freesound API Token / Client Secret</label>
+                    <input type="text" id="freesoundApiKeyInput" class="form-input" placeholder="Klistra in din Freesound API token här...">
+                </div>
+                <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 6px; padding: 10px; font-size: 11px; color: #fbbf24; line-height: 1.4;">
+                    💡 <strong>Så skaffar du gratis nyckel:</strong>
+                    <br>1. Skapa ett gratis konto på <a href="https://freesound.org" target="_blank" style="color: #38bdf8; text-decoration: underline;">freesound.org</a>
+                    <br>2. Gå till <em>Apply for an API key</em> och klistra in din genererade Client Secret token här.
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 12px 16px; display: flex; justify-content: flex-end; gap: 8px;">
+                <button class="btn-secondary close-modal-btn" style="padding: 6px 14px;">Avbryt</button>
+                <button id="btnSaveFreesoundApiKey" class="btn-primary" style="padding: 6px 16px;">Spara Nyckel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Video Overlay Quick Preview Modal -->
+    <div id="videoPreviewModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 680px; background: #0c0e14;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 18px;">🎬</span>
+                    <span id="videoPreviewModalTitle" style="font-weight: 700;">Video Overlay Förhandsgranskning</span>
+                </div>
+                <button class="btn-icon close-modal-btn">✕</button>
+            </div>
+            <div class="modal-body" style="padding: 14px; display: flex; flex-direction: column; align-items: center; gap: 10px;">
+                <video id="videoPreviewPlayer" controls autoplay loop playsinline style="max-width: 100%; max-height: 380px; border-radius: 8px; background: #000; border: 1px solid rgba(255,255,255,0.1);"></video>
+                <p id="videoPreviewDesc" style="font-size: 11px; color: var(--text-muted); text-align: center; margin: 0;"></p>
+            </div>
+            <div class="modal-footer" style="padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
+                <button class="btn-secondary close-modal-btn">Stäng</button>
+                <button id="btnImportFromVideoPreview" class="btn-primary" style="display: flex; align-items: center; gap: 6px;">
+                    <span>📥</span>
+                    <span>Hämta till Projekt & Tidslinje</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Welcome & Projects Hub Modal (Always shown on start) -->
     <div id="welcomeModal" class="welcome-modal-overlay active">
         <div class="welcome-container">
@@ -1279,6 +1358,7 @@
     <script src="js/engine.js"></script>
     <script src="js/timeline.js"></script>
     <script src="js/inspector.js"></script>
+    <script src="js/online-assets.js"></script>
     <script src="js/marketplace.js"></script>
     <script src="js/sfx.js"></script>
     <script src="js/projects.js"></script>
