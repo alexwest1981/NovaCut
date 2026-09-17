@@ -36,6 +36,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const exporter = new NovaCutExporter(engine, timeline);
     window.exporter = exporter;
 
+    const publisher = new NovaCutPublisher(engine, timeline);
+    window.publisher = publisher;
+
     const sfxManager = new NovaCutSFX(timeline, engine);
     window.sfxManager = sfxManager;
 

@@ -458,13 +458,24 @@ class NovaCutExporter {
     onExportComplete(filePath, formatName = 'MP4') {
         this.isExporting = false;
         this.statusText.textContent = `Export klar! (${formatName})`;
+        
+        if (window.publisher && filePath) {
+            window.publisher.setExportedFile(filePath);
+        }
+
         setTimeout(() => {
             this.modal.classList.remove('active');
             this.progressContainer.style.display = 'none';
+            
             if (window.novaCutToast) {
-                window.novaCutToast(`🎉 ${formatName} exporterad framgångsrikt!`);
-            } else {
-                alert(`🎉 Videon har exporterats framgångsrikt!\n\nFormat: ${formatName}\nSparad till: ${filePath}`);
+                window.novaCutToast(`🎉 ${formatName} exporterad! Öppnar Social Media Hub...`);
+            }
+
+            // Seamlessly bridge to Social Media Publishing Hub
+            if (window.publisher) {
+                const ratio = this.engine?.aspectRatio || '16:9';
+                const defaultPlatform = ratio === '9:16' ? 'tiktok' : 'youtube';
+                window.publisher.open(defaultPlatform);
             }
         }, 500);
     }

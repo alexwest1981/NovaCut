@@ -27,6 +27,19 @@ contextBridge.exposeInMainWorld('novaCut', {
     transcribeAudio: (options) => ipcRenderer.invoke('captions:transcribe', options),
     generateAiImage: (options) => ipcRenderer.invoke('ai:generateImage', options),
     locateMediaFile: (filename, fallbackPath) => ipcRenderer.invoke('media:locate', filename, fallbackPath),
-    extractAudioMetadata: (filePath) => ipcRenderer.invoke('audio:extractMetadata', filePath)
+    extractAudioMetadata: (filePath) => ipcRenderer.invoke('audio:extractMetadata', filePath),
+
+    // Social Publishing APIs
+    publishOpenStudio: (platform) => ipcRenderer.invoke('publish:openStudio', platform),
+    publishShowInFolder: (filePath) => ipcRenderer.invoke('publish:showInFolder', filePath),
+    publishYoutubeAuthStatus: () => ipcRenderer.invoke('publish:youtubeAuthStatus'),
+    publishYoutubeGetConfig: () => ipcRenderer.invoke('publish:youtubeGetConfig'),
+    publishYoutubeSaveConfig: (config) => ipcRenderer.invoke('publish:youtubeSaveConfig', config),
+    publishYoutubeLogin: (credentials) => ipcRenderer.invoke('publish:youtubeLogin', credentials),
+    publishYoutubeLogout: () => ipcRenderer.invoke('publish:youtubeLogout'),
+    publishYoutubeUpload: (data) => ipcRenderer.invoke('publish:youtubeUpload', data),
+    onYoutubeUploadProgress: (callback) => {
+        ipcRenderer.on('publish:youtubeProgress', (event, data) => callback(data));
+    }
 });
 

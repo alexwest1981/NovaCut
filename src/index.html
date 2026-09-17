@@ -44,6 +44,9 @@
         </div>
 
         <div class="header-right">
+            <button id="btnOpenPublishModal" class="btn-publish-header" title="Publicera direkt till TikTok, YouTube & Facebook">
+                <span>🚀 Publicera</span>
+            </button>
             <button id="btnOpenExportModal" class="btn-primary">
                 <span>Exportera</span>
                 <span>▶</span>
@@ -722,6 +725,207 @@
         </div>
     </div>
 
+    <!-- Social Media Publishing Hub Modal (TikTok, YouTube, Facebook) -->
+    <div id="publishModal" class="modal-overlay">
+        <div class="modal-content modal-publish-hub">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 20px;">🚀</span>
+                    <div>
+                        <div style="font-size: 15px; font-weight: 700; color: #fff;">Social Media Publishing Hub</div>
+                        <div style="font-size: 11px; color: var(--text-muted);">Publicera till TikTok, YouTube Shorts & Facebook med 1 klick</div>
+                    </div>
+                </div>
+                <button class="btn-icon" id="btnClosePublishModal">✕</button>
+            </div>
+
+            <div class="modal-body publish-modal-body">
+                <!-- Active File Selection Bar -->
+                <div class="publish-file-bar">
+                    <div class="publish-file-info">
+                        <span class="publish-file-icon">🎬</span>
+                        <div class="publish-file-meta">
+                            <span class="publish-file-label">Aktiv videofil för publicering:</span>
+                            <span id="publishFilePath" class="publish-file-path">Ingen video vald ännu (exportera eller välj fil)</span>
+                        </div>
+                    </div>
+                    <div class="publish-file-actions">
+                        <button id="btnPickPublishFile" class="btn-secondary btn-sm">
+                            <span>📁</span>
+                            <span>Välj fil...</span>
+                        </button>
+                        <button id="btnRevealPublishFile" class="btn-secondary btn-sm" title="Visa och markera filen i Linux filhanterare">
+                            <span>📂</span>
+                            <span>Visa i mapp</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Platform Tabs -->
+                <div class="publish-platform-tabs">
+                    <button class="publish-tab-btn active" data-platform="tiktok">
+                        <span class="platform-icon">🎵</span>
+                        <div class="platform-tab-text">
+                            <div class="platform-tab-name">TikTok</div>
+                            <div class="platform-tab-sub">Creator Center</div>
+                        </div>
+                    </button>
+                    <button class="publish-tab-btn" data-platform="youtube">
+                        <span class="platform-icon">🔴</span>
+                        <div class="platform-tab-text">
+                            <div class="platform-tab-name">YouTube</div>
+                            <div class="platform-tab-sub">Shorts & Studio API</div>
+                        </div>
+                    </button>
+                    <button class="publish-tab-btn" data-platform="facebook">
+                        <span class="platform-icon">🔵</span>
+                        <div class="platform-tab-text">
+                            <div class="platform-tab-name">Facebook</div>
+                            <div class="platform-tab-sub">Reels & Video</div>
+                        </div>
+                    </button>
+                </div>
+
+                <!-- 2-Column Publishing Grid -->
+                <div class="publish-grid">
+                    <!-- Column 1: Caption & Metadata Builder -->
+                    <div class="publish-col-left">
+                        <div class="form-group">
+                            <label class="param-label" style="display: flex; justify-content: space-between;">
+                                <span>Titel / Hook-rubrik</span>
+                                <span style="color: var(--text-muted); font-size: 10px;">Max 100 tkn</span>
+                            </label>
+                            <input type="text" id="publishTitle" class="form-input" placeholder="Skriv en fångande rubrik eller fråga...">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="param-label" style="display: flex; justify-content: space-between;">
+                                <span>Beskrivning & Bildtext</span>
+                                <span style="color: var(--text-muted); font-size: 10px;">Inkludera hashtags</span>
+                            </label>
+                            <textarea id="publishDescription" class="form-textarea" rows="4" placeholder="Skriv din bildtext här. Klicka på taggarna nedan för att snabbt lägga till dem..."></textarea>
+                        </div>
+
+                        <!-- Viral Hashtags Helper -->
+                        <div class="publish-hashtags-section">
+                            <div class="hashtags-header">
+                                <span>🔥 Populära & Rekommenderade Taggar:</span>
+                            </div>
+                            <div id="publishHashtagsContainer" class="publish-tags-grid">
+                                <!-- Populated dynamically by publisher.js -->
+                            </div>
+                            <div class="add-custom-tag-bar">
+                                <input type="text" id="publishCustomTagInput" placeholder="#skriv_egen_tagg...">
+                                <button id="btnAddPublishCustomTag" class="btn-secondary btn-sm">+ Lägg till</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Column 2: Studio Bridge & Direct API -->
+                    <div class="publish-col-right">
+                        <!-- 1-Click Studio Bridge Card -->
+                        <div id="publishStudioBridgeAction" class="publish-action-card">
+                            <div class="action-card-header">
+                                <div class="action-icon">⚡</div>
+                                <div>
+                                    <h4 id="studioBridgeTitle" style="margin: 0; font-size: 14px; color: #fff;">1-Klick Creator Studio Bridge</h4>
+                                    <p id="studioBridgeDesc" style="margin: 3px 0 0 0; font-size: 11px; color: var(--text-muted);">
+                                        Kopierar din bildtext & taggar till urklipp, öppnar filens mapp på datorn och öppnar upload-sidan i webbläsaren.
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="action-card-steps">
+                                <div class="step-badge"><span>1</span> Text kopieras</div>
+                                <div class="step-badge"><span>2</span> Fil markeras</div>
+                                <div class="step-badge"><span>3</span> Släpp & kör!</div>
+                            </div>
+                            <button id="btnLaunchStudioBridge" class="btn-primary btn-bridge-launch">
+                                <span>🚀</span>
+                                <span>Kopiera text & Öppna Studio</span>
+                            </button>
+                        </div>
+
+                        <!-- YouTube Direct API Section (shown only on YouTube tab) -->
+                        <div id="publishYoutubeDirectSection" class="youtube-direct-card" style="display: none;">
+                            <div class="yt-section-header">
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="color: #ff0033; font-weight: 700;">🔴</span>
+                                    <span style="font-weight: 600; font-size: 13px;">YouTube Direct API Upload</span>
+                                </div>
+                                <button id="btnYtConfig" class="btn-secondary btn-xs" title="Konfigurera Google OAuth nycklar">⚙️ API</button>
+                            </div>
+
+                            <!-- Channel Profile Status -->
+                            <div id="ytAuthStatusCard" class="yt-auth-card">
+                                <img id="ytChannelAvatar" class="yt-avatar" style="display: none;" src="" alt="Avatar">
+                                <div class="yt-channel-info">
+                                    <div id="ytChannelName" class="yt-channel-name">Inget YouTube-konto anslutet</div>
+                                    <div class="yt-auth-sub">Direkt uppladdning utan att lämna NovaCut</div>
+                                </div>
+                                <button id="btnYtConnect" class="btn-primary btn-sm">Anslut Konto</button>
+                                <button id="btnYtDisconnect" class="btn-secondary btn-sm" style="display: none;">Koppla från</button>
+                            </div>
+
+                            <!-- Upload Settings -->
+                            <div class="yt-settings-row">
+                                <div class="yt-field">
+                                    <label>Synlighet</label>
+                                    <select id="ytPrivacySelect" class="form-select-sm">
+                                        <option value="public" selected>Offentlig (Public)</option>
+                                        <option value="unlisted">Olistad (Unlisted)</option>
+                                        <option value="private">Privat (Private)</option>
+                                    </select>
+                                </div>
+                                <div class="yt-field">
+                                    <label>Kategori</label>
+                                    <select id="ytCategorySelect" class="form-select-sm">
+                                        <option value="22" selected>People & Blogs</option>
+                                        <option value="20">Gaming</option>
+                                        <option value="24">Underhållning</option>
+                                        <option value="26">Howto & Style</option>
+                                        <option value="27">Utbildning</option>
+                                        <option value="10">Musik</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <button id="btnDirectYtUpload" class="btn-yt-direct" disabled>
+                                <span>🔴</span>
+                                <span>Ladda upp direkt till YouTube</span>
+                            </button>
+
+                            <!-- Live Upload Progress -->
+                            <div id="ytUploadProgressContainer" style="display: none; margin-top: 10px;">
+                                <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+                                    <span id="ytUploadProgressText" style="color: var(--text-primary);">Initierar uppladdning...</span>
+                                    <span id="ytUploadPercentText" style="color: #ff0033; font-weight: 700;">0%</span>
+                                </div>
+                                <div class="progress-track">
+                                    <div id="ytUploadProgressBar" class="progress-bar-yt"></div>
+                                </div>
+                            </div>
+
+                            <!-- Success Banner -->
+                            <div id="ytUploadSuccessBox" class="yt-success-banner" style="display: none;">
+                                <div style="font-size: 12px; font-weight: 600; color: #00d482; margin-bottom: 4px;">
+                                    🎉 Videon har publicerats!
+                                </div>
+                                <div style="display: flex; gap: 6px; align-items: center;">
+                                    <a id="ytUploadSuccessLink" href="#" target="_blank" style="font-size: 11px; color: #38bdf8; text-decoration: underline; word-break: break-all;">https://youtu.be/...</a>
+                                    <button id="btnCopyYtLink" class="btn-secondary btn-xs">Kopiera</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer" style="padding: 12px 20px;">
+                <button class="btn-secondary close-modal-btn" onclick="document.getElementById('publishModal').classList.remove('active')">Stäng</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Create Plugin / Filter Developer Modal -->
     <div id="createPluginModal" class="modal-overlay">
         <div class="modal-content">
@@ -1079,6 +1283,7 @@
     <script src="js/sfx.js"></script>
     <script src="js/projects.js"></script>
     <script src="js/exporter.js"></script>
+    <script src="js/publisher.js"></script>
     <script src="js/transitions.js"></script>
     <script src="js/stickers.js"></script>
     <script src="js/beats.js"></script>

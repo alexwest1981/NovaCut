@@ -5,6 +5,7 @@ const os = require('os');
 const { spawn, exec, execSync, execFile } = require('child_process');
 const https = require('https');
 const http = require('http');
+const publisherService = require('./publisher-service');
 
 // Wayland & Linux Hardware Acceleration
 app.commandLine.appendSwitch('ozone-platform', 'wayland');
@@ -1305,4 +1306,46 @@ ipcMain.handle('audio:extractMetadata', async (event, rawFilePath) => {
         };
     }
 });
+
+// ==========================================
+// Social Media Publishing IPC Handlers
+// ==========================================
+ipcMain.handle('publish:openStudio', async (event, platform) => {
+    return publisherService.openCreatorStudio(platform);
+});
+
+ipcMain.handle('publish:showInFolder', async (event, filePath) => {
+    return publisherService.showItemInFolder(filePath);
+});
+
+ipcMain.handle('publish:youtubeAuthStatus', async () => {
+    return publisherService.getYoutubeAuthStatus();
+});
+
+ipcMain.handle('publish:youtubeGetConfig', async () => {
+    return publisherService.getYoutubeConfig();
+});
+
+ipcMain.handle('publish:youtubeSaveConfig', async (event, config) => {
+    return publisherService.saveYoutubeConfig(config);
+});
+
+ipcMain.handle('publish:youtubeLogin', async (event, credentials) => {
+    const { clientId, clientSecret } = credentials || {};
+    return publisherService.startYoutubeLogin(clientId, clientSecret);
+});
+
+ipcMain.handle('publish:youtubeLogout', async () => {
+    return publisherService.disconnectYoutube();
+});
+
+ipcMain.handle('publish:youtubeUpload', async (event, data) => {
+    const { filePath, metadata } = data;
+    return publisherService.uploadYoutubeVideo(filePath, metadata, (progress) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('publish:youtubeProgress', progress);
+        }
+    });
+});
+
 
