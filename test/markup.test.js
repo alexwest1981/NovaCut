@@ -34,12 +34,29 @@ test('no half-applied icon replacement is left in the markup', () => {
     assert.deepEqual(html.match(/\\\d[A-Za-z-]+=/g) || [], [], 'literal backreference i markup');
 });
 
-test('the chrome sprite is the only emoji left out of the catalogs', () => {
-    // Chrome = header, tabs, toolbars, buttons. Emoji inside the sticker /
-    // transition / effect catalogues are content art and are expected to stay.
-    const chromeEmoji = [...html.matchAll(/<button[^>]*>(?:(?!<\/button>).)*?([^\p{L}\p{N}\p{P}\s\x20-\x7E])(?:(?!<\/button>).)*?<\/button>/gsu)]
+test('emoji survive only where they are content art', () => {
+    // Chrome is icon-sprite only. The exceptions are the sticker/effect
+    // catalogues (.fx-icon), the preset names (.style-name) and one sample
+    // headline inside an <input value>. Everything else is a missing icon.
+    const lines = html.split('\n');
+    const offenders = [];
+    for (const [index, line] of lines.entries()) {
+        for (const [glyph] of line.matchAll(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{2300}-\u{23FF}]/gu)) {
+            const context = line.slice(0, line.indexOf(glyph));
+            const allowed = /class="[^"]*(fx-icon|style-name)[^"]*"/.test(context)
+                || /<input[^>]*value="[^"]*$/.test(context);
+            if (!allowed) offenders.push(`${index + 1}:${glyph}`);
+        }
+    }
+    assert.deepEqual(offenders, [], `emoji utanför innehållet: ${offenders.join(' ')}`);
+});
+
+test('no glyph stands in for an icon inside a button', () => {
+    // Any character outside plain ASCII-printable + letters/numbers/punctuation
+    // inside a button: dingbats, arrows, tick marks, box-drawing stand-ins.
+    const stray = [...html.matchAll(/<button[^>]*>(?:(?!<\/button>).)*?([^\p{L}\p{N}\p{P}\s\x20-\x7E])(?:(?!<\/button>).)*?<\/button>/gsu)]
         .map((m) => m[1]);
-    assert.deepEqual(chromeEmoji, [], `emoji kvar i knappar: ${[...new Set(chromeEmoji)].join(' ')}`);
+    assert.deepEqual(stray, [], `glyf kvar i knappar: ${[...new Set(stray)].join(' ')}`);
 });
 
 test('the token layer has one owner', () => {
