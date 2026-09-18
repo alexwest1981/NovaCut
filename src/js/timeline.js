@@ -1572,14 +1572,14 @@ class NovaCutTimeline {
                     <span class="track-header-title" title="${track.name} — dubbelklicka för att byta namn">${track.name}</span>
                 </div>
                 <div class="track-header-actions">
-                    <button class="btn-track-action track-move-up" title="Flytta lager uppåt (framåt i bild)" ${isFirst ? 'disabled style="opacity:0.3;cursor:default;"' : ''}>▲</button>
-                    <button class="btn-track-action track-move-down" title="Flytta lager nedåt (bakåt i bild)" ${isLast ? 'disabled style="opacity:0.3;cursor:default;"' : ''}>▼</button>
+                    <button class="btn-track-action track-move-up" title="Flytta lager uppåt (framåt i bild)" ${isFirst ? 'disabled style="opacity:0.3;cursor:default;"' : ''}>${ncIcon('chevron-up')}</button>
+                    <button class="btn-track-action track-move-down" title="Flytta lager nedåt (bakåt i bild)" ${isLast ? 'disabled style="opacity:0.3;cursor:default;"' : ''}>${ncIcon('chevron-down')}</button>
                     ${track.type === 'audio' 
-                        ? `<button class="btn-track-action track-toggle-mute ${state.muted ? 'active' : ''}" title="${state.muted ? 'Aktivera ljudspår' : 'Tysta ljudspår'}">${state.muted ? '🔇' : '🔊'}</button>`
-                        : `<button class="btn-track-action track-toggle-vis ${!state.visible ? 'active' : ''}" title="${state.visible ? 'Dölj spår' : 'Visa spår'}">${state.visible ? '👁️' : '🚫'}</button>`
+                        ? `<button class="btn-track-action track-toggle-mute ${state.muted ? 'active' : ''}" title="${state.muted ? 'Aktivera ljudspår' : 'Tysta ljudspår'}">${state.muted ? ncIcon('volume-off') : ncIcon('volume')}</button>`
+                        : `<button class="btn-track-action track-toggle-vis ${!state.visible ? 'active' : ''}" title="${state.visible ? 'Dölj spår' : 'Visa spår'}">${state.visible ? ncIcon('eye') : ncIcon('eye-off')}</button>`
                     }
-                    <button class="btn-track-action track-toggle-lock ${state.locked ? 'active' : ''}" title="${state.locked ? 'Lås upp spår' : 'Lås spår'}">${state.locked ? '🔒' : '🔓'}</button>
-                    <button class="btn-track-action track-delete" title="Ta bort spår">✕</button>
+                    <button class="btn-track-action track-toggle-lock ${state.locked ? 'active' : ''}" title="${state.locked ? 'Lås upp spår' : 'Lås spår'}">${state.locked ? ncIcon('lock') : ncIcon('unlock')}</button>
+                    <button class="btn-track-action track-delete" title="Ta bort spår">${ncIcon('close')}</button>
                 </div>
             `;
 

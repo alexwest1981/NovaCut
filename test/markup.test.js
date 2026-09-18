@@ -76,3 +76,27 @@ test('type sizes stay on the scale', () => {
         assert.deepEqual(stray, [], `${name} har text under 10px`);
     }
 });
+
+// JS-built chrome is the same contract as the static markup. Files whose emoji
+// are a *preset's* own thumbnail (a PIP layout, an allocation chip) are listed
+// here with the reason, so adding one elsewhere still fails the build.
+const CONTENT_THUMBNAIL_FILES = {
+    'inspector.js': 'PIP/allocation preset thumbnails (each preset carries its own glyph)',
+};
+
+test('no emoji left in buttons built by the renderer', () => {
+    const dir = join(root, 'src/js');
+    const offenders = [];
+    for (const file of readdirSync(dir).filter((f) => f.endsWith('.js'))) {
+        if (CONTENT_THUMBNAIL_FILES[file]) continue;
+        const text = readFileSync(join(dir, file), 'utf8');
+        const buttons = text.matchAll(/<button[^>]*>(?:(?!<\/button>).)*?<\/button>/gs);
+        for (const button of buttons) {
+            const glyphs = [...new Set(button[0].match(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{2300}-\u{23FF}\u{25A0}-\u{25FF}\u{2190}-\u{21FF}]/gu) || [])];
+            if (glyphs.length && !button[0].includes('nc-emoji-ok')) {
+                offenders.push(`${file}: ${glyphs.join('')}`);
+            }
+        }
+    }
+    assert.deepEqual(offenders, [], `emoji i JS-byggda knappar: ${offenders.join(', ')}`);
+});

@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!exitBadge && previewArea) {
         exitBadge = document.createElement('div');
         exitBadge.className = 'fullscreen-exit-badge';
-        exitBadge.innerHTML = '<span>✕</span> Lämna helskärm (Esc)';
+        exitBadge.innerHTML = '<span>${ncIcon("close")}</span> Lämna helskärm (Esc)';
         exitBadge.addEventListener('click', () => toggleFullscreenPreview(false));
         previewArea.appendChild(exitBadge);
     }
@@ -393,15 +393,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (fileObj.type === 'audio') {
             actionsHTML = `
                 <div class="media-card-actions">
-                    <button class="btn-card-action btn-place-all" title="Placera hela låtens längd på tidslinjen">🎵 Placera hela låten</button>
-                    <button class="btn-card-action btn-fit-video" title="Anpassa låten efter videons längd">✂️ Till videoslut</button>
+                    <button class="btn-card-action btn-place-all" title="Placera hela låtens längd på tidslinjen">${ncIcon('music')} Placera hela låten</button>
+                    <button class="btn-card-action btn-fit-video" title="Anpassa låten efter videons längd">${ncIcon('scissors')} Till videoslut</button>
                 </div>
             `;
         }
 
         mediaCard.innerHTML = `
             <div class="media-thumb">
-                <span>${fileObj.type === 'video' ? '🎬' : fileObj.type === 'audio' ? '🎵' : '🖼️'}</span>
+                <span>${fileObj.type === 'video' ? ncIcon('film') : fileObj.type === 'audio' ? ncIcon('music') : ncIcon('film')}</span>
                 <span class="media-badge">${fileObj.type === 'audio' ? 'LJUD' : fileObj.type.toUpperCase()}</span>
             </div>
             <div class="media-title" title="${fileObj.name}">${fileObj.name}</div>
@@ -1066,8 +1066,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         <span class="media-badge" style="background: var(--bg-surface);">${formatDuration(preset.duration)}</span>
                     </div>
                     <div style="display: flex; gap: 6px; margin-top: 2px;">
-                        <button class="btn-card-action btn-place-all" style="flex: 1;">🎵 Placera hela låten (${formatDuration(preset.duration)})</button>
-                        <button class="btn-card-action btn-fit-video">✂️ Till videoslut</button>
+                        <button class="btn-card-action btn-place-all" style="flex: 1;">${ncIcon('music')} Placera hela låten (${formatDuration(preset.duration)})</button>
+                        <button class="btn-card-action btn-fit-video">${ncIcon('scissors')} Till videoslut</button>
                     </div>
                 </div>
             `;

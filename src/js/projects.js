@@ -170,7 +170,7 @@ class NovaCutProjects {
         if (filtered.length === 0) {
             this.gridEl.innerHTML = `
                 <div class="welcome-empty-state">
-                    <div style="font-size: 32px; margin-bottom: 8px;">📂</div>
+                    <div style="font-size: 32px; margin-bottom: 8px;">${ncIcon('folder-open')}</div>
                     <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Inga projekt hittades</div>
                     <div style="font-size: 11px; color: var(--text-muted);">Klicka på "+ Nytt Projekt" till vänster för att starta från grunden.</div>
                 </div>
@@ -200,7 +200,7 @@ class NovaCutProjects {
                 <div class="project-thumb-preview ${ratioClass}">
                     <div class="thumb-glow"></div>
                     <span class="thumb-badge">${proj.aspectRatio || '16:9'}</span>
-                    <span class="thumb-play">▶</span>
+                    <span class="thumb-play">${ncIcon('play', { solid: true })}</span>
                 </div>
                 <div class="project-meta">
                     <div class="project-card-title-row">
@@ -214,8 +214,8 @@ class NovaCutProjects {
                         <span>${dateStr}</span>
                     </div>
                     <div class="project-card-actions">
-                        <button class="btn-open-project" title="Öppna och fortsätt redigera">Öppna projekt ▶</button>
-                        <button class="btn-delete-project" title="Ta bort projekt">🗑️</button>
+                        <button class="btn-open-project" title="Öppna och fortsätt redigera">Öppna projekt ${ncIcon('play', { solid: true })}</button>
+                        <button class="btn-delete-project" title="Ta bort projekt">${ncIcon('trash')}</button>
                     </div>
                 </div>
             `;

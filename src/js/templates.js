@@ -198,16 +198,16 @@ class NovaCutTemplates {
                     </div>
                     <div class="template-tagline">${tpl.tagline}</div>
                     <div class="template-meta-pills">
-                        <span>⏱️ ${tpl.duration.toFixed(0)}s</span>
-                        ${tpl.hasSfx ? '<span>🔊 SFX</span>' : ''}
-                        ${tpl.hasBeats ? '<span>🎵 Beats</span>' : ''}
+                        <span>${ncIcon('clock')} ${tpl.duration.toFixed(0)}s</span>
+                        ${tpl.hasSfx ? '<span>' + ncIcon('volume') + ' SFX</span>' : ''}
+                        ${tpl.hasBeats ? '<span>' + ncIcon('music') + ' Beats</span>' : ''}
                     </div>
                     <div class="template-card-btns">
                         <button class="btn-template-instant" data-id="${tpl.id}" title="Skapa direkt med standardvärden">
-                            ⚡ Blixtstart
+                            ${ncIcon('zap')} Blixtstart
                         </button>
                         <button class="btn-template-customize" data-id="${tpl.id}" title="Öppna Wizard och anpassa text/layout">
-                            🎨 Anpassa
+                            ${ncIcon('palette')} Anpassa
                         </button>
                     </div>
                 </div>

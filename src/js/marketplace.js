@@ -740,7 +740,7 @@ class NovaCutMarketplace {
             importBanner.style.cursor = 'pointer';
             importBanner.innerHTML = `
                 <h4 style="color: #38bdf8; display: flex; align-items: center; gap: 8px;">
-                    <span>📂</span> <span>Importera Eget Typsnitt (.ttf / .otf / .woff2)</span>
+                    <span>${ncIcon('folder-open')}</span> <span>Importera Eget Typsnitt (.ttf / .otf / .woff2)</span>
                 </h4>
                 <p style="margin-top: 4px; line-height: 1.4;">
                     Har du hämtat typsnitt från <strong>DaFont</strong> eller har lokala fonter på datorn? Klicka här för att importera dem direkt till NovaCut.
@@ -848,7 +848,7 @@ class NovaCutMarketplace {
             emptyMsg.style.padding = '30px 16px';
             emptyMsg.style.fontSize = '12px';
             emptyMsg.innerHTML = `
-                <div style="font-size: 24px; margin-bottom: 8px;">🔍</div>
+                <div style="font-size: 24px; margin-bottom: 8px;">${ncIcon('search')}</div>
                 <div>Inga resurser matchade "${this.searchQuery}".</div>
                 <div style="margin-top: 6px; font-size: 11px; color: var(--text-secondary);">Testa att söka på Freesound.org eller välja en annan kategori ovan.</div>
             `;
@@ -898,15 +898,15 @@ class NovaCutMarketplace {
                     <div class="online-asset-actions">
                         ${isAudio ? `
                             <button class="btn-preview-audio" data-preview-id="${asset.id}">
-                                <span>▶</span> <span>Provlyssna</span>
+                                <span>${ncIcon('play', { solid: true })}</span> <span>Provlyssna</span>
                             </button>
                         ` : `
                             <button class="btn-preview-audio btn-preview-video" data-video-id="${asset.id}">
-                                <span>👁️</span> <span>Förhandsgranska</span>
+                                <span>${ncIcon('eye')}</span> <span>Förhandsgranska</span>
                             </button>
                         `}
                         <button class="btn-import-asset" data-import-id="${asset.id}">
-                            <span>📥</span> <span>Hämta & Använd</span>
+                            <span>${ncIcon('download')}</span> <span>Hämta & Använd</span>
                         </button>
                     </div>
                 </div>
@@ -966,7 +966,7 @@ class NovaCutMarketplace {
                     </div>
                     <p class="plugin-desc">${font.description}</p>
                     <div class="plugin-actions" style="margin-top: 8px; display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
-                        ${hasSelectedText ? `<button class="tool-btn btn-apply-font" style="font-size: 11px; padding: 5px 10px; color: var(--accent);">✏️ Ändra markerad text</button>` : ''}
+                        ${hasSelectedText ? `<button class="tool-btn btn-apply-font" style="font-size: 11px; padding: 5px 10px; color: var(--accent);">${ncIcon('type')} Ändra markerad text</button>` : ''}
                         <button class="btn-add-effect btn-create-font-clip" style="background: var(--accent); color: #000; font-size: 11px; padding: 5px 12px;">+ Skapa Textklipp</button>
                     </div>
                 </div>
@@ -1263,7 +1263,7 @@ class NovaCutMarketplace {
         if (asset.category === 'transition') {
             if (btnElement) {
                 btnElement.classList.add('installed');
-                btnElement.innerHTML = `<span>✔</span> <span>Aktiverad!</span>`;
+                btnElement.innerHTML = `<span>${ncIcon('check')}</span> <span>Aktiverad!</span>`;
                 setTimeout(() => {
                     btnElement.innerHTML = `<span>+</span> <span>Använd</span>`;
                 }, 2500);
@@ -1299,7 +1299,7 @@ class NovaCutMarketplace {
         const originalText = btnElement ? btnElement.innerHTML : '';
         if (btnElement) {
             btnElement.disabled = true;
-            btnElement.innerHTML = `<span>⏳</span> <span>Hämtar...</span>`;
+            btnElement.innerHTML = `<span>${ncIcon('clock')}</span> <span>Hämtar...</span>`;
         }
 
         try {
@@ -1341,7 +1341,7 @@ class NovaCutMarketplace {
             if (btnElement) {
                 btnElement.disabled = false;
                 btnElement.classList.add('installed');
-                btnElement.innerHTML = `<span>✔</span> <span>Tillagd!</span>`;
+                btnElement.innerHTML = `<span>${ncIcon('check')}</span> <span>Tillagd!</span>`;
                 setTimeout(() => {
                     btnElement.innerHTML = `<span>+</span> <span>Lägg till</span>`;
                 }, 3000);
@@ -1354,7 +1354,7 @@ class NovaCutMarketplace {
             console.error('[Marketplace Download] Error:', err);
             if (btnElement) {
                 btnElement.disabled = false;
-                btnElement.innerHTML = originalText || `<span>📥</span> <span>Försök igen</span>`;
+                btnElement.innerHTML = originalText || `<span>${ncIcon('download')}</span> <span>Försök igen</span>`;
             }
             alert(`Kunde inte ladda ner resurs: ${err.message}`);
         }

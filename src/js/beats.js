@@ -152,10 +152,10 @@ class NovaCutBeats {
 
         if (btnBeats) {
             btnBeats.addEventListener('click', async () => {
-                btnBeats.innerHTML = '<span>⏳ Lyssnar...</span>';
+                btnBeats.innerHTML = '<span>' + ncIcon('music') + ' Lyssnar...</span>';
                 const res = await this.autoDetectActiveAudioTrack('medium');
                 btnBeats.classList.add('active');
-                btnBeats.innerHTML = `<span>🎵 Beats (${this.timeline.beatMarkers.length})</span>`;
+                btnBeats.innerHTML = `<span>${ncIcon('music')} Beats (${this.timeline.beatMarkers.length})</span>`;
 
                 if (window.showToast) {
                     window.showToast(`🎶 Hittade ${this.timeline.beatMarkers.length} taktslag på ljudspåret! Magnetisk snapping aktiverad.`);
@@ -185,12 +185,12 @@ class NovaCutBeats {
 
                 const cutCount = this.autoCutTargetClip(targetId, true);
                 if (cutCount > 0) {
-                    btnAutoCut.innerHTML = `<span>✅ ${cutCount} klipp gjorda!</span>`;
+                    btnAutoCut.innerHTML = `<span>${ncIcon('check')} ${cutCount} klipp gjorda!</span>`;
                     if (window.showToast) {
                         window.showToast(`⚡ Auto-Cut: Skapade ${cutCount} synkade klipp med rytmisk hastighetszoom!`);
                     }
                     setTimeout(() => {
-                        btnAutoCut.innerHTML = '<span>⚡ Auto-Cut till Takten</span>';
+                        btnAutoCut.innerHTML = '<span>' + ncIcon('zap') + ' Auto-Cut till Takten</span>';
                     }, 2500);
                 } else {
                     if (window.showToast) window.showToast('Inga nya beats träffade det valda klippet.');

@@ -330,7 +330,7 @@ class NovaCutVisuals {
                         <label for="customVizTrans" style="color: #cbd5e1; cursor: pointer;">Transparent bakgrund (läggs över bild/video)</label>
                     </div>
                     <button id="btnCreateCustomViz" class="btn-primary" style="margin-top: 6px; width: 100%; justify-content: center; padding: 7px; font-weight: 700;">
-                        <span>✨ Skapa & Lägg till på Tidslinjen</span>
+                        <span>${ncIcon('sparkles')} Skapa & Lägg till på Tidslinjen</span>
                     </button>
                 </div>
             `;

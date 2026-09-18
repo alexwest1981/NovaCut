@@ -54,7 +54,7 @@ class NovaCutColorPicker {
 
         this.popover.innerHTML = `
             <div class="nc-cp-header">
-                <span class="nc-cp-title">🎨 Färgväljare</span>
+                <span class="nc-cp-title">${ncIcon('palette')} Färgväljare</span>
                 <div class="nc-cp-header-actions">
                     <button class="nc-cp-eyedropper-btn" id="ncCpEyedropper" title="Pipett: Klicka för att hämta färg från skärmen">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -63,7 +63,7 @@ class NovaCutColorPicker {
                             <path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8a2.1 2.1 0 1 1 3-3l.4.4Z"/>
                         </svg>
                     </button>
-                    <button class="nc-cp-close-btn" id="ncCpClose" title="Stäng">✕</button>
+                    <button class="nc-cp-close-btn" id="ncCpClose" title="Stäng">${ncIcon('close')}</button>
                 </div>
             </div>
 

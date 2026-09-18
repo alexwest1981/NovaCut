@@ -610,7 +610,7 @@ class NovaCutSFX {
             card.innerHTML = `
                 <div style="padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
                     <div style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
-                        <button class="btn-sfx-play" data-sfx="${sfx.id}" title="Förhandslyssna">▶</button>
+                        <button class="btn-sfx-play" data-sfx="${sfx.id}" title="Förhandslyssna">${ncIcon('play', { solid: true })}</button>
                         <div style="overflow: hidden;">
                             <div style="font-weight: 600; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                 ${sfx.name}
