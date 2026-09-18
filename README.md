@@ -87,6 +87,26 @@ repository (a linked binary without its shared libraries cannot run, so it is
 gitignored rather than committed). The app reports the missing pieces instead
 of failing silently.
 
+### What leaves the machine
+
+Everything below is the app talking to something; nothing else does. All of it
+is off until you use the feature, except the font stylesheet.
+
+| Destination | When | What is sent |
+|---|---|---|
+| `fonts.googleapis.com` | On launch, once (`src/js/fonts.js` → `injectGoogleFontsStylesheet`) | A stylesheet request for the 16 template/caption families (Anton, Bangers, Bebas Neue, Caveat …). No project data. Offline the app falls back to the system fonts and keeps working. |
+| `image.pollinations.ai` | When you press Generate in the AI image panel (`ai:generateImage`) | Your prompt text. No API key, no account. |
+| `www.googleapis.com` (YouTube) | If you connect a channel and upload | The video and its metadata, with the OAuth token you granted. |
+| `freesound.org` | When you search or download in the audio panel, once you have added your own API key (`marketplace:saveFreesoundConfig`) | The search terms; downloads are stored under the app's userData. |
+
+**Two kinds of fonts, on purpose.** `src/assets/fonts/` holds the *interface*
+font (Geist + Geist Mono, OFL-1.1) so the editor's own chrome looks the same on
+every machine; it is bundled and never fetched. The families requested at launch
+are the ones you pick for *captions and titles* — sixteen display faces whose
+files would add several megabytes to the package, so they are requested once per
+run and then cached by Chromium. Nothing about them is needed to edit, preview or
+export offline; missing families fall back to the system font.
+
 ---
 
 ## ⌨️ Keyboard Shortcuts
