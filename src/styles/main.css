@@ -2738,8 +2738,12 @@ body {
     transform: translateY(-2px);
 }
 
-.btn-welcome-templates .tpl-icon {
-    font-size: 22px;
+.btn-welcome-templates .tpl-icon .nc-icon,
+.template-thumb-icon .nc-icon,
+.wizard-item-icon .nc-icon {
+    width: 22px;
+    height: 22px;
+    stroke-width: 1.5;
 }
 
 .btn-welcome-templates .tpl-title {

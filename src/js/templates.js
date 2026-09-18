@@ -21,7 +21,7 @@ class NovaCutTemplates {
                 badge: '9:16 TikTok / Reels',
                 tagline: 'Super-hook med animerad Hormozi-text, Vine Boom sub-bas & taktdelning',
                 description: 'Optimerad för maximal retention på TikTok, YouTube Shorts och Instagram Reels. Inkluderar stor gul rubrik med Pop-animation, snabb inzoomning, Vine Boom SFX och 128 BPM taktmarkörer.',
-                icon: '⚡',
+                icon: 'zap',
                 previewGradient: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 50%, #8b5cf6 100%)',
                 defaultHeadline: 'SLUTA SCROLLA! 🛑',
                 defaultSubtitle: '3 misstag du gör varje dag',
@@ -41,7 +41,7 @@ class NovaCutTemplates {
                 badge: '16:9 / 9:16 Gaming',
                 tagline: 'Gameplay (V1) + Facecam (V2) med cirkelmask, accentram & LIVE-badge',
                 description: 'Komplett dubbelspårslayout för Twitch- och YouTube-gamers. Facecam-overlay med cirkulär/rund mask, lysande cyan/grön ram, mjuk skugga och LIVE-streamer-märke.',
-                icon: '🎮',
+                icon: 'gamepad',
                 previewGradient: 'linear-gradient(135deg, #00d482 0%, #0284c7 50%, #1e1b4b 100%)',
                 defaultHeadline: 'IMPOSSIBLE CLUTCH! 🔥',
                 defaultSubtitle: 'Kolla vad som händer vid slutet...',
@@ -61,7 +61,7 @@ class NovaCutTemplates {
                 badge: '9:16 / 1:1 Talk',
                 tagline: 'Ljudspektrum, avsnittsbanner & ord-för-ord karaoke-undertexter',
                 description: 'Perfekt för virala intervjuer och samtal. Innehåller animerade ljudvågor, avsnittstitel överst, tvådelad karaoke-undertextstil med gul highlight och studiovärme.',
-                icon: '🎙️',
+                icon: 'mic',
                 previewGradient: 'linear-gradient(135deg, #d97706 0%, #b45309 60%, #78350f 100%)',
                 defaultHeadline: 'PODCAST #42 • INSIKTEN',
                 defaultSubtitle: 'Konsistens slår alltid ren talang.',
@@ -81,7 +81,7 @@ class NovaCutTemplates {
                 badge: '16:9 YouTube 4K',
                 tagline: 'Letterbox, Teal & Orange color grade, 35mm filmkorn & episk sub-bas',
                 description: 'Filmisk widescreen-estetik för vloggar och filmproduktioner. Inkluderar 35mm filmkorn, Teal & Orange färgtoning, stilren serif-titel med mjuk inzoomning och Cinematic Sub Impact.',
-                icon: '🎬',
+                icon: 'film',
                 previewGradient: 'linear-gradient(135deg, #0891b2 0%, #0f172a 60%, #ea580c 100%)',
                 defaultHeadline: 'THE JOURNEY BEGINS',
                 defaultSubtitle: 'En resa genom det okända',
@@ -101,7 +101,7 @@ class NovaCutTemplates {
                 badge: '9:16 Duett / Split',
                 tagline: '50/50 delad skärm för reaktioner, duetter, debatter och jämförelser',
                 description: 'Övre och undre halva synkade för reaktionsvideos och TikTok-duetter. Inkluderar uppmärksamhetspil, tydlig avdelningslinje och CTA-fråga för maximalt engagemang i kommentarsfältet.',
-                icon: '📱',
+                icon: 'device',
                 previewGradient: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 50%, #3b82f6 100%)',
                 defaultHeadline: 'VEM HAR RÄTT? 👇',
                 defaultSubtitle: 'Kommentera din åsikt nedan!',
@@ -189,7 +189,7 @@ class NovaCutTemplates {
 
             card.innerHTML = `
                 <div class="template-thumb" style="background: ${tpl.previewGradient};">
-                    <span class="template-thumb-icon">${tpl.icon}</span>
+                    <span class="template-thumb-icon">${ncIcon(tpl.icon)}</span>
                     <span class="template-thumb-ratio">${tpl.badge}</span>
                 </div>
                 <div class="template-info">
@@ -292,7 +292,7 @@ class NovaCutTemplates {
             item.className = `wizard-list-item ${tpl.id === this.selectedTemplateId ? 'active' : ''}`;
             item.dataset.id = tpl.id;
             item.innerHTML = `
-                <div class="wizard-item-icon" style="background: ${tpl.previewGradient};">${tpl.icon}</div>
+                <div class="wizard-item-icon" style="background: ${tpl.previewGradient};">${ncIcon(tpl.icon)}</div>
                 <div class="wizard-item-details">
                     <div class="wizard-item-name">${tpl.name}</div>
                     <div class="wizard-item-ratio">${tpl.badge}</div>
