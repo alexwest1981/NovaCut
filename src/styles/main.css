@@ -280,38 +280,48 @@ body {
 }
 
 .sidebar-tabs {
-    display: flex;
+    /* Eight tabs, ~300px of pane: a row would scroll and clip every label, so
+       they wrap into a 4x2 grid with the icon above its label. */
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     background-color: var(--bg-surface);
     border-bottom: 1px solid var(--border-color);
-    padding: 6px 6px 0;
+    padding: var(--sp-1);
     gap: 2px;
 }
 
 .tab-btn {
-    flex: 1;
+    min-width: 0;
     background: transparent;
-    border: none;
-    border-bottom: 2px solid transparent;
-    padding: 8px 4px;
-    color: var(--text-secondary);
-    font-size: var(--fs-body);
-    font-weight: 600;
+    border: 1px solid transparent;
+    padding: var(--sp-1) 2px;
+    color: var(--fg-dim);
+    font-size: var(--fs-label);
+    font-weight: var(--fw-medium);
     cursor: pointer;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    border-radius: var(--r-1) 6px 0 0;
-    transition: color 0.15s, background 0.15s;
+    gap: 2px;
+    border-radius: var(--r-1);
+    transition: color var(--dur-1) var(--ease), background var(--dur-1) var(--ease);
+}
+
+.tab-btn > span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 .tab-btn:hover {
-    color: var(--text-primary);
-    background: var(--bg-surface-elevated);
+    color: var(--fg);
+    background: var(--bg-hover);
 }
 .tab-btn.active {
     color: var(--accent);
-    border-bottom-color: var(--accent);
-    background: var(--bg-surface-elevated);
+    background: var(--accent-soft);
+    border-color: var(--accent-line);
 }
 
 .tab-content {
@@ -1066,7 +1076,7 @@ body {
 .monitor-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--sp-1);
 }
 
 .monitor-pill {
@@ -1081,31 +1091,34 @@ body {
 }
 
 .btn-monitor-tool {
-    background: var(--bg-surface-elevated);
-    border: 1px solid var(--border-color);
-    color: var(--text-secondary);
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--fg-dim);
     border-radius: var(--r-1);
-    padding: 3px 9px;
+    height: var(--ctl-md);
+    padding: 0 var(--sp-2);
     font-size: var(--fs-label);
-    font-weight: 500;
+    font-weight: var(--fw-medium);
+    white-space: nowrap;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease),
+                border-color var(--dur-1) var(--ease);
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--sp-1);
 }
 
 .btn-monitor-tool:hover {
-    background: var(--bg-surface-hover);
-    color: var(--text-primary);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: var(--bg-hover);
+    color: var(--fg);
+    border-color: var(--line);
 }
 
 .btn-monitor-tool.active {
-    background: var(--accent-dim);
-    border-color: var(--accent);
+    background: var(--accent-soft);
+    border-color: var(--accent-line);
     color: var(--accent);
-    font-weight: 600;
+    font-weight: var(--fw-medium);
 }
 
 /* --- CapCut Pro: Audio Sub-tabs & Creator SFX --- */

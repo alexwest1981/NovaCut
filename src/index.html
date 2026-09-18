@@ -65,6 +65,8 @@
         <symbol id="i-stop" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></symbol>
         <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M4 12s3.6-6 10-6c1.6 0 3 .4 4.2 1M20 12s-1.2 2-3.2 3.6"/><path d="M6.5 17.5C8.3 18.5 10.2 19 12 19"/><path d="M4 4l16 16"/></symbol>
         <symbol id="i-volume-off" viewBox="0 0 24 24"><path d="M5 10h3l4-3v10l-4-3H5z"/><path d="M16 9.5l4 5M20 9.5l-4 5"/></symbol>
+        <symbol id="i-safe" viewBox="0 0 24 24"><path d="M3 6h18v12H3z"/><path d="M6.5 9.5h11v5h-11z" stroke-dasharray="2.5 2"/></symbol>
+        <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></symbol>
     </svg>
 
 
@@ -122,15 +124,14 @@
 
         <!-- Left Drawer (Tabs: Media, Text, Effects, Audio, Marketplace) -->
         <div class="left-pane" id="leftPane">
-            <div class="sidebar-tabs">
-                \1<button class="tab-btn active" data-tab="media"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-film"/></svg> i-film</svg> Media</button>
-                <button class="tab-btn" data-tab="text"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-type"/></svg> Text</button>
-                \1<button class="tab-btn" data-tab="stickers"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-sticker"/></svg> i-sticker</svg> Stickers</button>
-                <button class="tab-btn" data-tab="transitions"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-transition"/></svg> ⧗ Övergångar</button>
-                <button class="tab-btn" data-tab="effects"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-wand"/></svg> Effekter</button>
-                <button class="tab-btn" data-tab="audio"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-music"/></svg> Ljud</button>
-                <button class="tab-btn" data-tab="visuals"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-palette"/></svg> Visuals</button>
-                <button class="tab-btn" data-tab="marketplace"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-shopping"/></svg> Market</button>
+            <div class="sidebar-tabs"><button class="tab-btn active" data-tab="media"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-film"/></svg><span>Media</span></button>
+                <button class="tab-btn" data-tab="text"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-type"/></svg><span>Text</span></button>
+                \1<button class="tab-btn" data-tab="stickers"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-sticker"/></svg><span>Stickers</span></button>
+                <button class="tab-btn" data-tab="transitions"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-transition"/></svg><span>Övergång</span></button>
+                <button class="tab-btn" data-tab="effects"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-wand"/></svg><span>Effekter</span></button>
+                <button class="tab-btn" data-tab="audio"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-music"/></svg><span>Ljud</span></button>
+                <button class="tab-btn" data-tab="visuals"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-palette"/></svg><span>Visuals</span></button>
+                <button class="tab-btn" data-tab="marketplace"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-shopping"/></svg><span>Market</span></button>
             </div>
 
             <!-- Tab 1: Media Library -->
@@ -204,7 +205,7 @@
                     </div>
                     <div style="display: flex; gap: 6px;">
                         <button id="btnApplyTransitionAll" class="btn-secondary" style="flex: 1; font-size: 11px; padding: 6px 8px; justify-content: center;" title="Lägg till vald övergång på alla klipp i tidslinjen">
-                            <span>⚡ Alla Klipp</span>
+                            <span><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-zap"/></svg> Alla Klipp</span>
                         </button>
                         <button id="btnApplyTransitionSelected" class="btn-primary" style="flex: 1; font-size: 11px; padding: 6px 8px; justify-content: center;" title="Tillämpa vald övergång på markerat klipp">
                             <span>+ Markerad</span>
@@ -470,12 +471,12 @@
                     <span id="monitorResolution">1920×1080 • 60 FPS</span>
                 </div>
                 <div class="monitor-actions">
-                    <button id="btnToggleLeftPane" class="btn-monitor-tool" \1title="Dölj/visa vänsterpanel (Media/Effekter)"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-panel-left"/></svg> i-panel-left</svg> Panel</button>
+                    <button id="btnToggleLeftPane" class="btn-monitor-tool" title="Dölj/visa vänsterpanel (Media/Effekter)"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-panel-left"/></svg> Panel</button>
                     <span class="monitor-pill" id="monitorAspectPill">16:9 Widescreen</span>
                     <button id="btnToggleCanvasSnap" class="btn-monitor-tool active" title="Slå av/på magnetisk snapping för text i videorutan (Håll Alt för att tillfälligt stänga av)"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-magnet"/></svg> Snappa text</button>
-                    <button id="btnToggleSafeZone" class="btn-monitor-tool" title="Visa/dölj säkra marginaler för TikTok/Shorts">⊞ Säkra zoner</button>
+                    <button id="btnToggleSafeZone" class="btn-monitor-tool" title="Visa/dölj säkra marginaler för TikTok/Shorts"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-safe"/></svg> Säkra zoner</button>
                     <select id="monitorZoomSelect" class="btn-monitor-tool select-compact" title="Skärmförstoring / Passning" style="padding: 2px 6px; font-size: 11px;">
-                        <option value="fit"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-fullscreen"/></svg> Anpassa</option>
+                        <option value="fit">Anpassa i rutan</option>
                         <option value="50">50%</option>
                         <option value="75">75%</option>
                         <option value="100">100% (1:1)</option>
@@ -500,9 +501,9 @@
                 </div>
 
                 <div class="transport-buttons">
-                    <button id="btnPrevFrame" class="btn-transport" title="Föregående bildruta (<svg class="nc-icon nc-icon-solid" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-prev"/></svg>)">⏮</button>
+                    <button id="btnPrevFrame" class="btn-transport" title="Föregående bildruta (←)"><svg class="nc-icon nc-icon-solid" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-prev"/></svg></button>
                     <button id="btnPlayPause" class="btn-transport play-btn" title="Spela / Pausa (Mellanslag)"><svg class="nc-icon nc-icon-solid" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-play"/></svg></button>
-                    <button id="btnNextFrame" class="btn-transport" title="Nästa bildruta (<svg class="nc-icon nc-icon-solid" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-next"/></svg>)">⏭</button>
+                    <button id="btnNextFrame" class="btn-transport" title="Nästa bildruta (→)"><svg class="nc-icon nc-icon-solid" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-next"/></svg></button>
                     <button id="btnLoop" class="btn-transport" title="Loopa uppspelning"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-loop"/></svg></button>
                     <button id="btnFullscreenTransport" class="btn-transport" title="Helskärmsförhandsgranskning (F11 / Dubbelklick)"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-fullscreen"/></svg></button>
                 </div>
@@ -1154,7 +1155,7 @@
 
                 <div class="welcome-footer-info">
                     <div class="welcome-version">NovaCut v0.1.0 • GPU NVENC / VAAPI</div>
-                    <button id="btnWelcomeClose" class="btn-skip-editor">Gå direkt till redigeraren →</button>
+                    <button id="btnWelcomeClose" class="btn-skip-editor">Gå direkt till redigeraren <svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-right"/></svg></button>
                 </div>
             </div>
 
