@@ -31,7 +31,10 @@ test('no half-applied icon replacement is left in the markup', () => {
     // next to the svg, and a backreference ended up as `\1title="…"`.
     const strayText = [...html.matchAll(/<\/svg>\s*(i-[\w-]+)<\/svg>/g)].map((m) => m[1]);
     assert.deepEqual(strayText, [], `ikonnamn kvar som text: ${strayText.join(', ')}`);
-    assert.deepEqual(html.match(/\\\d[A-Za-z-]+=/g) || [], [], 'literal backreference i markup');
+    // A regex-replacement bug leaked fragments like `\1` straight into the page
+    // (the user read one as "/1" in the tab strip). The markup has no legitimate
+    // use for a backslash, so none may exist.
+    assert.deepEqual(html.match(/\\/g) || [], [], 'backslash (regex-fragment) i markup');
 });
 
 test('emoji survive only where they are content art', () => {
