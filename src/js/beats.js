@@ -30,15 +30,9 @@ class NovaCutBeats {
         let detectedBeats = [];
 
         try {
-            if (audioEl && audioEl.src && !audioEl.src.startsWith('blob:') && !audioEl.src.startsWith('data:')) {
-                // Fetch local file or buffer
-                const response = await fetch(audioEl.src);
-                const arrayBuffer = await response.arrayBuffer();
-                const actx = this.getAudioContext();
-                const audioBuffer = await actx.decodeAudioData(arrayBuffer);
-                detectedBeats = this.analyzeAudioBuffer(audioBuffer, clip.startTime, clip.duration, sensitivity);
-            } else if (audioEl && audioEl.src && (audioEl.src.startsWith('blob:') || audioEl.src.startsWith('data:'))) {
-                // Blob or data url
+            if (audioEl && audioEl.src) {
+                // Fil-, blob- och data-URL:er går genom samma väg: de två
+                // grenarna var ordagrant likadana, bara villkoret skilde.
                 const response = await fetch(audioEl.src);
                 const arrayBuffer = await response.arrayBuffer();
                 const actx = this.getAudioContext();
