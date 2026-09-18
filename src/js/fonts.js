@@ -1,5 +1,5 @@
 /**
- * NovaCut - Curated Google Fonts & Custom Font Manager
+ * NovaCut - Curated caption/title fonts (bundled) & custom font manager
  */
 class NovaCutFontManager {
     constructor() {
@@ -162,21 +162,11 @@ class NovaCutFontManager {
     }
 
     async init() {
-        this.injectGoogleFontsStylesheet();
+        // The curated families are bundled (src/styles/fonts-templates.css) rather
+        // than fetched from fonts.googleapis.com at launch — nothing about them is
+        // loaded from the network. Regenerate with tools/bundle-fonts.py.
         await this.loadSavedCustomFonts();
         this.isLoaded = true;
-    }
-
-    injectGoogleFontsStylesheet() {
-        const id = 'novacut-google-fonts';
-        if (document.getElementById(id)) return;
-
-        const link = document.createElement('link');
-        link.id = id;
-        link.rel = 'stylesheet';
-        // Single combined Google Fonts query for all curated fonts
-        link.href = 'https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Bebas+Neue&family=Caveat:wght@700&family=Cinzel:wght@700&family=Inter:wght@400;700&family=Lobster&family=Montserrat:wght@700;900&family=Orbitron:wght@700;900&family=Oswald:wght@700&family=Pacifico&family=Permanent+Marker&family=Playfair+Display:wght@700&family=Poppins:wght@600;800&family=Press+Start+2P&family=Righteous&display=swap';
-        document.head.appendChild(link);
     }
 
     async loadSavedCustomFonts() {

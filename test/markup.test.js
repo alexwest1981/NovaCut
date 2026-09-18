@@ -87,6 +87,23 @@ const CONTENT_THUMBNAIL_FILES = {
     'inspector.js': 'PIP/allocation preset thumbnails (each preset carries its own glyph)',
 };
 
+test('no emoji left in the slots the renderer fills', () => {
+    // Two more slots beside <button>: the template-card thumbnails and the
+    // wizard's preset icons.
+    const dir = join(root, 'src/js');
+    const SLOTS = ['template-thumb-icon', 'wizard-item-icon'];
+    const offenders = [];
+    for (const file of readdirSync(dir).filter((f) => f.endsWith('.js'))) {
+        const text = readFileSync(join(dir, file), 'utf8');
+        for (const slot of SLOTS) {
+            for (const [glyph] of text.matchAll(new RegExp(`class="${slot}"[^>]*>[^<]*?([\\u{1F000}-\\u{1FAFF}\\u{2600}-\\u{27BF}])`, 'gu'))) {
+                offenders.push(`${file} ${slot}: ${glyph}`);
+            }
+        }
+    }
+    assert.deepEqual(offenders, [], `emoji i ikon-slots: ${offenders.join(', ')}`);
+});
+
 test('no emoji left in buttons built by the renderer', () => {
     const dir = join(root, 'src/js');
     const offenders = [];

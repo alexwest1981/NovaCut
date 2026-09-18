@@ -954,9 +954,9 @@ class NovaCutMarketplace {
                     </div>
                     <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px;">
                         <span class="plugin-category-badge" style="background: ${font.isCustom ? '#8b5cf6' : '#0284c7'}; color: white;">
-                            ${font.isCustom ? 'Eget Typsnitt' : 'Google Fonts'}
+                            ${font.isCustom ? 'Eget Typsnitt' : 'Inbyggt typsnitt'}
                         </span>
-                        <span style="font-size: 10px; color: var(--accent);">${ncIcon('check')} ${font.isCustom ? 'Lokalt installerad' : 'OFL Fri kommersiell licens'}</span>
+                        <span style="font-size: 10px; color: var(--accent);">${ncIcon('check')} ${font.isCustom ? 'Lokalt installerad' : 'Öppen licens (OFL / Apache 2.0)'}</span>
                     </div>
                 </div>
                 <div class="plugin-info">

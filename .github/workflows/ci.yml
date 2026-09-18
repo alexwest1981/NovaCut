@@ -28,3 +28,10 @@ jobs:
 
       - name: Unit tests
         run: npm test
+
+      # The two gates that are not node tests: the palettes against WCAG AA, and
+      # the bundled fonts against the curated list (also asserted in npm test).
+      - name: Accessibility and asset gates
+        run: |
+          python3 tools/contrast-check.py
+          python3 tools/bundle-fonts.py --check
