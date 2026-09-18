@@ -5,3 +5,8 @@ dist/
 RESEARCH_VIDEO_EDITORS.md
 models/*.bin
 src/assets/overlays/*.mp4
+
+# Caption tooling is built locally (see README): a whisper.cpp binary linked
+# against shared libraries that are not in the repository cannot run anywhere
+# else, so it is not committed.
+bin/whisper-cli

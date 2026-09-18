@@ -63,7 +63,29 @@ cd NovaCut
 
 npm install
 npm start
+
+npm test          # unit tests, no display and no Electron runtime needed
 ```
+
+### Project Layout
+
+| Path | What lives there |
+|---|---|
+| `src/main.js` | Electron main process: window, IPC handlers, ffmpeg/ffprobe calls, export |
+| `src/preload.js` | The only bridge between the renderer and Node (contextIsolation is on) |
+| `src/transcript.js` | Pure caption helpers (whisper args, timestamps, file URLs) — kept free of electron/fs so `test/` can run them |
+| `src/publisher-service.js` | YouTube upload flow used by the publish panel |
+| `src/js/*.js` | Renderer modules: timeline, inspector, engine, transitions, marketplace, exporter … |
+| `src/styles/*.css` | Timeline, marketplace and editor theming |
+| `plugins/*/manifest.json` | Declarative marketplace presets shipped with the app |
+| `test/*.test.js` | `node:test` suites, run by `npm test` and by CI |
+
+`ffmpeg`/`ffprobe` come from the system (in the Flatpak, from the freedesktop
+runtime) — nothing media-related is bundled. Captions need a `whisper.cpp`
+build and a GGML model under `bin/` and `models/`; neither ships in this
+repository (a linked binary without its shared libraries cannot run, so it is
+gitignored rather than committed). The app reports the missing pieces instead
+of failing silently.
 
 ---
 

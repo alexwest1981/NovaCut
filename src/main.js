@@ -6,6 +6,7 @@ const { spawn, exec, execSync, execFile } = require('child_process');
 const https = require('https');
 const http = require('http');
 const publisherService = require('./publisher-service');
+const { buildWhisperArgs, fileUrlToPath, segmentsFromWhisperResult } = require('./transcript');
 
 // Wayland & Linux Hardware Acceleration
 app.commandLine.appendSwitch('ozone-platform', 'wayland');
@@ -1022,8 +1023,7 @@ ipcMain.handle('captions:transcribe', async (event, options = {}) => {
     try {
         // Step 1: Prepare 16kHz mono WAV for Whisper
         if (filePath) {
-            let srcPath = filePath;
-            if (srcPath.startsWith('file://')) srcPath = decodeURIComponent(srcPath.replace('file://', ''));
+            const srcPath = fileUrlToPath(filePath);
             if (!fs.existsSync(srcPath)) {
                 return { success: false, error: `Filen hittades inte: ${srcPath}` };
             }
@@ -1078,22 +1078,13 @@ ipcMain.handle('captions:transcribe', async (event, options = {}) => {
         }
 
         // Step 2: Run whisper-cli
-        const whisperArgs = [
-            '-m', modelPath,
-            '-f', tempWav,
-            '-oj',
-            '-of', tempJsonBase,
-            '-sow',
-            '-wt', '0.01'
-        ];
-        if (language && language !== 'auto') {
-            whisperArgs.push('-l', language);
-        } else {
-            whisperArgs.push('-l', 'auto');
-        }
-        if (maxLen && maxLen > 0) {
-            whisperArgs.push('-ml', maxLen.toString());
-        }
+        const whisperArgs = buildWhisperArgs({
+            modelPath,
+            wavPath: tempWav,
+            outBase: tempJsonBase,
+            language,
+            maxLen
+        });
 
         console.log('[NovaCut Whisper] Running:', whisperBin, whisperArgs.join(' '));
         await new Promise((resolve, reject) => {
@@ -1112,32 +1103,7 @@ ipcMain.handle('captions:transcribe', async (event, options = {}) => {
         }
 
         const rawResult = JSON.parse(fs.readFileSync(tempJson, 'utf8'));
-        const detectedLang = rawResult.result?.language || language;
-        const segments = (rawResult.transcription || []).map(seg => {
-            let startSec = 0;
-            let endSec = 0;
-            if (seg.timestamps && seg.timestamps.from && seg.timestamps.to) {
-                const parseTs = (ts) => {
-                    const parts = ts.split(':');
-                    if (parts.length === 3) {
-                        return parseFloat(parts[0]) * 3600 + parseFloat(parts[1]) * 60 + parseFloat(parts[2]);
-                    }
-                    return 0;
-                };
-                startSec = parseTs(seg.timestamps.from);
-                endSec = parseTs(seg.timestamps.to);
-            } else if (seg.offsets) {
-                startSec = (seg.offsets.from || 0) / 1000;
-                endSec = (seg.offsets.to || 0) / 1000;
-            }
-
-            return {
-                text: (seg.text || '').trim(),
-                startTime: startSec,
-                endTime: endSec,
-                duration: Math.max(0.6, endSec - startSec)
-            };
-        }).filter(s => s.text.length > 0);
+        const { language: detectedLang, segments } = segmentsFromWhisperResult(rawResult, language);
 
         // Cleanup temporary files
         try { if (fs.existsSync(tempWav)) fs.unlinkSync(tempWav); } catch (_) {}
@@ -1224,10 +1190,7 @@ ipcMain.handle('ai:generateImage', async (event, options = {}) => {
 ipcMain.handle('audio:extractMetadata', async (event, rawFilePath) => {
     if (!rawFilePath) return { success: false, error: 'Ingen filsökväg angavs.' };
 
-    let filePath = rawFilePath;
-    if (filePath.startsWith('file://')) {
-        filePath = decodeURIComponent(filePath.replace('file://', ''));
-    }
+    const filePath = fileUrlToPath(rawFilePath);
 
     if (!fs.existsSync(filePath)) {
         return { success: false, error: 'Filen finns inte på disken.' };

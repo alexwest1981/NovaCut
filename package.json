@@ -4,7 +4,8 @@
   "description": "A modern, lightweight CapCut-style video editor for Linux with an extensible marketplace",
   "main": "src/main.js",
   "scripts": {
-    "start": "electron . --ozone-platform=wayland --disable-vulkan"
+    "start": "electron . --ozone-platform=wayland --disable-vulkan",
+    "test": "node --test test/*.test.js"
   },
   "keywords": [
     "video-editor",
