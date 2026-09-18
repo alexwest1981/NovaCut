@@ -4,27 +4,86 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NovaCut - Video Editor</title>
+    <!-- Apply the stored theme before the first paint, or the window flashes
+         the wrong palette on every start. -->
+    <script>document.documentElement.dataset.theme = localStorage.getItem('novacut_theme') === 'creator' ? 'creator' : 'pro';</script>
+    <link rel="stylesheet" href="styles/tokens.css">
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/timeline.css">
     <link rel="stylesheet" href="styles/marketplace.css">
 </head>
 <body>
+    <!-- Icon set: hand-drawn 24×24 strokes, currentColor, referenced by
+         <use href="#i-…">. Chrome only — the emoji inside stickers, transitions
+         and effect catalogues are content art and stay as they are. -->
+    <svg id="nc-icon-set" width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+        <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 3 5 14h6l-1 7 8-11h-6z"/></symbol>
+        <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M11 3.5l1.7 4.3 4.3 1.7-4.3 1.7L11 15.5 9.3 11.2 5 9.5l4.3-1.7z"/><path d="M18 15l.9 2.1 2.1.9-2.1.9L18 21l-.9-2.1-2.1-.9 2.1-.9z"/></symbol>
+        <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 3 5 14h6l-1 7 8-11h-6z"/></symbol>
+        <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+        <symbol id="i-folder-open" viewBox="0 0 24 24"><path d="M3 8a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v1H3z"/><path d="M3 11h18l-2 8H5z"/></symbol>
+        <symbol id="i-type" viewBox="0 0 24 24"><path d="M5 6h14M12 6v13M9 19h6"/></symbol>
+        <symbol id="i-smile" viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"/><path d="M9 10h.01M15 10h.01"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0"/></symbol>
+        <symbol id="i-wand" viewBox="0 0 24 24"><path d="M15 3l6 6L8.5 21.5H3v-5.5z"/><path d="M12.5 5.5l6 6"/></symbol>
+        <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M12 15V4l8-1.5v11"/><path d="M17 17.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></symbol>
+        <symbol id="i-shopping" viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></symbol>
+        <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 1 0-18c5 0 9 3.4 9 7.6 0 2.6-2.2 4.4-4.8 4.4H14a2 2 0 0 0-1.4 3.4A1.6 1.6 0 0 1 12 21z"/><path d="M8 10h.01M12 7.5h.01M16 10h.01"/></symbol>
+        <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/></symbol>
+        <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4"/><path d="M8 20v-6h8v6"/></symbol>
+        <symbol id="i-undo" viewBox="0 0 24 24"><path d="M8 5 4 9l4 4"/><path d="M4 9h9a5 5 0 0 1 0 10H9"/></symbol>
+        <symbol id="i-redo" viewBox="0 0 24 24"><path d="M16 5l4 4-4 4"/><path d="M20 9h-9a5 5 0 0 0 0 10h4"/></symbol>
+        <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></symbol>
+        <symbol id="i-pause" viewBox="0 0 24 24"><path d="M9 5v14M15 5v14"/></symbol>
+        <symbol id="i-prev" viewBox="0 0 24 24"><path d="M18 5v14l-10-7z"/><path d="M6 5v14"/></symbol>
+        <symbol id="i-next" viewBox="0 0 24 24"><path d="M6 5v14l10-7z"/><path d="M18 5v14"/></symbol>
+        <symbol id="i-loop" viewBox="0 0 24 24"><path d="M4 10a5 5 0 0 1 5-5h10"/><path d="M16 2l3 3-3 3"/><path d="M20 14a5 5 0 0 1-5 5H5"/><path d="M8 22l-3-3 3-3"/></symbol>
+        <symbol id="i-fullscreen" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+        <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+        <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+        <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z"/><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></symbol>
+        <symbol id="i-lock" viewBox="0 0 24 24"><path d="M6 11h12v9H6z"/><path d="M9 11V8a3 3 0 0 1 6 0v3"/></symbol>
+        <symbol id="i-unlock" viewBox="0 0 24 24"><path d="M6 11h12v9H6z"/><path d="M9 11V8a3 3 0 0 1 5.6-1.5"/></symbol>
+        <symbol id="i-volume" viewBox="0 0 24 24"><path d="M5 10h3l4-3v10l-4-3H5z"/><path d="M15.5 9a4 4 0 0 1 0 6"/></symbol>
+        <symbol id="i-magnet" viewBox="0 0 24 24"><path d="M6 4v8a6 6 0 0 0 12 0V4h-4v8a2 2 0 0 1-4 0V4z"/><path d="M6 8h4M14 8h4"/></symbol>
+        <symbol id="i-scissors" viewBox="0 0 24 24"><path d="M20 4L8.5 15.5M20 20L8.5 8.5"/><path d="M6 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM6 21a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/></symbol>
+        <symbol id="i-trim-start" viewBox="0 0 24 24"><path d="M9 5v14"/><path d="M9 12h12"/></symbol>
+        <symbol id="i-trim-end" viewBox="0 0 24 24"><path d="M15 5v14"/><path d="M3 12h12"/></symbol>
+        <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9 7V5h6v2"/><path d="M6 7l1 13h10l1-13"/></symbol>
+        <symbol id="i-target" viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z"/><path d="M12 16.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9z"/><path d="M12 13.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/></symbol>
+        <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v10M8 11l4 4 4-4"/><path d="M5 19h14"/></symbol>
+        <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V5M8 8l4-4 4 4"/><path d="M5 19h14"/></symbol>
+        <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><path d="M15 7a2 2 0 1 0 4 0 2 2 0 0 0-4 0zM7 17a2 2 0 1 0 4 0 2 2 0 0 0-4 0z"/></symbol>
+        <symbol id="i-panel" viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M14 5v14"/></symbol>
+        <symbol id="i-search" viewBox="0 0 24 24"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z"/><path d="M16 16l4.5 4.5"/></symbol>
+        <symbol id="i-film" viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M4 9h16M4 15h16M9 5v14M15 5v14"/></symbol>
+        <symbol id="i-tiktok" viewBox="0 0 24 24"><path d="M14 4v10.5a3.5 3.5 0 1 1-3.5-3.5"/><path d="M14 4c.4 2.2 2 3.7 4.2 3.9"/></symbol>
+        <symbol id="i-youtube" viewBox="0 0 24 24"><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h13A2.5 2.5 0 0 1 21 8.5v7A2.5 2.5 0 0 1 18.5 18h-13A2.5 2.5 0 0 1 3 15.5z"/><path d="M11 9.5l4 2.5-4 2.5z"/></symbol>
+        <symbol id="i-facebook" viewBox="0 0 24 24"><path d="M15 4h-2a4 4 0 0 0-4 4v3H7v3h2v6h3v-6h2.5l.5-3H12V8.5A1.5 1.5 0 0 1 13.5 7H15z"/></symbol>
+        <symbol id="i-panel-left" viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M10 5v14"/></symbol>
+        <symbol id="i-sticker" viewBox="0 0 24 24"><path d="M4 5h10.5L20 10.5V19H4z"/><path d="M14.5 5v5.5H20"/></symbol>
+        <symbol id="i-transition" viewBox="0 0 24 24"><path d="M3 7h6v10H3z"/><path d="M15 7h6v10h-6z"/><path d="M9 12h6"/><path d="M12.5 9.5L15 12l-2.5 2.5"/></symbol>
+        <symbol id="i-stop" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></symbol>
+        <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M4 12s3.6-6 10-6c1.6 0 3 .4 4.2 1M20 12s-1.2 2-3.2 3.6"/><path d="M6.5 17.5C8.3 18.5 10.2 19 12 19"/><path d="M4 4l16 16"/></symbol>
+        <symbol id="i-volume-off" viewBox="0 0 24 24"><path d="M5 10h3l4-3v10l-4-3H5z"/><path d="M16 9.5l4 5M20 9.5l-4 5"/></symbol>
+    </svg>
+
+
 
     <!-- App Header -->
     <header class="header">
         <div class="header-left">
             <button id="btnHomeProjects" class="btn-home-brand" title="Öppna projektöversikt / Välkomstskärm">
-                <div class="brand-icon">⚡</div>
+                <div class="brand-icon"><svg class="nc-icon nc-icon-solid" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-bolt"/></svg></div>
                 <span class="brand-name">NovaCut</span>
-                <span class="brand-badge">🏠 Projekt</span>
+                <span class="brand-badge"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-home"/></svg> Projekt</span>
             </button>
             <input type="text" id="projectTitle" class="project-title-input" value="Mitt Projekt" title="Klicka för att byta projektnamn">
             <button id="btnSaveProject" class="btn-save-compact" title="Spara projekt (Ctrl+S)">
-                <span>💾</span>
+                <span><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-save"/></svg></span>
                 <span>Spara</span>
             </button>
             <button id="btnOpenTemplatesHeader" class="btn-templates-header" title="Projektmallar & Viral Format Wizard">
-                <span>⚡ Mallar & Wizard</span>
+                <span><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-sparkles"/></svg> Mallar</span>
             </button>
         </div>
 
@@ -39,17 +98,21 @@
                 <option value="4:3">4:3 (Klassisk TV / Äldre)</option>
             </select>
 
-            <button id="btnUndo" class="btn-icon" title="Ångra (Ctrl+Z)" disabled>↩</button>
-            <button id="btnRedo" class="btn-icon" title="Gör om (Ctrl+Y)" disabled>↪</button>
+            <button id="btnUndo" class="btn-icon" title="Ångra (Ctrl+Z)" disabled><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-undo"/></svg></button>
+            <button id="btnRedo" class="btn-icon" title="Gör om (Ctrl+Y)" disabled><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-redo"/></svg></button>
         </div>
 
         <div class="header-right">
+            <div class="theme-switch" role="group" aria-label="Tema">
+                <button class="theme-switch-btn" data-theme-choice="pro" title="Pro: neutral panel, en accentfärg">Pro</button>
+                <button class="theme-switch-btn" data-theme-choice="creator" title="Creator: ljusare, varmare panel">Creator</button>
+            </div>
             <button id="btnOpenPublishModal" class="btn-publish-header" title="Publicera direkt till TikTok, YouTube & Facebook">
-                <span>🚀 Publicera</span>
+                <span><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-upload"/></svg> Publicera</span>
             </button>
             <button id="btnOpenExportModal" class="btn-primary">
                 <span>Exportera</span>
-                <span>▶</span>
+                <svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-download"/></svg>
             </button>
         </div>
     </header>
@@ -60,14 +123,14 @@
         <!-- Left Drawer (Tabs: Media, Text, Effects, Audio, Marketplace) -->
         <div class="left-pane" id="leftPane">
             <div class="sidebar-tabs">
-                <button class="tab-btn active" data-tab="media">📁 Media</button>
-                <button class="tab-btn" data-tab="text">🔤 Text</button>
-                <button class="tab-btn" data-tab="stickers">🎭 Stickers</button>
-                <button class="tab-btn" data-tab="transitions">⧗ Övergångar</button>
-                <button class="tab-btn" data-tab="effects">🪄 Effekter</button>
-                <button class="tab-btn" data-tab="audio">🎵 Ljud</button>
-                <button class="tab-btn" data-tab="visuals">🎨 Visuals</button>
-                <button class="tab-btn" data-tab="marketplace">🛒 Market</button>
+                \1<button class="tab-btn active" data-tab="media"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-film"/></svg> i-film</svg> Media</button>
+                <button class="tab-btn" data-tab="text"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-type"/></svg> Text</button>
+                \1<button class="tab-btn" data-tab="stickers"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-sticker"/></svg> i-sticker</svg> Stickers</button>
+                <button class="tab-btn" data-tab="transitions"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-transition"/></svg> ⧗ Övergångar</button>
+                <button class="tab-btn" data-tab="effects"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-wand"/></svg> Effekter</button>
+                <button class="tab-btn" data-tab="audio"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-music"/></svg> Ljud</button>
+                <button class="tab-btn" data-tab="visuals"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-palette"/></svg> Visuals</button>
+                <button class="tab-btn" data-tab="marketplace"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-shopping"/></svg> Market</button>
             </div>
 
             <!-- Tab 1: Media Library -->
@@ -97,7 +160,7 @@
                             <div class="banner-title">Auto-Captions & Virala Stilar</div>
                             <div class="banner-sub">Hormozi, Karaoke, Pop & TikTok-undertexter med 1 klick</div>
                         </div>
-                        <button class="btn-primary btn-sm" style="padding: 4px 10px; font-size: 11px;">Skapa ✨</button>
+                        <button class="btn-primary btn-sm" style="padding: 4px 10px; font-size: 11px;">Skapa <svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-sparkles"/></svg></button>
                     </div>
 
                     <button id="btnAddDefaultText" class="btn-primary" style="justify-content: center;">+ Lägg till text på tidslinjen</button>
@@ -112,7 +175,7 @@
             <div id="tab-stickers" class="tab-content">
                 <div style="display: flex; flex-direction: column; gap: 10px;">
                     <div style="position: relative;">
-                        <input type="text" id="stickersSearchInput" placeholder="🔍 Sök bland 184+ stickers..." style="width: 100%; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; padding: 7px 10px; color: var(--text-main); font-size: 11px; outline: none;">
+                        <input type="text" id="stickersSearchInput" placeholder="Sök bland 184+ stickers..." style="width: 100%; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; padding: 7px 10px; color: var(--text-main); font-size: 11px; outline: none;">
                     </div>
                     <div class="category-chips" id="stickersCategories">
                         <div class="chip active sticker-chip" data-cat="all">Alla (184)</div>
@@ -137,7 +200,7 @@
             <div id="tab-transitions" class="tab-content">
                 <div style="display: flex; flex-direction: column; gap: 10px;">
                     <div style="position: relative;">
-                        <input type="text" id="transitionsSearchInput" placeholder="🔍 Sök bland 124+ övergångar..." style="width: 100%; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; padding: 7px 10px; color: var(--text-main); font-size: 11px; outline: none;">
+                        <input type="text" id="transitionsSearchInput" placeholder="Sök bland 124+ övergångar..." style="width: 100%; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 6px; padding: 7px 10px; color: var(--text-main); font-size: 11px; outline: none;">
                     </div>
                     <div style="display: flex; gap: 6px;">
                         <button id="btnApplyTransitionAll" class="btn-secondary" style="flex: 1; font-size: 11px; padding: 6px 8px; justify-content: center;" title="Lägg till vald övergång på alla klipp i tidslinjen">
@@ -174,7 +237,7 @@
                         <span class="section-title" style="margin: 0;">🎬 Videoeffekter & LUTs (50 st)</span>
                     </div>
 
-                    <input type="text" id="effectsSearchInput" class="search-input" placeholder="🔍 Sök bland 50 effekter & Cinema LUTs..." style="width: 100%; box-sizing: border-box; padding: 7px 10px; font-size: 11px; margin: 2px 0;">
+                    <input type="text" id="effectsSearchInput" class="search-input" placeholder="Sök bland 50 effekter & Cinema LUTs..." style="width: 100%; box-sizing: border-box; padding: 7px 10px; font-size: 11px; margin: 2px 0;">
 
                     <div class="category-chips effects-category-chips" style="margin-bottom: 2px;">
                         <div class="chip active fx-cat-chip" data-cat="all">Alla (50)</div>
@@ -258,8 +321,8 @@
 
                     <!-- Sub-navigation: Ljudeffekter (SFX) vs Musik -->
                     <div class="audio-sub-tabs">
-                        <button class="audio-tab-btn active" id="subTabSfx" data-sub="sfx">💥 Ljudeffekter (SFX)</button>
-                        <button class="audio-tab-btn" id="subTabMusic" data-sub="music">🎵 Musikspår</button>
+                        <button class="audio-tab-btn active" id="subTabSfx" data-sub="sfx"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-zap"/></svg> Ljudeffekter (SFX)</button>
+                        <button class="audio-tab-btn" id="subTabMusic" data-sub="music"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-music"/></svg> Musikspår</button>
                     </div>
 
                     <!-- View 1: Creator SFX Pack -->
@@ -304,8 +367,8 @@
 
                 <div class="marketplace-header">
                     <div style="display: flex; gap: 6px; align-items: center;">
-                        <input type="text" id="marketplaceSearch" class="marketplace-search" placeholder="🔍 Sök SFX, overlays, musik, LUTs...">
-                        <button id="btnFreesoundConfig" class="btn-icon" style="flex-shrink: 0; width: 34px; height: 34px; border-radius: 8px;" title="Konfigurera Freesound.org API">⚙️</button>
+                        <input type="text" id="marketplaceSearch" class="marketplace-search" placeholder="Sök SFX, overlays, musik, LUTs...">
+                        <button id="btnFreesoundConfig" class="btn-icon" style="flex-shrink: 0; width: 34px; height: 34px; border-radius: 8px;" title="Konfigurera Freesound.org API"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-settings"/></svg></button>
                     </div>
 
                     <!-- Freesound Live Search Bar (shown when typing or in sfx mode) -->
@@ -378,7 +441,7 @@
                         </div>
 
                         <button id="btnGenerateAiVisual" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 12px; padding: 8px 12px;">
-                            <span>✨ Generera Visual till Tidslinjen</span>
+                            <span><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-sparkles"/></svg> Generera Visual till Tidslinjen</span>
                         </button>
                     </div>
 
@@ -407,12 +470,12 @@
                     <span id="monitorResolution">1920×1080 • 60 FPS</span>
                 </div>
                 <div class="monitor-actions">
-                    <button id="btnToggleLeftPane" class="btn-monitor-tool" title="Dölj/visa vänsterpanel (Media/Effekter)">📁 Panel</button>
+                    <button id="btnToggleLeftPane" class="btn-monitor-tool" \1title="Dölj/visa vänsterpanel (Media/Effekter)"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-panel-left"/></svg> i-panel-left</svg> Panel</button>
                     <span class="monitor-pill" id="monitorAspectPill">16:9 Widescreen</span>
-                    <button id="btnToggleCanvasSnap" class="btn-monitor-tool active" title="Slå av/på magnetisk snapping för text i videorutan (Håll Alt för att tillfälligt stänga av)">🧲 Snappa text</button>
+                    <button id="btnToggleCanvasSnap" class="btn-monitor-tool active" title="Slå av/på magnetisk snapping för text i videorutan (Håll Alt för att tillfälligt stänga av)"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-magnet"/></svg> Snappa text</button>
                     <button id="btnToggleSafeZone" class="btn-monitor-tool" title="Visa/dölj säkra marginaler för TikTok/Shorts">⊞ Säkra zoner</button>
                     <select id="monitorZoomSelect" class="btn-monitor-tool select-compact" title="Skärmförstoring / Passning" style="padding: 2px 6px; font-size: 11px;">
-                        <option value="fit">⛶ Anpassa</option>
+                        <option value="fit"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-fullscreen"/></svg> Anpassa</option>
                         <option value="50">50%</option>
                         <option value="75">75%</option>
                         <option value="100">100% (1:1)</option>
@@ -420,8 +483,8 @@
                         <option value="200">200%</option>
                     </select>
                     <button id="btnFitCanvas" class="btn-monitor-tool" title="Återställ förhandsgranskning">Passa</button>
-                    <button id="btnFullscreenMonitor" class="btn-monitor-tool" title="Helskärm (F11 / Dubbelklick)">⛶ Helskärm</button>
-                    <button id="btnToggleRightPane" class="btn-monitor-tool" title="Dölj/visa inspektor för mer arbetsyta">⚙️ Inspektor</button>
+                    <button id="btnFullscreenMonitor" class="btn-monitor-tool" title="Helskärm (F11 / Dubbelklick)"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-fullscreen"/></svg> Helskärm</button>
+                    <button id="btnToggleRightPane" class="btn-monitor-tool" title="Dölj/visa inspektor för mer arbetsyta"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-panel"/></svg> Inspektor</button>
                 </div>
             </div>
 
@@ -437,11 +500,11 @@
                 </div>
 
                 <div class="transport-buttons">
-                    <button id="btnPrevFrame" class="btn-transport" title="Föregående bildruta (←)">⏮</button>
-                    <button id="btnPlayPause" class="btn-transport play-btn" title="Spela / Pausa (Mellanslag)">▶</button>
-                    <button id="btnNextFrame" class="btn-transport" title="Nästa bildruta (→)">⏭</button>
-                    <button id="btnLoop" class="btn-transport" title="Loopa uppspelning">🔁</button>
-                    <button id="btnFullscreenTransport" class="btn-transport" title="Helskärmsförhandsgranskning (F11 / Dubbelklick)">⛶</button>
+                    <button id="btnPrevFrame" class="btn-transport" title="Föregående bildruta (<svg class="nc-icon nc-icon-solid" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-prev"/></svg>)">⏮</button>
+                    <button id="btnPlayPause" class="btn-transport play-btn" title="Spela / Pausa (Mellanslag)"><svg class="nc-icon nc-icon-solid" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-play"/></svg></button>
+                    <button id="btnNextFrame" class="btn-transport" title="Nästa bildruta (<svg class="nc-icon nc-icon-solid" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-next"/></svg>)">⏭</button>
+                    <button id="btnLoop" class="btn-transport" title="Loopa uppspelning"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-loop"/></svg></button>
+                    <button id="btnFullscreenTransport" class="btn-transport" title="Helskärmsförhandsgranskning (F11 / Dubbelklick)"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-fullscreen"/></svg></button>
                 </div>
 
                 <div style="display: flex; align-items: center; gap: 8px;">
@@ -479,41 +542,41 @@
         <div class="timeline-toolbar">
             <div class="timeline-tools-left">
                 <button id="btnSplitClip" class="tool-btn" title="Klipp / Dela vid spelhuvud (S eller Ctrl+B)">
-                    <span>✂️ Dela (S)</span>
+                    <span><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-scissors"/></svg> Dela (S)</span>
                 </button>
                 <button id="btnTrimStartQ" class="tool-btn" title="Ripple-trimma start till spelhuvud (Q)">
-                    <span>⇤ Trimma start (Q)</span>
+                    <span><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-trim-start"/></svg> Trimma start (Q)</span>
                 </button>
                 <button id="btnTrimEndW" class="tool-btn" title="Ripple-trimma slut till spelhuvud (W)">
-                    <span>⇥ Trimma slut (W)</span>
+                    <span><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-trim-end"/></svg> Trimma slut (W)</span>
                 </button>
                 <button id="btnRippleDelete" class="tool-btn" title="Ta bort och stäng tomrum direkt (Shift+Delete)">
-                    <span>⚡ Ripple Del</span>
+                    <span><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-trash"/></svg> Ripple Del</span>
                 </button>
                 <button id="btnDeleteClip" class="tool-btn" title="Ta bort markerat klipp (Delete / Backspace)">
-                    <span>🗑️ Ta bort</span>
+                    <span><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-trash"/></svg> Ta bort</span>
                 </button>
                 <div class="tool-divider"></div>
                 <button id="btnCloseGaps" class="tool-btn" title="Stäng alla tomma mellanrum på tidslinjen">
-                    <span>🧲 Stäng tomrum</span>
+                    <span><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-magnet"/></svg> Stäng tomrum</span>
                 </button>
                 <button id="btnSnappingToggle" class="tool-btn active" title="Snapping (N)">
-                    <span>🧲 Snapping</span>
+                    <span><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-magnet"/></svg> Snapping</span>
                 </button>
                 <div class="tool-divider"></div>
                 <button id="btnDetectBeats" class="tool-btn" title="Detektera rytmiska beats & taktslag på ljudspåret">
-                    <span>🎵 Beats</span>
+                    <span><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-music"/></svg> Beats</span>
                 </button>
                 <button id="btnAutoCutBeats" class="tool-btn" title="Klipp automatiskt markerat videoklipp till takten (Montage Velocity Cut)">
-                    <span>⚡ Auto-Cut till Takten</span>
+                    <span><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-zap"/></svg> Auto-Cut till Takten</span>
                 </button>
                 <button id="btnRemoveSilence" class="tool-btn" title="Hitta och klipp automatiskt bort tysta pauser (Smart Silence Remover / Auto Jump-Cut)">
-                    <span>⚡ Rensa tystnader</span>
+                    <span><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-zap"/></svg> Rensa tystnader</span>
                 </button>
                 <div class="tool-divider"></div>
                 <div class="dropdown-container" style="position: relative; display: inline-block;">
                     <button id="btnAddTrackBtn" class="tool-btn" title="Lägg till ett nytt spår/lager i tidslinjen">
-                        <span>➕ Nytt lager</span>
+                        <span><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg> Nytt lager</span>
                     </button>
                     <div id="addTrackMenu" class="dropdown-menu-popup" style="display: none;">
                         <button class="menu-item-btn" data-track-type="video">
@@ -538,7 +601,7 @@
 
             <div class="timeline-tools-right">
                 <button id="btnFollowPlayhead" class="tool-btn active" title="Följ spelhuvud automatiskt vid uppspelning (F)">
-                    <span>🎯 Följ</span>
+                    <span><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-target"/></svg> Följ</span>
                 </button>
                 <div class="tool-divider"></div>
                 <div class="zoom-container">
@@ -554,7 +617,7 @@
             <div class="track-headers">
                 <div class="track-headers-spacer">
                     <span style="font-size: 10px; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px;">LAGER</span>
-                    <button id="btnQuickAddTrack" class="btn-track-action" title="Lägg till ett nytt lager" style="font-size: 11px; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--border-color); color: var(--accent);">➕ Nytt</button>
+                    <button id="btnQuickAddTrack" class="btn-track-action" title="Lägg till ett nytt lager" style="font-size: 11px; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--border-color); color: var(--accent);"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg>Nytt</button>
                 </div>
                 <div class="track-headers-scrollable" id="trackHeadersScrollable">
                     <div class="track-header" data-track-id="text">
@@ -563,8 +626,8 @@
                             <span class="track-header-title">Textlager</span>
                         </div>
                         <div class="track-header-actions">
-                            <button class="btn-track-action track-toggle-vis" title="Dölj/Visa text">👁️</button>
-                            <button class="btn-track-action track-toggle-lock" title="Lås spår">🔓</button>
+                            <button class="btn-track-action track-toggle-vis" title="Dölj/Visa text"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-eye"/></svg></button>
+                            <button class="btn-track-action track-toggle-lock" title="Lås spår"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-unlock"/></svg></button>
                         </div>
                     </div>
                     <div class="track-header" data-track-id="effect">
@@ -573,8 +636,8 @@
                             <span class="track-header-title">Effektlager</span>
                         </div>
                         <div class="track-header-actions">
-                            <button class="btn-track-action track-toggle-vis" title="Dölj/Visa effekter">👁️</button>
-                            <button class="btn-track-action track-toggle-lock" title="Lås spår">🔓</button>
+                            <button class="btn-track-action track-toggle-vis" title="Dölj/Visa effekter"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-eye"/></svg></button>
+                            <button class="btn-track-action track-toggle-lock" title="Lås spår"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-unlock"/></svg></button>
                         </div>
                     </div>
                     <div class="track-header" data-track-id="overlay">
@@ -583,8 +646,8 @@
                             <span class="track-header-title">Overlay (B-Roll)</span>
                         </div>
                         <div class="track-header-actions">
-                            <button class="btn-track-action track-toggle-vis" title="Dölj/Visa overlay">👁️</button>
-                            <button class="btn-track-action track-toggle-lock" title="Lås spår">🔓</button>
+                            <button class="btn-track-action track-toggle-vis" title="Dölj/Visa overlay"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-eye"/></svg></button>
+                            <button class="btn-track-action track-toggle-lock" title="Lås spår"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-unlock"/></svg></button>
                         </div>
                     </div>
                     <div class="track-header" data-track-id="video">
@@ -593,8 +656,8 @@
                             <span class="track-header-title">Huvudvideo</span>
                         </div>
                         <div class="track-header-actions">
-                            <button class="btn-track-action track-toggle-vis" title="Dölj/Visa video">👁️</button>
-                            <button class="btn-track-action track-toggle-lock" title="Lås spår">🔓</button>
+                            <button class="btn-track-action track-toggle-vis" title="Dölj/Visa video"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-eye"/></svg></button>
+                            <button class="btn-track-action track-toggle-lock" title="Lås spår"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-unlock"/></svg></button>
                         </div>
                     </div>
                     <div class="track-header" data-track-id="audio">
@@ -603,8 +666,8 @@
                             <span class="track-header-title">Ljudspår</span>
                         </div>
                         <div class="track-header-actions">
-                            <button class="btn-track-action track-toggle-mute" title="Tysta ljudspår">🔊</button>
-                            <button class="btn-track-action track-toggle-lock" title="Lås spår">🔓</button>
+                            <button class="btn-track-action track-toggle-mute" title="Tysta ljudspår"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-volume"/></svg></button>
+                            <button class="btn-track-action track-toggle-lock" title="Lås spår"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-unlock"/></svg></button>
                         </div>
                     </div>
                 </div>
@@ -639,9 +702,9 @@
         <div class="modal-content modal-export-wide">
             <div class="modal-header">
                 <div style="display: flex; align-items: center; gap: 8px;">
-                    <span>🚀 Exportera Video & Social Media Hub</span>
+                    <span><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-upload"/></svg> Exportera Video & Social Media Hub</span>
                 </div>
-                <button class="btn-icon close-modal-btn">✕</button>
+                <button class="btn-icon close-modal-btn"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-close"/></svg></button>
             </div>
             <div class="modal-body">
                 <!-- Hardware Acceleration Status Badge -->
@@ -742,7 +805,7 @@
             <div class="modal-footer">
                 <button class="btn-icon close-modal-btn" style="width: auto; padding: 0 14px;">Avbryt</button>
                 <button id="btnStartExport" class="btn-primary" style="display: flex; align-items: center; gap: 6px;">
-                    <span>🚀</span>
+                    <svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-upload"/></svg>
                     <span>Börja Exportera</span>
                 </button>
             </div>
@@ -760,7 +823,7 @@
                         <div style="font-size: 11px; color: var(--text-muted);">Publicera till TikTok, YouTube Shorts & Facebook med 1 klick</div>
                     </div>
                 </div>
-                <button class="btn-icon" id="btnClosePublishModal">✕</button>
+                <button class="btn-icon" id="btnClosePublishModal"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-close"/></svg></button>
             </div>
 
             <div class="modal-body publish-modal-body">
@@ -775,11 +838,11 @@
                     </div>
                     <div class="publish-file-actions">
                         <button id="btnPickPublishFile" class="btn-secondary btn-sm">
-                            <span>📁</span>
+                            <svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-folder-open"/></svg>
                             <span>Välj fil...</span>
                         </button>
                         <button id="btnRevealPublishFile" class="btn-secondary btn-sm" title="Visa och markera filen i Linux filhanterare">
-                            <span>📂</span>
+                            <span><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-folder-open"/></svg></span>
                             <span>Visa i mapp</span>
                         </button>
                     </div>
@@ -788,21 +851,21 @@
                 <!-- Platform Tabs -->
                 <div class="publish-platform-tabs">
                     <button class="publish-tab-btn active" data-platform="tiktok">
-                        <span class="platform-icon">🎵</span>
+                        <span class="platform-icon"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-tiktok"/></svg></span>
                         <div class="platform-tab-text">
                             <div class="platform-tab-name">TikTok</div>
                             <div class="platform-tab-sub">Creator Center</div>
                         </div>
                     </button>
                     <button class="publish-tab-btn" data-platform="youtube">
-                        <span class="platform-icon">🔴</span>
+                        <span class="platform-icon"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-youtube"/></svg></span>
                         <div class="platform-tab-text">
                             <div class="platform-tab-name">YouTube</div>
                             <div class="platform-tab-sub">Shorts & Studio API</div>
                         </div>
                     </button>
                     <button class="publish-tab-btn" data-platform="facebook">
-                        <span class="platform-icon">🔵</span>
+                        <span class="platform-icon"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-facebook"/></svg></span>
                         <div class="platform-tab-text">
                             <div class="platform-tab-name">Facebook</div>
                             <div class="platform-tab-sub">Reels & Video</div>
@@ -864,7 +927,7 @@
                                 <div class="step-badge"><span>3</span> Släpp & kör!</div>
                             </div>
                             <button id="btnLaunchStudioBridge" class="btn-primary btn-bridge-launch">
-                                <span>🚀</span>
+                                <svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-upload"/></svg>
                                 <span>Kopiera text & Öppna Studio</span>
                             </button>
                         </div>
@@ -876,7 +939,7 @@
                                     <span style="color: #ff0033; font-weight: 700;">🔴</span>
                                     <span style="font-weight: 600; font-size: 13px;">YouTube Direct API Upload</span>
                                 </div>
-                                <button id="btnYtConfig" class="btn-secondary btn-xs" title="Konfigurera Google OAuth nycklar">⚙️ API</button>
+                                <button id="btnYtConfig" class="btn-secondary btn-xs" title="Konfigurera Google OAuth nycklar"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-settings"/></svg> API</button>
                             </div>
 
                             <!-- Channel Profile Status -->
@@ -914,7 +977,7 @@
                             </div>
 
                             <button id="btnDirectYtUpload" class="btn-yt-direct" disabled>
-                                <span>🔴</span>
+                                <svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-youtube"/></svg>
                                 <span>Ladda upp direkt till YouTube</span>
                             </button>
 
@@ -955,7 +1018,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <span>Skapa Eget Filter / Plugin</span>
-                <button class="btn-icon close-modal-btn">✕</button>
+                <button class="btn-icon close-modal-btn"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-close"/></svg></button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
@@ -994,7 +1057,7 @@
                     <span style="font-size: 18px;">🌐</span>
                     <span style="font-weight: 700;">Freesound.org API Inställningar</span>
                 </div>
-                <button class="btn-icon close-modal-btn">✕</button>
+                <button class="btn-icon close-modal-btn"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-close"/></svg></button>
             </div>
             <div class="modal-body" style="padding: 16px; display: flex; flex-direction: column; gap: 12px;">
                 <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.4; margin: 0;">
@@ -1025,7 +1088,7 @@
                     <span style="font-size: 18px;">🎬</span>
                     <span id="videoPreviewModalTitle" style="font-weight: 700;">Video Overlay Förhandsgranskning</span>
                 </div>
-                <button class="btn-icon close-modal-btn">✕</button>
+                <button class="btn-icon close-modal-btn"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-close"/></svg></button>
             </div>
             <div class="modal-body" style="padding: 14px; display: flex; flex-direction: column; align-items: center; gap: 10px;">
                 <video id="videoPreviewPlayer" controls autoplay loop playsinline style="max-width: 100%; max-height: 380px; border-radius: 8px; background: #000; border: 1px solid rgba(255,255,255,0.1);"></video>
@@ -1034,7 +1097,7 @@
             <div class="modal-footer" style="padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
                 <button class="btn-secondary close-modal-btn">Stäng</button>
                 <button id="btnImportFromVideoPreview" class="btn-primary" style="display: flex; align-items: center; gap: 6px;">
-                    <span>📥</span>
+                    <span><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-download"/></svg></span>
                     <span>Hämta till Projekt & Tidslinje</span>
                 </button>
             </div>
@@ -1056,7 +1119,7 @@
 
                 <div class="welcome-actions">
                     <button id="btnWelcomeNewProject" class="btn-welcome-new">
-                        <span class="new-icon">➕</span>
+                        <span class="new-icon"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg></span>
                         <div>
                             <div class="new-title">Nytt Projekt</div>
                             <div class="new-sub">Starta från scratch</div>
@@ -1076,7 +1139,7 @@
                     </div>
 
                     <button id="btnWelcomeTemplates" class="btn-welcome-templates" title="Öppna formatwizard med färdiga virala mallar">
-                        <span class="tpl-icon">⚡</span>
+                        <span class="tpl-icon"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-zap"/></svg></span>
                         <div>
                             <div class="tpl-title">Formatmallar & Wizard</div>
                             <div class="tpl-sub">TikTok, Gaming, Podcast & 4K</div>
@@ -1084,7 +1147,7 @@
                     </button>
 
                     <button id="btnWelcomeOpenFile" class="btn-welcome-open">
-                        <span>📁</span>
+                        <svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-folder-open"/></svg>
                         <span>Öppna projektfil (.novacut)...</span>
                     </button>
                 </div>
@@ -1150,7 +1213,7 @@
                         <p class="wizard-subheading">Anpassa mallens innehåll, typografi och format före generering</p>
                     </div>
                 </div>
-                <button class="btn-icon" id="btnCloseWizardModal" title="Stäng">✕</button>
+                <button class="btn-icon" id="btnCloseWizardModal" title="Stäng"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-close"/></svg></button>
             </div>
 
             <div class="wizard-body">
@@ -1230,8 +1293,8 @@
             <div class="wizard-footer">
                 <button class="btn-secondary" id="btnCancelWizard">Avbryt</button>
                 <button class="btn-primary" id="btnApplyWizardTemplate">
-                    <span>⚡ Skapa Projekt från Mall</span>
-                    <span>▶</span>
+                    <span><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-zap"/></svg> Skapa Projekt från Mall</span>
+                    <svg class="nc-icon nc-icon-solid" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-play"/></svg>
                 </button>
             </div>
         </div>
@@ -1245,7 +1308,7 @@
                     <span style="font-size: 22px;">✨</span>
                     <h2 style="font-size: 16px; font-weight: 700; margin: 0;">Auto-Captions & Virala Undertexter</h2>
                 </div>
-                <button class="btn-icon" id="btnCloseAutoCaptionsModal" style="font-size: 18px;">✕</button>
+                <button class="btn-icon" id="btnCloseAutoCaptionsModal" style="font-size: 18px;"><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-close"/></svg></button>
             </div>
             
             <div class="modal-body" style="padding: 20px 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;">
@@ -1342,7 +1405,7 @@
             <div class="modal-footer" style="padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; background: rgba(0,0,0,0.2);">
                 <button class="btn-cancel" id="btnCancelAutoCaptions">Avbryt</button>
                 <button class="btn-primary" id="btnGenerateAutoCaptions" style="padding: 8px 18px;">
-                    <span>✨ Generera Undertexter</span>
+                    <span><svg class="nc-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-sparkles"/></svg> Generera Undertexter</span>
                 </button>
             </div>
         </div>
@@ -1352,6 +1415,8 @@
     <div id="mediaCache" style="display: none;"></div>
 
     <!-- Scripts -->
+    <script src="js/theme.js"></script>
+    <script src="js/icons.js"></script>
     <script src="js/fonts.js"></script>
     <script src="js/audio-reactive.js"></script>
     <script src="js/motionleap.js"></script>

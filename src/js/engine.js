@@ -125,7 +125,7 @@ class NovaCutEngine {
         this.isPlaying = true;
         this.lastFrameTime = performance.now();
         this.loop();
-        document.getElementById('btnPlayPause').textContent = '⏸';
+        document.getElementById('btnPlayPause').innerHTML = ncIcon('pause');
     }
 
     pause() {
@@ -135,7 +135,7 @@ class NovaCutEngine {
             cancelAnimationFrame(this.animationFrameId);
             this.animationFrameId = null;
         }
-        document.getElementById('btnPlayPause').textContent = '▶';
+        document.getElementById('btnPlayPause').innerHTML = ncIcon('play', { solid: true });
 
         // Pause all audio/video elements
         this.mediaElements.forEach(el => {

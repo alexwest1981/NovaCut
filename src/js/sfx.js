@@ -549,10 +549,10 @@ class NovaCutSFX {
         document.querySelectorAll('.btn-sfx-play').forEach(btn => {
             const id = btn.dataset.sfx;
             if (id === this.currentPlayingId) {
-                btn.innerHTML = '⏹';
+                btn.innerHTML = ncIcon('stop', { solid: true });
                 btn.classList.add('playing');
             } else {
-                btn.innerHTML = '▶';
+                btn.innerHTML = ncIcon('play', { solid: true });
                 btn.classList.remove('playing');
             }
         });

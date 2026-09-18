@@ -1635,7 +1635,7 @@ class NovaCutTimeline {
                     const state = this.trackStates[trackId];
                     if (!state) return;
                     state.visible = !state.visible;
-                    btnVis.textContent = state.visible ? '👁️' : '🚫';
+                    btnVis.innerHTML = state.visible ? ncIcon('eye') : ncIcon('eye-off');
                     btnVis.classList.toggle('active', !state.visible);
                     btnVis.title = state.visible ? `Dölj ${trackId}` : `Visa ${trackId}`;
                     this.engine.render();
@@ -1650,7 +1650,7 @@ class NovaCutTimeline {
                     const state = this.trackStates[trackId];
                     if (!state) return;
                     state.muted = !state.muted;
-                    btnMute.textContent = state.muted ? '🔇' : '🔊';
+                    btnMute.innerHTML = state.muted ? ncIcon('volume-off') : ncIcon('volume');
                     btnMute.classList.toggle('active', state.muted);
                     btnMute.title = state.muted ? 'Aktivera ljudspår' : 'Tysta ljudspår';
                     this.engine.render();
@@ -1665,7 +1665,7 @@ class NovaCutTimeline {
                     const state = this.trackStates[trackId];
                     if (!state) return;
                     state.locked = !state.locked;
-                    btnLock.textContent = state.locked ? '🔒' : '🔓';
+                    btnLock.innerHTML = state.locked ? ncIcon('lock') : ncIcon('unlock');
                     btnLock.classList.toggle('active', state.locked);
                     btnLock.title = state.locked ? `Lås upp ${trackId}` : `Lås ${trackId}`;
                     const lane = document.getElementById(`lane-${trackId}`);

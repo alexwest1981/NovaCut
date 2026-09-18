@@ -1210,7 +1210,7 @@ class NovaCutMarketplace {
         this.currentPlayingCardId = asset.id;
         
         btnElement.classList.add('playing');
-        btnElement.innerHTML = `<span>⏸</span> <span>Stoppa</span>`;
+        btnElement.innerHTML = `<span>${ncIcon('pause')}</span> <span>Stoppa</span>`;
 
         audio.play().catch(e => {
             console.warn('Audio preview play failed:', e);
@@ -1236,7 +1236,7 @@ class NovaCutMarketplace {
             const btn = this.listEl.querySelector(`[data-preview-id="${this.currentPlayingCardId}"]`);
             if (btn) {
                 btn.classList.remove('playing');
-                btn.innerHTML = `<span>▶</span> <span>Provlyssna</span>`;
+                btn.innerHTML = `<span>${ncIcon('play', { solid: true })}</span> <span>Provlyssna</span>`;
             }
         }
         this.currentPlayingCardId = null;

@@ -1,0 +1,199 @@
+/* ==========================================================================
+   NovaCut — design tokens
+   --------------------------------------------------------------------------
+   One token layer, two palettes. Components must only read variables from
+   here; nothing below `Palettes` should contain a literal colour, size or
+   radius. Switch palette with `document.documentElement.dataset.theme =
+   'creator' | 'pro'` (the header control does this and stores the choice).
+
+   Layout of the file:
+     1. Fonts           — bundled, no network (the app must look the same
+                          inside a flatpak sandbox as it does in dev)
+     2. Scale           — type, space, radius, motion, elevation (theme-independent)
+     3. Palettes        — Pro (default) and Creator, colour + radius personality
+     4. Legacy aliases  — the variable names the existing stylesheets use,
+                          now pointing at tokens, so the old CSS inherits the
+                          new system instead of having to be rewritten first
+   ========================================================================== */
+
+/* 1. Fonts ---------------------------------------------------------------- */
+
+@font-face {
+    font-family: 'Geist';
+    src: url('../assets/fonts/geist-latin.woff2') format('woff2-variations');
+    font-weight: 300 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Geist Mono';
+    src: url('../assets/fonts/geist-mono-latin.woff2') format('woff2-variations');
+    font-weight: 400 600;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* 2. Scale ---------------------------------------------------------------- */
+
+:root {
+    --font-ui: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'Geist Mono', 'JetBrains Mono', ui-monospace, monospace;
+
+    /* Type: four working sizes plus two display sizes. 12px is the floor for
+       body copy; 10px is reserved for uppercase micro-labels. */
+    --fs-micro: 10px;
+    --fs-label: 11px;
+    --fs-body: 12px;
+    --fs-emphasis: 13px;
+    --fs-title: 15px;
+    --fs-display: 20px;
+    --fs-hero: 26px;
+
+    --lh-tight: 1.25;
+    --lh-body: 1.45;
+    --fw-regular: 400;
+    --fw-medium: 500;
+    --fw-semibold: 600;
+    --fw-bold: 700;
+
+    --track-label: 0.06em;   /* uppercase micro-labels */
+    --track-tight: -0.01em;  /* display sizes */
+
+    /* Space: 4px grid. */
+    --sp-1: 4px;
+    --sp-2: 8px;
+    --sp-3: 12px;
+    --sp-4: 16px;
+    --sp-5: 20px;
+    --sp-6: 24px;
+    --sp-8: 32px;
+
+    /* Control heights: every clickable thing in the chrome is one of these. */
+    --ctl-sm: 24px;
+    --ctl-md: 28px;
+    --ctl-lg: 34px;
+
+    --dur-1: 120ms;
+    --dur-2: 160ms;
+    --dur-3: 240ms;
+    --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* 3. Palettes ------------------------------------------------------------- */
+
+/* Pro — the default: neutral greys, one accent, colour reserved for the clips
+   and the content itself. */
+:root,
+:root[data-theme='pro'] {
+    color-scheme: dark;
+
+    --bg-app: #0f1012;
+    --bg-panel: #16181b;
+    --bg-raised: #1c1f23;
+    --bg-input: #121417;
+    --bg-hover: #23262b;
+    --bg-active: #2a2e34;
+
+    --line: rgba(255, 255, 255, 0.07);
+    --line-strong: rgba(255, 255, 255, 0.13);
+
+    --fg: #e9ecef;
+    --fg-dim: #a1a7ae;
+    --fg-mute: #8b9299;
+
+    --accent: #00c47a;
+    --accent-hover: #00d885;
+    --accent-fg: #04150e;          /* text on an accent fill */
+    --accent-soft: rgba(0, 196, 122, 0.14);
+    --accent-line: rgba(0, 196, 122, 0.45);
+
+    --info: #4c8dff;
+    --warn: #d99a2b;
+    --danger: #e5544b;
+
+    /* Clip / track colours: desaturated so a busy timeline stays readable. */
+    --clip-video: #35618f;
+    --clip-overlay: #5d54a8;
+    --clip-audio: #1f7a5c;
+    --clip-text: #9a6b25;
+    --clip-effect: #9b4470;
+    --clip-selected: #00c47a;
+
+    --r-1: 6px;
+    --r-2: 10px;
+    --r-3: 14px;
+    --r-pill: 999px;
+
+    --e-1: 0 1px 2px rgba(0, 0, 0, 0.35);
+    --e-2: 0 4px 14px rgba(0, 0, 0, 0.35);
+    --e-3: 0 18px 48px rgba(0, 0, 0, 0.55);
+}
+
+/* Creator — CapCut-adjacent: warmer, lighter surfaces, a brighter accent, a
+   touch more roundness. Same components, same scales. */
+:root[data-theme='creator'] {
+    color-scheme: dark;
+
+    --bg-app: #14131a;
+    --bg-panel: #1c1b24;
+    --bg-raised: #26242f;
+    --bg-input: #191822;
+    --bg-hover: #2e2c39;
+    --bg-active: #373444;
+
+    --line: rgba(255, 255, 255, 0.09);
+    --line-strong: rgba(255, 255, 255, 0.16);
+
+    --fg: #f2f0f6;
+    --fg-dim: #b0aabd;
+    --fg-mute: #8a8399;
+
+    --accent: #00e08a;
+    --accent-hover: #22f0a0;
+    --accent-fg: #06170f;
+    --accent-soft: rgba(0, 224, 138, 0.16);
+    --accent-line: rgba(0, 224, 138, 0.5);
+
+    --info: #6f9bff;
+    --warn: #f0a93a;
+    --danger: #ff6259;
+
+    --clip-video: #3f7ad6;
+    --clip-overlay: #7a68e0;
+    --clip-audio: #14a06f;
+    --clip-text: #e0932c;
+    --clip-effect: #e0529b;
+    --clip-selected: #00e08a;
+
+    --r-1: 8px;
+    --r-2: 12px;
+    --r-3: 16px;
+
+    --e-1: 0 1px 2px rgba(10, 4, 25, 0.4);
+    --e-2: 0 6px 18px rgba(10, 4, 25, 0.42);
+    --e-3: 0 20px 52px rgba(10, 4, 25, 0.6);
+}
+
+/* 4. Legacy aliases ------------------------------------------------------- */
+
+:root {
+    --bg-main: var(--bg-app);
+    --bg-surface: var(--bg-panel);
+    --bg-surface-elevated: var(--bg-raised);
+    --bg-surface-hover: var(--bg-hover);
+    --border-color: var(--line);
+    --border-color-active: var(--line-strong);
+    --accent-dim: var(--accent-soft);
+    --accent-blue: var(--info);
+    --accent-purple: var(--clip-overlay);
+    --accent-pink: var(--clip-effect);
+    --accent-amber: var(--warn);
+    --text-primary: var(--fg);
+    --text-secondary: var(--fg-dim);
+    --text-muted: var(--fg-mute);
+    --timeline-track-bg: var(--bg-input);
+    --timeline-ruler-bg: var(--bg-panel);
+    --font-main: var(--font-ui);
+    --font-heading: var(--font-ui);
+}
