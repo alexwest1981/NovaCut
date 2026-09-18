@@ -434,7 +434,7 @@ class NovaCutVisuals {
             await this.placeAiVisualOnTimeline(result.filePath, prompt);
 
             if (window.projectManager && typeof window.projectManager.showToast === 'function') {
-                window.projectManager.showToast(`✨ AI Visual för "${prompt.slice(0, 20)}..." placerad på tidslinjen!`);
+                window.projectManager.showToast(` AI Visual för "${prompt.slice(0, 20)}..." placerad på tidslinjen!`);
             }
         } catch (err) {
             console.error('[NovaCut Visuals] Error:', err);
@@ -572,7 +572,7 @@ class NovaCutVisuals {
         this.engine.render();
 
         if (window.projectManager && typeof window.projectManager.showToast === 'function') {
-            window.projectManager.showToast(`✨ Ljudreaktiv visual "${preset.name}" tillagd!`);
+            window.projectManager.showToast(` Ljudreaktiv visual "${preset.name}" tillagd!`);
         }
     }
 }

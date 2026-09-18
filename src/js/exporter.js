@@ -468,7 +468,7 @@ class NovaCutExporter {
             this.progressContainer.style.display = 'none';
             
             if (window.novaCutToast) {
-                window.novaCutToast(`🎉 ${formatName} exporterad! Öppnar Social Media Hub...`);
+                window.novaCutToast(` ${formatName} exporterad! Öppnar Social Media Hub...`);
             }
 
             // Seamlessly bridge to Social Media Publishing Hub

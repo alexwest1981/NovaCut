@@ -566,7 +566,7 @@ class NovaCutProjects {
         }
 
         if (showNotification && saved) {
-            this.showToast(`✔ Projektet "${title}" är sparat!`);
+            this.showToast(` Projektet "${title}" är sparat!`);
         }
     }
 

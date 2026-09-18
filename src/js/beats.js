@@ -158,7 +158,7 @@ class NovaCutBeats {
                 btnBeats.innerHTML = `<span>${ncIcon('music')} Beats (${this.timeline.beatMarkers.length})</span>`;
 
                 if (window.showToast) {
-                    window.showToast(`🎶 Hittade ${this.timeline.beatMarkers.length} taktslag på ljudspåret! Magnetisk snapping aktiverad.`);
+                    window.showToast(` Hittade ${this.timeline.beatMarkers.length} taktslag på ljudspåret! Magnetisk snapping aktiverad.`);
                 }
             });
         }
@@ -179,7 +179,7 @@ class NovaCutBeats {
                 }
 
                 if (!targetId) {
-                    if (window.showToast) window.showToast('⚠️ Markera ett videoklipp att klippa till takten!');
+                    if (window.showToast) window.showToast(' Markera ett videoklipp att klippa till takten!');
                     return;
                 }
 
@@ -187,7 +187,7 @@ class NovaCutBeats {
                 if (cutCount > 0) {
                     btnAutoCut.innerHTML = `<span>${ncIcon('check')} ${cutCount} klipp gjorda!</span>`;
                     if (window.showToast) {
-                        window.showToast(`⚡ Auto-Cut: Skapade ${cutCount} synkade klipp med rytmisk hastighetszoom!`);
+                        window.showToast(` Auto-Cut: Skapade ${cutCount} synkade klipp med rytmisk hastighetszoom!`);
                     }
                     setTimeout(() => {
                         btnAutoCut.innerHTML = '<span>' + ncIcon('zap') + ' Auto-Cut till Takten</span>';

@@ -822,7 +822,7 @@ class NovaCutTemplates {
                 this.projectManager.renderProjects();
             });
             if (typeof this.projectManager.showToast === 'function') {
-                this.projectManager.showToast(`✨ Mallen "${tpl.name}" applicerad! Redo att klippa.`);
+                this.projectManager.showToast(` Mallen "${tpl.name}" applicerad! Redo att klippa.`);
             }
         }
     }

@@ -679,7 +679,7 @@ class NovaCutTimeline {
         }
 
         if (!clip) {
-            if (window.novaCutToast) window.novaCutToast('⚠️ Markera ett ljud- eller videoklipp först!');
+            if (window.novaCutToast) window.novaCutToast(' Markera ett ljud- eller videoklipp först!');
             return;
         }
 
@@ -693,7 +693,7 @@ class NovaCutTimeline {
         }
 
         if (!audioData || !audioData.channelData) {
-            if (window.novaCutToast) window.novaCutToast('⚠️ Kunde inte analysera ljudet i detta klipp.');
+            if (window.novaCutToast) window.novaCutToast(' Kunde inte analysera ljudet i detta klipp.');
             return;
         }
 
@@ -751,7 +751,7 @@ class NovaCutTimeline {
         }
 
         if (silences.length === 0) {
-            if (window.novaCutToast) window.novaCutToast('✨ Inga tysta pauser hittades i klippet! Talet är redan sammanhängande.');
+            if (window.novaCutToast) window.novaCutToast(' Inga tysta pauser hittades i klippet! Talet är redan sammanhängande.');
             return;
         }
 
@@ -779,7 +779,7 @@ class NovaCutTimeline {
         }
 
         if (speechSegments.length === 0) {
-            if (window.novaCutToast) window.novaCutToast('⚠️ Hela klippet verkar vara tyst.');
+            if (window.novaCutToast) window.novaCutToast(' Hela klippet verkar vara tyst.');
             return;
         }
 
@@ -835,7 +835,7 @@ class NovaCutTimeline {
         this.engine.render();
 
         if (window.novaCutToast) {
-            window.novaCutToast(`⚡ ${silences.length} tystnader klipptes bort (-${totalSaved.toFixed(1)}s sparat)!`);
+            window.novaCutToast(` ${silences.length} tystnader klipptes bort (-${totalSaved.toFixed(1)}s sparat)!`);
         }
     }
 
@@ -1085,7 +1085,7 @@ class NovaCutTimeline {
         this.engine.render();
 
         if (window.projectManager && typeof window.projectManager.showToast === 'function') {
-            window.projectManager.showToast('⚡ Ripple Delete utförd (tomrum stängt)');
+            window.projectManager.showToast(' Ripple Delete utförd (tomrum stängt)');
         }
     }
 
@@ -1125,7 +1125,7 @@ class NovaCutTimeline {
         this.engine.render();
 
         if (window.projectManager && typeof window.projectManager.showToast === 'function') {
-            window.projectManager.showToast(`⇤ Trimmat start (-${delta.toFixed(1)}s, Q)`);
+            window.projectManager.showToast(` Trimmat start (-${delta.toFixed(1)}s, Q)`);
         }
     }
 
@@ -1163,7 +1163,7 @@ class NovaCutTimeline {
         this.engine.render();
 
         if (window.projectManager && typeof window.projectManager.showToast === 'function') {
-            window.projectManager.showToast(`⇥ Trimmat slut (-${delta.toFixed(1)}s, W)`);
+            window.projectManager.showToast(` Trimmat slut (-${delta.toFixed(1)}s, W)`);
         }
     }
 
@@ -1193,7 +1193,7 @@ class NovaCutTimeline {
             this.recalculateProjectDuration();
             this.engine.render();
             if (window.projectManager && typeof window.projectManager.showToast === 'function') {
-                window.projectManager.showToast(`🧲 ${movedCount} klipp flyttades och tomrum stängdes!`);
+                window.projectManager.showToast(` ${movedCount} klipp flyttades och tomrum stängdes!`);
             }
         } else {
             if (window.projectManager && typeof window.projectManager.showToast === 'function') {
@@ -1756,7 +1756,7 @@ class NovaCutTimeline {
         this.engine.render();
 
         if (window.novaCutToast) {
-            window.novaCutToast(`➕ Nytt spår "${name}" skapat!`);
+            window.novaCutToast(` Nytt spår "${name}" skapat!`);
         }
 
         return newTrack;

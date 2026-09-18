@@ -524,7 +524,7 @@ class NovaCutStickers {
         this.engine.render();
 
         if (window.projectManager && typeof window.projectManager.showToast === 'function') {
-            window.projectManager.showToast(`🎭 Sticker "${sticker.name}" tillagd!`);
+            window.projectManager.showToast(` Sticker "${sticker.name}" tillagd!`);
         }
     }
 

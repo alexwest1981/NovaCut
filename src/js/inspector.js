@@ -129,7 +129,7 @@ class NovaCutInspector {
         this.bodyEl.innerHTML = `
             <!-- Layer & Track Selection -->
             <div class="inspector-section">
-                <div class="section-title">📑 Lager & Placering</div>
+                <div class="section-title">${ncIcon('panel')}  Lager & Placering</div>
                 <div class="param-row">
                     <span class="param-label">Tidslinjespår</span>
                     <select id="propClipTrack" class="select-input" style="flex: 1; font-size: 11px; padding: 4px; background: var(--bg-surface-elevated); color: #fff; border: 1px solid var(--border-color); border-radius: 4px;">
@@ -160,7 +160,7 @@ class NovaCutInspector {
             ${clip.demoPattern === 'reactive-vinyl' ? `
             <!-- 💿 Lo-Fi Vinyl Record Customization Section -->
             <div class="inspector-section">
-                <div class="section-title">💿 Vinylskiva & Etikett</div>
+                <div class="section-title">${ncIcon('film')}  Vinylskiva & Etikett</div>
 
                 <div class="param-row">
                     <span class="param-label">Titel på skivan</span>
@@ -227,7 +227,7 @@ class NovaCutInspector {
             <!-- Picture-in-Picture & Reaktionslayouter Section -->
             <div class="inspector-section">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                    <div class="section-title" style="margin-bottom: 0;">🖼️ Picture-in-Picture & Layout</div>
+                    <div class="section-title" style="margin-bottom: 0;">${ncIcon('film')}  Picture-in-Picture & Layout</div>
                     <span style="font-size: 10px; color: var(--accent); font-weight: 600;">1-Klick</span>
                 </div>
 
@@ -510,7 +510,7 @@ class NovaCutInspector {
             </div>
 
             <div class="inspector-section">
-                <div class="section-title">🎬 Klippövergångar (Transitions)</div>
+                <div class="section-title">${ncIcon('film')}  Klippövergångar (Transitions)</div>
                 <div class="param-row">
                     <span class="param-label">Övergång In</span>
                     <div class="param-input-group">
@@ -563,7 +563,7 @@ class NovaCutInspector {
             <!-- Color Grading & Färgkorrigering Section -->
             <div class="inspector-section">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                    <div class="section-title" style="margin-bottom: 0;">🎨 Färgkorrigering & LUTs</div>
+                    <div class="section-title" style="margin-bottom: 0;">${ncIcon('palette')}  Färgkorrigering & LUTs</div>
                     <button class="btn-secondary" id="btnResetColorGrading" style="font-size: 10px; padding: 2px 6px; cursor: pointer;">Återställ</button>
                 </div>
 
@@ -631,7 +631,7 @@ class NovaCutInspector {
             <!-- Viral VFX & Camera Motion Section -->
             <div class="inspector-section">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                    <div class="section-title" style="margin-bottom: 0;">⚡ Virala Effekter & Rörelser</div>
+                    <div class="section-title" style="margin-bottom: 0;">${ncIcon('zap')}  Virala Effekter & Rörelser</div>
                     <button class="btn-secondary" id="btnResetVFX" style="font-size: 10px; padding: 2px 6px; cursor: pointer;">Återställ</button>
                 </div>
 
@@ -799,7 +799,7 @@ class NovaCutInspector {
             <!-- Video Masking Section -->
             <div class="inspector-section">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                    <div class="section-title" style="margin-bottom: 0;">🎭 Videomaskering (Masks)</div>
+                    <div class="section-title" style="margin-bottom: 0;">${ncIcon('smile')}  Videomaskering (Masks)</div>
                     <button class="btn-secondary" id="btnResetMask" style="font-size: 10px; padding: 2px 6px; cursor: pointer;">Återställ</button>
                 </div>
 
@@ -911,7 +911,7 @@ class NovaCutInspector {
             <!-- Smart Cutout & Chroma Key Section -->
             <div class="inspector-section">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                    <div class="section-title" style="margin-bottom: 0;">✂️ Utskärning & Bakgrund</div>
+                    <div class="section-title" style="margin-bottom: 0;">${ncIcon('scissors')}  Utskärning & Bakgrund</div>
                 </div>
 
                 <!-- Sub-section 1: Smart Auto Cutout -->
@@ -1007,7 +1007,7 @@ class NovaCutInspector {
             <!-- Motionleap Cinemagraph (Photo Flow) Section -->
             <div class="inspector-section">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                    <div class="section-title" style="margin-bottom: 0;">🌊 Levande Foto (Motionleap Flow)</div>
+                    <div class="section-title" style="margin-bottom: 0;">${ncIcon('film')}  Levande Foto (Motionleap Flow)</div>
                     <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; cursor: pointer;">
                         <input type="checkbox" id="propCinemagraphEnabled" ${clip.cinemagraph?.enabled ? 'checked' : ''}>
                         <span style="color: #00f2fe; font-weight: 600;">Aktiv</span>
@@ -1745,7 +1745,7 @@ class NovaCutInspector {
                 if (window.motionleapEngine) {
                     window.motionleapEngine.applyPreset(clip, presetId);
                     if (window.novaCutToast) {
-                        window.novaCutToast(`🌊 Mall "${btn.textContent.trim()}" applicerad!`);
+                        window.novaCutToast(` Mall "${btn.textContent.trim()}" applicerad!`);
                     }
                     this.update(clip);
                 }
@@ -2041,7 +2041,7 @@ class NovaCutInspector {
             </div>
 
             <div class="inspector-section">
-                <div class="section-title">✨ Snabbstilar (Presets)</div>
+                <div class="section-title">${ncIcon('sparkles')}  Snabbstilar (Presets)</div>
                 <div class="text-style-presets" id="textStylePresets">
                     <button class="btn-text-preset" data-preset="tiktok" title="TikTok Viral: Impact, Gul text, kraftig svart outline">
                         <span class="preset-icon">⚡</span>
@@ -2140,7 +2140,7 @@ class NovaCutInspector {
             </div>
 
             <div class="inspector-section">
-                <div class="section-title">🎬 Textanimation & Kinetic Motion</div>
+                <div class="section-title">${ncIcon('film')}  Textanimation & Kinetic Motion</div>
                 <div class="param-row">
                     <span class="param-label">Animation</span>
                     <select id="propTextAnim" class="select-compact">

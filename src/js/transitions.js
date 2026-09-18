@@ -251,7 +251,7 @@ class NovaCutTransitions {
                 const selId = this.timeline?.selectedClipId;
                 if (!selId) {
                     if (window.novaCutToast) {
-                        window.novaCutToast('⚠️ Markera ett videoklipp i tidslinjen först');
+                        window.novaCutToast(' Markera ett videoklipp i tidslinjen först');
                     } else {
                         alert('Markera ett videoklipp i tidslinjen först');
                     }
@@ -269,7 +269,7 @@ class NovaCutTransitions {
                 const videoClips = this.timeline?.clips.filter(c => c.trackId === 'video' || c.trackId === 'overlay') || [];
                 if (videoClips.length === 0) {
                     if (window.novaCutToast) {
-                        window.novaCutToast('⚠️ Inga videoklipp hittades i tidslinjen');
+                        window.novaCutToast(' Inga videoklipp hittades i tidslinjen');
                     }
                     return;
                 }
@@ -279,7 +279,7 @@ class NovaCutTransitions {
                 });
 
                 if (window.novaCutToast) {
-                    window.novaCutToast(`⚡ Övergång "${this.selectedTransitionId}" tillämpad på ${videoClips.length} klipp!`);
+                    window.novaCutToast(` Övergång "${this.selectedTransitionId}" tillämpad på ${videoClips.length} klipp!`);
                 }
                 this.engine.render();
             });
@@ -298,7 +298,7 @@ class NovaCutTransitions {
         };
 
         if (showToastMsg && window.novaCutToast) {
-            window.novaCutToast(`✨ Övergång "${transDef.name || transId}" tillagd!`);
+            window.novaCutToast(` Övergång "${transDef.name || transId}" tillagd!`);
         }
         if (window.inspector) {
             window.inspector.update(clip);

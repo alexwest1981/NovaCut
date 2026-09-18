@@ -956,7 +956,7 @@ class NovaCutMarketplace {
                         <span class="plugin-category-badge" style="background: ${font.isCustom ? '#8b5cf6' : '#0284c7'}; color: white;">
                             ${font.isCustom ? 'Eget Typsnitt' : 'Google Fonts'}
                         </span>
-                        <span style="font-size: 10px; color: var(--accent);">✔ ${font.isCustom ? 'Lokalt installerad' : 'OFL Fri kommersiell licens'}</span>
+                        <span style="font-size: 10px; color: var(--accent);">${ncIcon('check')} ${font.isCustom ? 'Lokalt installerad' : 'OFL Fri kommersiell licens'}</span>
                     </div>
                 </div>
                 <div class="plugin-info">
@@ -1022,7 +1022,7 @@ class NovaCutMarketplace {
                     <span class="plugin-author">Av ${plugin.author || 'Community'}</span>
                     <p class="plugin-desc">${plugin.description}</p>
                     <div class="plugin-actions">
-                        <span style="font-size: 10px; color: var(--accent);">✔ Community Verified</span>
+                        <span style="font-size: 10px; color: var(--accent);">${ncIcon('check')} Community Verified</span>
                         <button class="btn-add-effect" data-id="${plugin.id}">+ Använd i Projekt</button>
                     </div>
                 </div>
@@ -1077,7 +1077,7 @@ class NovaCutMarketplace {
                 <div class="plugin-info">
                     <div class="plugin-title-row">
                         <span class="plugin-name">${trans.name}</span>
-                        <span style="font-size: 10px; color: var(--accent);">✔ Inbyggd Pro</span>
+                        <span style="font-size: 10px; color: var(--accent);">${ncIcon('check')} Inbyggd Pro</span>
                     </div>
                     <p class="plugin-desc">${trans.description || 'Högkvalitativ klippövergång klar att användas.'}</p>
                     <div class="plugin-actions" style="margin-top: 8px; display: flex; gap: 6px; justify-content: flex-end; align-items: center;">
@@ -1096,7 +1096,7 @@ class NovaCutMarketplace {
                         if (firstVideo) {
                             window.transitions.applyTransitionToClip(firstVideo.id, trans.id);
                         } else if (window.novaCutToast) {
-                            window.novaCutToast(`✨ Valde "${trans.name}"! Markera ett videoklipp i tidslinjen.`);
+                            window.novaCutToast(` Valde "${trans.name}"! Markera ett videoklipp i tidslinjen.`);
                         }
                     }
                 }
@@ -1184,7 +1184,7 @@ class NovaCutMarketplace {
         }
 
         if (window.novaCutToast) {
-            window.novaCutToast(`🪄 "${plugin.name}" tillagd på effektspåret vid ${playheadTime.toFixed(1)}s!`);
+            window.novaCutToast(` "${plugin.name}" tillagd på effektspåret vid ${playheadTime.toFixed(1)}s!`);
         }
     }
 
@@ -1286,7 +1286,7 @@ class NovaCutMarketplace {
             }
 
             if (window.novaCutToast) {
-                window.novaCutToast(`🎉 ${asset.name} är tillgängligt! Övergång tillagd på klippet.`);
+                window.novaCutToast(` ${asset.name} är tillgängligt! Övergång tillagd på klippet.`);
             }
             return;
         }
@@ -1348,7 +1348,7 @@ class NovaCutMarketplace {
             }
 
             if (window.novaCutToast) {
-                window.novaCutToast(`🎉 "${asset.name}" hämtades & placerades på tidslinjen vid ${this.engine.currentTime.toFixed(1)}s!`);
+                window.novaCutToast(` "${asset.name}" hämtades & placerades på tidslinjen vid ${this.engine.currentTime.toFixed(1)}s!`);
             }
         } catch (err) {
             console.error('[Marketplace Download] Error:', err);
@@ -1384,7 +1384,7 @@ class NovaCutMarketplace {
 
             this.freesoundResults = res.results || [];
             if (window.novaCutToast) {
-                window.novaCutToast(`🌐 Hittade ${this.freesoundResults.length} ljud på Freesound.org!`);
+                window.novaCutToast(` Hittade ${this.freesoundResults.length} ljud på Freesound.org!`);
             }
 
             this.activeCategory = 'online-sfx';
@@ -1463,7 +1463,7 @@ class NovaCutMarketplace {
                 }
                 const modal = document.getElementById('freesoundConfigModal');
                 if (modal) modal.classList.remove('active');
-                if (window.novaCutToast) window.novaCutToast('✅ Freesound API-nyckel sparades!');
+                if (window.novaCutToast) window.novaCutToast(' Freesound API-nyckel sparades!');
                 if (this.searchQuery) {
                     this.performFreesoundSearch(this.searchQuery);
                 }

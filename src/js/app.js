@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!exitBadge && previewArea) {
         exitBadge = document.createElement('div');
         exitBadge.className = 'fullscreen-exit-badge';
-        exitBadge.innerHTML = '<span>${ncIcon("close")}</span> Lämna helskärm (Esc)';
+        exitBadge.innerHTML = `<span>${ncIcon("close")}</span> Lämna helskärm (Esc)`;
         exitBadge.addEventListener('click', () => toggleFullscreenPreview(false));
         previewArea.appendChild(exitBadge);
     }
@@ -445,7 +445,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     badge.textContent = formatDuration(audio.duration);
                     const btnAll = mediaCard.querySelector('.btn-place-all');
                     if (btnAll) {
-                        btnAll.textContent = `🎵 Hela låten (${formatDuration(audio.duration)})`;
+                        btnAll.textContent = `${ncIcon('music')} Hela låten (${formatDuration(audio.duration)})`;
                     }
                 }
             });
@@ -471,7 +471,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             engine.render();
             if (window.novaCutToast) {
-                window.novaCutToast('🖼️ Omslagsbild lades till som bakgrund på tidslinjen!');
+                window.novaCutToast(' Omslagsbild lades till som bakgrund på tidslinjen!');
             }
         };
 
@@ -552,7 +552,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
 
                     if (window.novaCutToast) {
-                        window.novaCutToast(`🖼️ Hittade albumomslag för "${meta.title || fileObj.name}"!`);
+                        window.novaCutToast(` Hittade albumomslag för "${meta.title || fileObj.name}"!`);
                     }
                 }
             }).catch(err => {
@@ -725,7 +725,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 opt.value = c.id;
                 opt.selected = (c.id === selectedClipId);
                 const isAudio = (c.trackId === 'audio' || c.type === 'audio');
-                const prefix = isAudio ? '🎵 Låt/Ljud: ' : '🎬 Video: ';
+                const prefix = isAudio ? 'Låt/Ljud: ' : 'Video: ';
                 opt.textContent = `${prefix}${c.title || 'Klipp'} (${c.duration.toFixed(1)}s)`;
                 whisperClipSelect.appendChild(opt);
             });
@@ -877,7 +877,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     const origBtnText = btnGenerateCaptions.innerHTML;
                     btnGenerateCaptions.disabled = true;
-                    btnGenerateCaptions.innerHTML = '<span>🎙️ Whisper lyssnar av tal i videon...</span>';
+                    btnGenerateCaptions.innerHTML = `<span>${ncIcon('music')} Whisper lyssnar av tal i videon...</span>`;
 
                     try {
                         const lang = whisperLangSelect?.value || 'auto';
@@ -935,7 +935,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         engine.render();
 
                         if (window.projectManager && typeof window.projectManager.showToast === 'function') {
-                            window.projectManager.showToast(`✨ ${res.segments.length} undertexter skapades med Whisper AI (${res.language?.toUpperCase() || 'AUTO'})!`);
+                            window.projectManager.showToast(` ${res.segments.length} undertexter skapades med Whisper AI (${res.language?.toUpperCase() || 'AUTO'})!`);
                         }
                     } catch (err) {
                         console.error('Whisper transcription error:', err);
@@ -1057,7 +1057,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div style="padding: 10px 14px; display: flex; flex-direction: column; gap: 8px;">
                     <div style="display: flex; align-items: center; justify-content: space-between;">
                         <div style="display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 18px;">🎵</span>
+                            <span style="font-size: 18px;">${ncIcon('music')}</span>
                             <div>
                                 <div style="font-weight: 600; font-size: 12px;">${preset.name}</div>
                                 <div style="font-size: 10px; color: var(--text-muted);">${preset.artist}</div>
