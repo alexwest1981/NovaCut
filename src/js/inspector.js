@@ -2597,7 +2597,7 @@ class NovaCutInspector {
 
             <div class="inspector-section">
                 <div class="section-title">Effektreglage</div>
-                ${paramsHTML || '<p style="color: var(--text-muted); font-size: 11px;">Standardinställningar aktiva.</p>'}
+                ${paramsHTML || `<div class="empty-state">${ncIcon('settings')}<span><strong>Inga reglage</strong><br>Effekten har inga justerbara värden. Byt effekt eller lägg till en övergång för att se fler.</span></div>`}
             </div>
         `;
 

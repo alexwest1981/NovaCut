@@ -56,10 +56,25 @@ def luminance(hex_colour):
     return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
 
 
+def mix_with(fg_colour, other, percent):
+    """color-mix(in srgb, fg_colour percent%, other) — sRGB lerp, alpha 1."""
+    a = [int(fg_colour[i:i + 2], 16) for i in (1, 3, 5)]
+    b = [int(other[i:i + 2], 16) for i in (1, 3, 5)]
+    return '#%02x%02x%02x' % tuple(
+        round(a[i] * percent / 100 + b[i] * (1 - percent / 100)) for i in range(3))
+
+
 def ratio(fg, bg):
     a, b = luminance(fg), luminance(bg)
     lo, hi = min(a, b), max(a, b)
     return (hi + 0.05) / (lo + 0.05)
+
+
+# Derived pairs: text painted as a 50/50 mix of a clip colour and the text
+# colour (see .track-badge in timeline.css). The clip tokens themselves are
+# mid-tone fills and would not pass as text on their own.
+MIXED_PAIRS = [(f'--clip-{name}', '--fg', '--bg-panel', 4.5, 50)
+               for name in ('video', 'overlay', 'audio', 'text', 'effect')]
 
 
 def main():
@@ -76,6 +91,14 @@ def main():
             print(f'{flag}{theme:8} {fg_name:10} på {bg_name:10} {got:5.2f}:1  (krav {minimum})')
             if got < minimum:
                 failures.append(f'{theme}: {fg_name} på {bg_name} = {got:.2f}:1, krav {minimum}')
+        for clip_name, fg_name, bg_name, minimum, percent in MIXED_PAIRS:
+            mixed = mix_with(tokens[clip_name], tokens[fg_name], percent)
+            got = ratio(mixed, tokens[bg_name])
+            flag = 'ok  ' if got >= minimum else 'FEL '
+            print(f'{flag}{theme:8} {clip_name:16} blandad {percent}% med {fg_name} = {mixed} '
+                  f'{got:5.2f}:1  (krav {minimum})')
+            if got < minimum:
+                failures.append(f'{theme}: {clip_name}-text = {got:.2f}:1, krav {minimum}')
     if failures:
         print('\n'.join([''] + failures))
         return 1

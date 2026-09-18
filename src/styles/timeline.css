@@ -22,13 +22,13 @@
 
 /* Timeline Toolbar */
 .timeline-toolbar {
-    height: 34px;
+    height: 38px;
     background-color: var(--bg-surface-elevated);
     border-bottom: 1px solid var(--border-color);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 14px;
+    padding: 0 var(--sp-4);
     z-index: 50;
     flex-shrink: 0;
 }
@@ -36,39 +36,41 @@
 .timeline-tools-left {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--sp-1);
 }
 
 .tool-btn {
     background: transparent;
     border: 1px solid transparent;
     color: var(--text-secondary);
-    height: 26px;
-    padding: 0 8px;
-    border-radius: 5px;
+    height: var(--ctl-md);
+    padding: 0 var(--sp-3);
+    border-radius: var(--r-1);
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    font-weight: 600;
+    gap: var(--sp-2);
+    font-size: var(--fs-label);
+    font-weight: var(--fw-medium);
+    white-space: nowrap;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease),
+                border-color var(--dur-1) var(--ease);
 }
 .tool-btn:hover {
     background: var(--bg-surface-hover);
     color: var(--text-primary);
 }
 .tool-btn.active {
-    background: var(--accent-dim);
-    border-color: var(--accent);
+    background: var(--accent-soft);
+    border-color: var(--accent-line);
     color: var(--accent);
 }
 
 .tool-divider {
     width: 1px;
-    height: 16px;
-    background: var(--border-color);
-    margin: 0 4px;
+    height: 20px;
+    background: var(--line-strong);
+    margin: 0 var(--sp-2);
 }
 
 .timeline-tools-right {
@@ -92,9 +94,10 @@
     position: relative;
 }
 
-/* Track Headers Column (Left fixed) */
+/* Track Headers Column (Left fixed) — wide enough for a badge, a name and the
+   four row actions: at 205px every default name truncated to "Over…". */
 .track-headers {
-    width: 205px;
+    width: 236px;
     background-color: var(--bg-surface);
     border-right: 1px solid var(--border-color);
     display: flex;
@@ -136,7 +139,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 11px;
+    font-size: var(--fs-label);
     font-weight: 600;
     color: var(--text-secondary);
     background: var(--bg-surface);
@@ -158,50 +161,52 @@
 
 .track-badge {
     display: inline-block;
-    padding: 2px 5px;
-    border-radius: 4px;
-    font-size: 9px;
-    font-weight: 800;
-    letter-spacing: 0.5px;
+    padding: 1px var(--sp-1);
+    min-width: 32px;
+    text-align: center;
+    border-radius: var(--r-1);
+    font-size: var(--fs-micro);
+    font-weight: var(--fw-semibold);
+    letter-spacing: var(--track-label);
     text-transform: uppercase;
     font-family: var(--font-mono);
     flex-shrink: 0;
 }
 
 .track-badge.text {
-    background: rgba(245, 158, 11, 0.16);
-    color: #fbbf24;
-    border: 1px solid rgba(245, 158, 11, 0.4);
+    background: color-mix(in srgb, var(--clip-text) 20%, transparent);
+    color: color-mix(in srgb, var(--clip-text) 50%, var(--fg));
+    border: 1px solid color-mix(in srgb, var(--clip-text) 45%, transparent);
 }
 .track-badge.effect {
-    background: rgba(236, 72, 153, 0.16);
-    color: #f472b6;
-    border: 1px solid rgba(236, 72, 153, 0.4);
+    background: color-mix(in srgb, var(--clip-effect) 20%, transparent);
+    color: color-mix(in srgb, var(--clip-effect) 50%, var(--fg));
+    border: 1px solid color-mix(in srgb, var(--clip-effect) 45%, transparent);
 }
 .track-badge.overlay {
-    background: rgba(139, 92, 246, 0.16);
-    color: #a78bfa;
-    border: 1px solid rgba(139, 92, 246, 0.4);
+    background: color-mix(in srgb, var(--clip-overlay) 20%, transparent);
+    color: color-mix(in srgb, var(--clip-overlay) 50%, var(--fg));
+    border: 1px solid color-mix(in srgb, var(--clip-overlay) 45%, transparent);
 }
 .track-badge.video {
-    background: rgba(59, 130, 246, 0.16);
-    color: #60a5fa;
-    border: 1px solid rgba(59, 130, 246, 0.4);
+    background: color-mix(in srgb, var(--clip-video) 20%, transparent);
+    color: color-mix(in srgb, var(--clip-video) 50%, var(--fg));
+    border: 1px solid color-mix(in srgb, var(--clip-video) 45%, transparent);
 }
 .track-badge.audio {
-    background: rgba(16, 185, 129, 0.16);
-    color: #34d399;
-    border: 1px solid rgba(16, 185, 129, 0.4);
+    background: color-mix(in srgb, var(--clip-audio) 20%, transparent);
+    color: color-mix(in srgb, var(--clip-audio) 50%, var(--fg));
+    border: 1px solid color-mix(in srgb, var(--clip-audio) 45%, transparent);
 }
 
 .track-header-title {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: 11px;
+    font-size: var(--fs-label);
     cursor: text;
     padding: 1px 3px;
-    border-radius: 3px;
+    border-radius: var(--r-1);
 }
 
 .track-header-title:hover {
@@ -225,10 +230,10 @@
     background: transparent;
     border: 1px solid transparent;
     color: var(--text-muted);
-    font-size: 10px;
+    font-size: var(--fs-micro);
     cursor: pointer;
     padding: 2px 4px;
-    border-radius: 4px;
+    border-radius: var(--r-1);
     transition: all 0.12s ease;
     line-height: 1;
     display: inline-flex;
@@ -268,7 +273,7 @@
     left: 0;
     background: #141722;
     border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 8px;
+    border-radius: var(--r-2);
     padding: 6px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 1px rgba(255, 255, 255, 0.2);
     z-index: 1000;
@@ -286,9 +291,9 @@
     padding: 6px 10px;
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 6px;
+    border-radius: var(--r-1);
     color: #e2e8f0;
-    font-size: 11px;
+    font-size: var(--fs-label);
     font-weight: 500;
     cursor: pointer;
     text-align: left;
@@ -384,9 +389,9 @@
     position: absolute;
     top: 3px;
     height: 35px;
-    border-radius: 6px;
+    border-radius: var(--r-1);
     color: #fff;
-    font-size: 11px;
+    font-size: var(--fs-label);
     font-weight: 600;
     display: flex;
     align-items: center;
@@ -449,7 +454,7 @@
 }
 
 .clip-duration {
-    font-size: 10px;
+    font-size: var(--fs-micro);
     opacity: 0.85;
     font-family: var(--font-mono);
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
@@ -474,7 +479,7 @@
 }
 .trim-handle.left {
     left: 0;
-    border-radius: 4px 0 0 4px;
+    border-radius: var(--r-1) 0 0 4px;
 }
 .trim-handle.right {
     right: 0;
@@ -485,7 +490,7 @@
     width: 2px;
     height: 14px;
     background: rgba(255, 255, 255, 0.6);
-    border-radius: 1px;
+    border-radius: var(--r-1);
 }
 
 /* Neon Cyan Laser Playhead Scrubber */
@@ -563,7 +568,7 @@
     bottom: 0;
     pointer-events: none;
     overflow: hidden;
-    border-radius: 4px;
+    border-radius: var(--r-1);
     z-index: 2;
 }
 
@@ -595,7 +600,7 @@
     pointer-events: none;
     z-index: 1;
     overflow: hidden;
-    border-radius: 4px;
+    border-radius: var(--r-1);
 }
 
 .clip-waveform-canvas {
@@ -614,7 +619,7 @@
     overflow: hidden;
     pointer-events: none;
     z-index: 1;
-    border-radius: 4px;
+    border-radius: var(--r-1);
 }
 
 .clip-filmstrip-frame {

@@ -1569,7 +1569,7 @@ class NovaCutTimeline {
             header.innerHTML = `
                 <div class="track-header-left">
                     <span class="track-badge ${badgeClass}">${badgeText}</span>
-                    <span class="track-header-title" title="Dubbelklicka för att byta namn">${track.name}</span>
+                    <span class="track-header-title" title="${track.name} — dubbelklicka för att byta namn">${track.name}</span>
                 </div>
                 <div class="track-header-actions">
                     <button class="btn-track-action track-move-up" title="Flytta lager uppåt (framåt i bild)" ${isFirst ? 'disabled style="opacity:0.3;cursor:default;"' : ''}>▲</button>

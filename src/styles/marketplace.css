@@ -10,10 +10,10 @@
 .marketplace-search {
     background: var(--bg-surface-elevated);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: var(--r-2);
     padding: 8px 12px;
     color: var(--text-primary);
-    font-size: 12px;
+    font-size: var(--fs-body);
     outline: none;
     width: 100%;
 }
@@ -31,9 +31,9 @@
 .chip {
     background: var(--bg-surface-elevated);
     border: 1px solid var(--border-color);
-    border-radius: 20px;
+    border-radius: var(--r-3);
     padding: 4px 10px;
-    font-size: 11px;
+    font-size: var(--fs-label);
     color: var(--text-secondary);
     cursor: pointer;
     white-space: nowrap;
@@ -60,7 +60,7 @@
 .plugin-card {
     background: var(--bg-surface-elevated);
     border: 1px solid var(--border-color);
-    border-radius: 10px;
+    border-radius: var(--r-2);
     overflow: hidden;
     transition: transform 0.15s, border-color 0.15s;
     display: flex;
@@ -82,12 +82,12 @@
 }
 
 .plugin-category-badge {
-    font-size: 10px;
+    font-size: var(--fs-micro);
     font-weight: 700;
     text-transform: uppercase;
     background: rgba(0, 0, 0, 0.4);
     padding: 2px 6px;
-    border-radius: 4px;
+    border-radius: var(--r-1);
     backdrop-filter: blur(4px);
 }
 
@@ -106,17 +106,17 @@
 
 .plugin-name {
     font-weight: 600;
-    font-size: 13px;
+    font-size: var(--fs-emphasis);
     color: var(--text-primary);
 }
 
 .plugin-author {
-    font-size: 11px;
+    font-size: var(--fs-label);
     color: var(--text-muted);
 }
 
 .plugin-desc {
-    font-size: 11px;
+    font-size: var(--fs-label);
     color: var(--text-secondary);
     line-height: 1.4;
 }
@@ -134,9 +134,9 @@
     background: var(--bg-surface-hover);
     color: var(--text-primary);
     border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border-radius: var(--r-1);
     padding: 5px 12px;
-    font-size: 11px;
+    font-size: var(--fs-label);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.15s;
@@ -151,7 +151,7 @@
 .create-filter-banner {
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%);
     border: 1px dashed var(--accent-blue);
-    border-radius: 10px;
+    border-radius: var(--r-2);
     padding: 14px;
     text-align: center;
     cursor: pointer;
@@ -165,11 +165,11 @@
 .create-filter-banner h4 {
     color: #60a5fa;
     margin-bottom: 4px;
-    font-size: 13px;
+    font-size: var(--fs-emphasis);
 }
 .create-filter-banner p {
     color: var(--text-secondary);
-    font-size: 11px;
+    font-size: var(--fs-label);
 }
 
 .form-group {
@@ -178,17 +178,17 @@
     gap: 6px;
 }
 .form-group label {
-    font-size: 11px;
+    font-size: var(--fs-label);
     font-weight: 600;
     color: var(--text-secondary);
 }
 .form-input, .form-textarea, .form-select {
     background: var(--bg-surface-elevated);
     border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border-radius: var(--r-1);
     padding: 8px 10px;
     color: var(--text-primary);
-    font-size: 12px;
+    font-size: var(--fs-body);
     outline: none;
     font-family: inherit;
 }
@@ -218,7 +218,7 @@
     padding: 10px 14px;
     background: linear-gradient(135deg, rgba(14, 165, 233, 0.2) 0%, rgba(99, 102, 241, 0.2) 100%);
     border: 1px solid rgba(14, 165, 233, 0.4);
-    border-radius: 10px;
+    border-radius: var(--r-2);
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -236,13 +236,13 @@
 }
 
 .online-hub-banner .banner-title {
-    font-size: 13px;
+    font-size: var(--fs-emphasis);
     font-weight: 700;
     color: #fff;
 }
 
 .online-hub-banner .banner-sub {
-    font-size: 10px;
+    font-size: var(--fs-micro);
     color: var(--text-secondary);
     margin-top: 1px;
 }
@@ -254,8 +254,8 @@
     padding: 0 14px;
     background: rgba(255, 255, 255, 0.04);
     border: 1px dashed rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
-    font-size: 11px;
+    border-radius: var(--r-2);
+    font-size: var(--fs-label);
     font-weight: 600;
     color: var(--text-secondary);
     cursor: pointer;
@@ -273,7 +273,7 @@
 .freesound-search-bar {
     background: rgba(245, 158, 11, 0.12);
     border: 1px solid rgba(245, 158, 11, 0.35);
-    border-radius: 8px;
+    border-radius: var(--r-2);
     padding: 7px 10px;
     margin-top: 2px;
 }
@@ -282,7 +282,7 @@
 .online-asset-card {
     background: var(--bg-surface-elevated);
     border: 1px solid var(--border-color);
-    border-radius: 10px;
+    border-radius: var(--r-2);
     overflow: hidden;
     transition: all 0.18s ease;
     display: flex;
@@ -322,12 +322,12 @@
 }
 
 .asset-badge {
-    font-size: 10px;
+    font-size: var(--fs-micro);
     font-weight: 700;
     text-transform: uppercase;
     background: rgba(0, 0, 0, 0.4);
     padding: 2px 7px;
-    border-radius: 4px;
+    border-radius: var(--r-1);
     backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
@@ -335,12 +335,12 @@
 }
 
 .asset-duration-tag {
-    font-size: 11px;
+    font-size: var(--fs-label);
     font-family: var(--font-mono);
     font-weight: 600;
     background: rgba(0, 0, 0, 0.35);
     padding: 2px 6px;
-    border-radius: 4px;
+    border-radius: var(--r-1);
 }
 
 .online-asset-info {
@@ -359,7 +359,7 @@
 
 .online-asset-name {
     font-weight: 700;
-    font-size: 13px;
+    font-size: var(--fs-emphasis);
     color: #fff;
     white-space: nowrap;
     overflow: hidden;
@@ -367,12 +367,12 @@
 }
 
 .online-asset-source {
-    font-size: 10px;
+    font-size: var(--fs-micro);
     color: var(--text-muted);
 }
 
 .online-asset-desc {
-    font-size: 11px;
+    font-size: var(--fs-label);
     color: var(--text-secondary);
     line-height: 1.35;
     display: -webkit-box;
@@ -395,9 +395,9 @@
     background: rgba(255, 255, 255, 0.08);
     color: var(--text-primary);
     border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 6px;
+    border-radius: var(--r-1);
     padding: 5px 10px;
-    font-size: 11px;
+    font-size: var(--fs-label);
     font-weight: 600;
     cursor: pointer;
     display: flex;
@@ -428,9 +428,9 @@
     background: var(--accent);
     color: #0c0d12;
     border: none;
-    border-radius: 6px;
+    border-radius: var(--r-1);
     padding: 5px 12px;
-    font-size: 11px;
+    font-size: var(--fs-label);
     font-weight: 700;
     cursor: pointer;
     display: flex;
