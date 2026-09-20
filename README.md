@@ -96,13 +96,15 @@ curl -L -o models/ggml-base.bin \
 ```
 
 The binary is looked up in `bin/whisper-cli`, `~/.local/bin`, `/usr/local/bin`,
-`/usr/bin` and `PATH`, in that order. When `models/` holds several models the
-best one for the chosen language wins (`tiny` → `base` → `small` → `medium` →
-`large-v3` → `large-v3-turbo`); English-only models (`.en.`) are only used for
-English, since they cannot transcribe Swedish at all. `base` is the sensible
-default: at a 45-second clip it runs well over 10× realtime on CPU, while `tiny`
-mangles Swedish words. The app extracts 16 kHz mono audio with ffmpeg, so any
-format the editor can play can be transcribed.
+`/usr/bin` and `PATH`, in that order. The dialog lists every model it finds in
+`models/` and runs the one you pick; leaving it on *Bästa tillgängliga* means
+`base` when it is there, otherwise the first of `small` → `medium` →
+`large-v3` → `large-v3-turbo` → `tiny`. English-only models (`.en.`) are marked
+and never auto-selected for anything but English, since they cannot transcribe
+Swedish at all. `base` is the sensible default: it runs 11× realtime on CPU and
+35× on the RTX 3060 Ti, while `tiny` repeats itself on Swedish and `small` was no
+better on sung vocals for ten times the time. The app extracts 16 kHz mono audio
+with ffmpeg, so any format the editor can play can be transcribed.
 
 ### What leaves the machine
 

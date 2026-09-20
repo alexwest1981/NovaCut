@@ -80,7 +80,11 @@ test('auto language and no maxLen keep the argument list minimal', () => {
 test('the best model present wins, tiny only as the last resort', () => {
     assert.strictEqual(pickModel(['ggml-tiny.bin', 'ggml-base.bin'], 'sv'), 'ggml-base.bin');
     assert.strictEqual(pickModel(['ggml-tiny.bin'], 'sv'), 'ggml-tiny.bin');
-    assert.strictEqual(pickModel(['ggml-small.bin', 'ggml-large-v3.bin', 'ggml-base.bin'], 'auto'), 'ggml-large-v3.bin');
+    // base is the default even when heavier models are installed: they are a
+    // deliberate choice in the dialog, not a silent 10x slowdown
+    assert.strictEqual(pickModel(['ggml-small.bin', 'ggml-large-v3.bin', 'ggml-base.bin'], 'auto'), 'ggml-base.bin');
+    assert.strictEqual(pickModel(['ggml-small.bin', 'ggml-tiny.bin'], 'auto'), 'ggml-small.bin');
+    assert.strictEqual(pickModel(['ggml-tiny.bin', 'ggml-large-v3.bin'], 'auto'), 'ggml-large-v3.bin');
 });
 
 test('an English-only model is never used for a non-English language', () => {
@@ -88,6 +92,15 @@ test('an English-only model is never used for a non-English language', () => {
     assert.strictEqual(pickModel(['ggml-base.en.bin'], 'auto'), null);
     assert.strictEqual(pickModel(['ggml-base.en.bin', 'ggml-tiny.bin'], 'sv'), 'ggml-tiny.bin');
     assert.strictEqual(pickModel(['ggml-base.en.bin'], 'en'), 'ggml-base.en.bin');
+});
+
+test('an explicitly chosen model wins over the preference order', () => {
+    assert.strictEqual(pickModel(['ggml-tiny.bin', 'ggml-base.bin'], 'sv', 'ggml-tiny.bin'), 'ggml-tiny.bin');
+    // a name that is not actually on disk is ignored, never turned into a path
+    assert.strictEqual(pickModel(['ggml-tiny.bin'], 'sv', '../secrets.bin'), 'ggml-tiny.bin');
+    assert.strictEqual(pickModel(['ggml-tiny.bin'], 'sv', 'ggml-medium.bin'), 'ggml-tiny.bin');
+    // English-only models stay allowed for English whether picked or not
+    assert.strictEqual(pickModel(['ggml-base.en.bin', 'ggml-tiny.bin'], 'en'), 'ggml-base.en.bin');
 });
 
 test('pickModel ignores non-model junk and reports nothing to run', () => {

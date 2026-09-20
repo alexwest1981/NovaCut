@@ -680,10 +680,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const whisperLangSelect = document.getElementById('whisperLangSelect');
     const btnGenerateCaptions = document.getElementById('btnGenerateAutoCaptions');
     const whisperStatusLine = document.getElementById('whisperStatus');
+    const whisperModelSelect = document.getElementById('whisperModelSelect');
 
     // Say whether captions can run at all, instead of always claiming the model
     // is ready — a missing whisper-cli or model is the usual reason nothing comes
-    // out of a perfectly clear recording.
+    // out of a perfectly clear recording. Also list the models on disk so the
+    // choice of quality vs speed is his, per job.
     const refreshWhisperStatus = async () => {
         if (!whisperStatusLine || !window.novaCut || typeof window.novaCut.captionsStatus !== 'function') return;
         const status = await window.novaCut.captionsStatus();
@@ -693,6 +695,19 @@ document.addEventListener('DOMContentLoaded', () => {
             textEl.textContent = status.ready
                 ? `Whisper redo: ${status.model} via ${status.binary} – körs lokalt och offline.`
                 : status.error;
+        }
+
+        if (whisperModelSelect) {
+            const chosen = whisperModelSelect.value;
+            whisperModelSelect.innerHTML = '<option value="">Bästa tillgängliga</option>';
+            (status.models || []).forEach((name) => {
+                const opt = document.createElement('option');
+                const englishOnly = name.includes('.en.');
+                opt.value = name;
+                opt.textContent = name.replace('ggml-', '').replace('.bin', '') + (englishOnly ? ' (engelska)' : '');
+                whisperModelSelect.appendChild(opt);
+            });
+            whisperModelSelect.value = chosen;
         }
     };
 
@@ -904,6 +919,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             res = await window.novaCut.transcribeAudio({
                                 filePath: mediaSrc,
                                 language: lang,
+                                model: whisperModelSelect?.value || undefined,
                                 maxLen: (wordsPerClip === 'single') ? 14 : (wordsPerClip === 'short') ? 28 : 50
                             });
                         }
@@ -952,7 +968,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         engine.render();
 
                         if (window.projectManager && typeof window.projectManager.showToast === 'function') {
-                            window.projectManager.showToast(` ${res.segments.length} undertexter skapades med Whisper AI (${res.language?.toUpperCase() || 'AUTO'})!`);
+                            window.projectManager.showToast(` ${res.segments.length} undertexter skapades med Whisper AI (${res.language?.toUpperCase() || 'AUTO'} · ${res.model})!`);
                         }
                     } catch (err) {
                         console.error('Whisper transcription error:', err);

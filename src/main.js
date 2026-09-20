@@ -744,7 +744,7 @@ function findWhisperBinary() {
     return null;
 }
 
-function findWhisperModel(language) {
+function findWhisperModel(language, requested) {
     const modelDir = path.join(__dirname, '..', 'models');
     let names = [];
     try {
@@ -752,8 +752,19 @@ function findWhisperModel(language) {
     } catch (_) {
         return null;
     }
-    const chosen = pickModel(names, language);
+    const chosen = pickModel(names, language, requested);
     return chosen ? path.join(modelDir, chosen) : null;
+}
+
+function listWhisperModels() {
+    const modelDir = path.join(__dirname, '..', 'models');
+    let names = [];
+    try {
+        names = fs.readdirSync(modelDir);
+    } catch (_) {
+        return [];
+    }
+    return names.filter((name) => /^ggml-.*\.bin$/.test(name)).sort();
 }
 
 ipcMain.handle('captions:status', async () => {
@@ -763,14 +774,15 @@ ipcMain.handle('captions:status', async () => {
         ready: Boolean(binary && model),
         binary: binary ? path.basename(binary) : null,
         model: model ? path.basename(model) : null,
+        models: listWhisperModels(),
         error: binary ? (model ? null : WHISPER_MODEL_HINT) : WHISPER_BINARY_HINT
     };
 });
 
 ipcMain.handle('captions:transcribe', async (event, options = {}) => {
-    const { filePath, audioBuffer, language = 'auto', maxLen = 32 } = options;
+    const { filePath, audioBuffer, language = 'auto', maxLen = 32, model } = options;
     const whisperBin = findWhisperBinary();
-    const modelPath = findWhisperModel(language);
+    const modelPath = findWhisperModel(language, model);
 
     if (!whisperBin) {
         return { success: false, error: WHISPER_BINARY_HINT };

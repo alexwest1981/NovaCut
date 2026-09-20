@@ -8,16 +8,19 @@
 // 0.1s segments for clipped words.
 const MIN_SEGMENT_SECONDS = 0.6;
 
-// Which of the models in models/ to use when several are present. Tiny is the
-// weakest of them, and visibly so on Swedish, so a bigger model the user has
-// downloaded always wins. Only names listed here are preferred at all; anything
-// else (a custom quantisation) is still used if it is all there is.
-const WHISPER_MODEL_PREFERENCE = [
-    'ggml-large-v3-turbo.bin',
-    'ggml-large-v3.bin',
-    'ggml-medium.bin',
-    'ggml-small.bin',
+// Which model "Bästa tillgängliga" means when several are present in models/.
+// base sits first on purpose: it is the measured sweet spot on this machine
+// (11x realtime on CPU, 35x on the GPU) and small was no better on sung Swedish
+// while costing ten times the time — bigger models are an explicit choice in the
+// captions dialog, not a silent default. tiny is last: it repeats itself on
+// Swedish. Anything unlisted (a custom quantisation) is still used if it is all
+// there is.
+const WHISPER_DEFAULT_ORDER = [
     'ggml-base.bin',
+    'ggml-small.bin',
+    'ggml-medium.bin',
+    'ggml-large-v3.bin',
+    'ggml-large-v3-turbo.bin',
     'ggml-tiny.bin'
 ];
 
@@ -89,24 +92,33 @@ function buildWhisperArgs({ modelPath, wavPath, outBase, language, maxLen }) {
 
 /**
  * Model filenames present in models/ -> the one to run, or null when none fit.
- * An English-only model (`.en.`) cannot transcribe Swedish at all, so it is only
- * eligible when English is what was asked for.
+ * An explicitly chosen model wins; otherwise the best one for the language.
+ * English-only models (`.en.`) cannot transcribe Swedish at all, so they are
+ * only auto-selected when English is what was asked for.
  */
-function pickModel(names, language) {
-    const models = (names || []).filter((name) => typeof name === 'string'
-        && /^ggml-.*\.bin$/.test(name)
-        && (language === 'en' || !name.includes('.en.')));
-    for (const wanted of WHISPER_MODEL_PREFERENCE) {
-        if (models.includes(wanted)) {
+function pickModel(names, language, requested) {
+    const models = (names || []).filter((name) => typeof name === 'string' && /^ggml-.*\.bin$/.test(name));
+    if (models.includes(requested)) {
+        return requested;
+    }
+    // English-only models cannot transcribe Swedish at all, so they are out
+    // unless English is what was asked for.
+    const eligible = models.filter((name) => language === 'en' || !name.includes('.en.'));
+    for (const wanted of WHISPER_DEFAULT_ORDER) {
+        const englishTwin = wanted.replace(/\.bin$/, '.en.bin');
+        if (language === 'en' && eligible.includes(englishTwin)) {
+            return englishTwin;
+        }
+        if (eligible.includes(wanted)) {
             return wanted;
         }
     }
-    return models.length > 0 ? models.sort()[0] : null;
+    return eligible.length > 0 ? eligible.sort()[0] : null;
 }
 
 module.exports = {
     MIN_SEGMENT_SECONDS,
-    WHISPER_MODEL_PREFERENCE,
+    WHISPER_DEFAULT_ORDER,
     buildWhisperArgs,
     fileUrlToPath,
     parseTimestamp,
