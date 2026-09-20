@@ -876,22 +876,25 @@ class NovaCutEngine {
             mediaEl.preservesPitch = clip.preservesPitch !== false;
             mediaEl.playbackRate = Math.max(0.1, Math.min(16, currentSpeed));
             
+            // A clip dragged longer than its media keeps going: loop the source
+            // instead of freezing on its last frame.
+            const sourceTime = window.NovaCutFit.loopedTime(clipRelativeTime, mediaEl.duration);
+
             if (this.isPlaying) {
                 if (mediaEl.paused) mediaEl.play().catch(() => {});
                 // Keep video synced within 0.15s tolerance
-                if (Math.abs(mediaEl.currentTime - clipRelativeTime) > 0.15) {
-                    mediaEl.currentTime = clipRelativeTime;
+                if (Math.abs(mediaEl.currentTime - sourceTime) > 0.15) {
+                    mediaEl.currentTime = sourceTime;
                 }
             } else {
                 if (!mediaEl.paused) mediaEl.pause();
-                if (Math.abs(mediaEl.currentTime - clipRelativeTime) > 0.05) {
-                    mediaEl.currentTime = clipRelativeTime;
+                if (Math.abs(mediaEl.currentTime - sourceTime) > 0.05) {
+                    mediaEl.currentTime = sourceTime;
                 }
             }
 
             const vw = mediaEl.videoWidth || 1920;
             const vh = mediaEl.videoHeight || 1080;
-            const aspect = vw / vh;
             const fitMode = clip.fitMode || 'cover';
 
             let renderSource = mediaEl;
@@ -900,39 +903,16 @@ class NovaCutEngine {
                 if (cinCanvas) renderSource = cinCanvas;
             }
 
-            if (fitMode === 'contain') {
-                drawW = width;
-                drawH = width / aspect;
-                if (drawH > height) {
-                    drawH = height;
-                    drawW = height * aspect;
-                }
-            } else if (fitMode === 'blur-bg') {
+            if (fitMode === 'blur-bg') {
+                const plate = window.NovaCutFit.fitRect(vw, vh, width, height, 'cover');
                 targetCtx.save();
-                let bgW = width;
-                let bgH = width / aspect;
-                if (bgH < height) {
-                    bgH = height;
-                    bgW = height * aspect;
-                }
                 targetCtx.filter = 'blur(28px) brightness(0.65)';
-                targetCtx.drawImage(renderSource, -bgW / 2, -bgH / 2, bgW, bgH);
+                targetCtx.drawImage(renderSource, -plate.width / 2, -plate.height / 2, plate.width, plate.height);
                 targetCtx.restore();
-
-                drawW = width;
-                drawH = width / aspect;
-                if (drawH > height) {
-                    drawH = height;
-                    drawW = height * aspect;
-                }
-            } else {
-                drawW = width;
-                drawH = width / aspect;
-                if (drawH < height) {
-                    drawH = height;
-                    drawW = height * aspect;
-                }
             }
+            const fit = window.NovaCutFit.fitRect(vw, vh, width, height, fitMode);
+            drawW = fit.width;
+            drawH = fit.height;
 
             if (clip.borderRadius && !hasMask) {
                 targetCtx.save();
@@ -964,7 +944,6 @@ class NovaCutEngine {
 
             const iw = mediaEl.naturalWidth || width;
             const ih = mediaEl.naturalHeight || height;
-            const aspect = iw / ih;
             const fitMode = clip.fitMode || 'cover';
 
             let renderSource = mediaEl;
@@ -973,39 +952,16 @@ class NovaCutEngine {
                 if (cinCanvas) renderSource = cinCanvas;
             }
 
-            if (fitMode === 'contain') {
-                drawW = width;
-                drawH = width / aspect;
-                if (drawH > height) {
-                    drawH = height;
-                    drawW = height * aspect;
-                }
-            } else if (fitMode === 'blur-bg') {
+            if (fitMode === 'blur-bg') {
+                const plate = window.NovaCutFit.fitRect(iw, ih, width, height, 'cover');
                 targetCtx.save();
-                let bgW = width;
-                let bgH = width / aspect;
-                if (bgH < height) {
-                    bgH = height;
-                    bgW = height * aspect;
-                }
                 targetCtx.filter = 'blur(28px) brightness(0.65)';
-                targetCtx.drawImage(renderSource, -bgW / 2, -bgH / 2, bgW, bgH);
+                targetCtx.drawImage(renderSource, -plate.width / 2, -plate.height / 2, plate.width, plate.height);
                 targetCtx.restore();
-
-                drawW = width;
-                drawH = width / aspect;
-                if (drawH > height) {
-                    drawH = height;
-                    drawW = height * aspect;
-                }
-            } else {
-                drawW = width;
-                drawH = width / aspect;
-                if (drawH < height) {
-                    drawH = height;
-                    drawW = height * aspect;
-                }
             }
+            const fit = window.NovaCutFit.fitRect(iw, ih, width, height, fitMode);
+            drawW = fit.width;
+            drawH = fit.height;
 
             if (clip.borderRadius && !hasMask) {
                 targetCtx.save();
@@ -3198,8 +3154,20 @@ class NovaCutEngine {
             const x = propPosX + this.canvas.width / 2;
             const y = propPosY + this.canvas.height / 2;
             const mediaEl = this.mediaElements.get(clip.mediaId);
-            const w = (clip.isSticker ? (clip.stickerWidth || 240) : (mediaEl?.videoWidth || mediaEl?.naturalWidth || 600)) * scale;
-            const h = (clip.isSticker ? (clip.stickerHeight || 160) : (mediaEl?.videoHeight || mediaEl?.naturalHeight || 400)) * scale;
+            let w = clip.isSticker ? (clip.stickerWidth || 240) : 600;
+            let h = clip.isSticker ? (clip.stickerHeight || 160) : 400;
+            if (!clip.isSticker) {
+                // The box has to match what is actually painted: a cover-fitted
+                // clip paints the whole frame, not its 1280x720 source, so the
+                // visible overlay outside the old box was unclickable.
+                const srcW = mediaEl?.videoWidth || mediaEl?.naturalWidth || this.canvas.width;
+                const srcH = mediaEl?.videoHeight || mediaEl?.naturalHeight || this.canvas.height;
+                const fit = window.NovaCutFit.fitRect(srcW, srcH, this.canvas.width, this.canvas.height, clip.fitMode || 'cover');
+                w = fit.width;
+                h = fit.height;
+            }
+            w *= scale;
+            h *= scale;
             return {
                 left: x - w / 2,
                 top: y - h / 2,
@@ -3247,6 +3215,9 @@ class NovaCutEngine {
         this.dragClipStart = { posX: 0, posY: 0 };
         this.snappedX = false;
         this.snappedY = false;
+        this.isResizingClip = false;
+        this.resizeTarget = null;
+        this.resizeStart = { scale: 1, distance: 1 };
 
         this.canvas.addEventListener('mousedown', (e) => {
             if (e.button !== 0) return;
@@ -3266,6 +3237,18 @@ class NovaCutEngine {
             }
 
             const activeClips = window.timeline.getActiveClipsAt(this.currentTime);
+
+            // 0. Corner handles of the selected clip resize it
+            if (window.timeline.selectedClipId) {
+                const sel = window.timeline.clips.find(c => c.id === window.timeline.selectedClipId);
+                if (sel && activeClips.some(c => c.id === sel.id)) {
+                    const selBounds = this.getClipBounds(sel);
+                    if (selBounds && this.hitResizeHandle(selBounds, pt)) {
+                        this.startResizingClip(sel, pt, selBounds);
+                        return;
+                    }
+                }
+            }
 
             // 1. Check currently selected clip first
             if (window.timeline.selectedClipId) {
@@ -3314,6 +3297,23 @@ class NovaCutEngine {
                 }
             }
 
+            if (this.isResizingClip && this.resizeTarget) {
+                const pt = this.getCanvasCoordinates(e);
+                const b = this.getClipBounds(this.resizeTarget);
+                const centerX = b ? b.centerX : this.canvas.width / 2;
+                const centerY = b ? b.centerY : this.canvas.height / 2;
+                const distance = Math.hypot(pt.x - centerX, pt.y - centerY);
+                this.resizeTarget.scale = Number(window.NovaCutFit
+                    .resizedScale(this.resizeStart.scale, this.resizeStart.distance, distance)
+                    .toFixed(2));
+                const slider = document.getElementById('propScale');
+                const label = document.getElementById('valScale');
+                if (slider) slider.value = this.resizeTarget.scale;
+                if (label) label.textContent = `${this.resizeTarget.scale.toFixed(2)}x`;
+                this.render();
+                return;
+            }
+
             if (this.isDraggingClip && this.dragTarget) {
                 const pt = this.getCanvasCoordinates(e);
                 const dx = pt.x - this.dragStartPos.x;
@@ -3346,6 +3346,15 @@ class NovaCutEngine {
                 const pt = this.getCanvasCoordinates(e);
                 if (window.timeline) {
                     const activeClips = window.timeline.getActiveClipsAt(this.currentTime);
+                    const selected = window.timeline.clips.find(c => c.id === window.timeline.selectedClipId);
+                    const selBounds = selected && activeClips.some(c => c.id === selected.id)
+                        ? this.getClipBounds(selected)
+                        : null;
+                    if (selBounds && this.hitResizeHandle(selBounds, pt)) {
+                        const nearCorner = (pt.x < selBounds.centerX) === (pt.y < selBounds.centerY);
+                        this.canvas.style.cursor = nearCorner ? 'nwse-resize' : 'nesw-resize';
+                        return;
+                    }
                     const isHovering = activeClips.some(c => {
                         if (c.trackId === 'text' || (window.timeline.selectedClipId === c.id && (c.trackId === 'overlay' || c.trackId === 'effect'))) {
                             const b = this.getClipBounds(c);
@@ -3367,6 +3376,14 @@ class NovaCutEngine {
                 }
             }
 
+            if (this.isResizingClip) {
+                this.isResizingClip = false;
+                this.resizeTarget = null;
+                this.canvas.style.cursor = 'default';
+                this.render();
+                return;
+            }
+
             if (this.isDraggingClip) {
                 this.isDraggingClip = false;
                 this.dragTarget = null;
@@ -3375,6 +3392,29 @@ class NovaCutEngine {
                 this.render();
             }
         });
+    }
+
+    /** Is pt (canvas pixels) on one of the four corner handles of bounds? */
+    hitResizeHandle(bounds, pt, radius = 16) {
+        const corners = [
+            { x: bounds.left, y: bounds.top },
+            { x: bounds.right, y: bounds.top },
+            { x: bounds.left, y: bounds.bottom },
+            { x: bounds.right, y: bounds.bottom }
+        ];
+        return corners.some(c => Math.hypot(pt.x - c.x, pt.y - c.y) <= radius);
+    }
+
+    startResizingClip(clip, pt, bounds) {
+        this.isResizingClip = true;
+        this.resizeTarget = clip;
+        this.resizeStart = {
+            scale: clip.scale || 1.0,
+            distance: Math.max(1, Math.hypot(pt.x - bounds.centerX, pt.y - bounds.centerY))
+        };
+        this.activeSnapGuides = [];
+        this.canvas.style.cursor = 'nwse-resize';
+        this.render();
     }
 
     startDraggingClip(clip, pt) {
@@ -4225,16 +4265,18 @@ class NovaCutEngine {
                 const currentSpeed = this.getClipInstantaneousSpeed(clip, localTime);
                 el.preservesPitch = clip.preservesPitch !== false;
                 el.playbackRate = Math.max(0.1, Math.min(16, currentSpeed));
+                // audio trimmed past its own end loops too, rather than going silent
+                const audioSourceTime = window.NovaCutFit.loopedTime(clipRelativeTime, el.duration);
 
                 if (this.isPlaying) {
                     if (el.paused) el.play().catch(() => {});
-                    if (Math.abs(el.currentTime - clipRelativeTime) > 0.15) {
-                        el.currentTime = clipRelativeTime;
+                    if (Math.abs(el.currentTime - audioSourceTime) > 0.15) {
+                        el.currentTime = audioSourceTime;
                     }
                 } else {
                     if (!el.paused) el.pause();
-                    if (Math.abs(el.currentTime - clipRelativeTime) > 0.05) {
-                        el.currentTime = clipRelativeTime;
+                    if (Math.abs(el.currentTime - audioSourceTime) > 0.05) {
+                        el.currentTime = audioSourceTime;
                     }
                 }
             }
