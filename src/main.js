@@ -6,7 +6,7 @@ const { spawn, exec, execSync, execFile } = require('child_process');
 const https = require('https');
 const http = require('http');
 const publisherService = require('./publisher-service');
-const { buildWhisperArgs, fileUrlToPath, segmentsFromWhisperResult } = require('./transcript');
+const { buildWhisperArgs, fileUrlToPath, pickModel, segmentsFromWhisperResult } = require('./transcript');
 
 // Wayland & Linux Hardware Acceleration
 app.commandLine.appendSwitch('ozone-platform', 'wayland');
@@ -721,16 +721,62 @@ ipcMain.handle('export:cancelPipe', async (event, sessionId) => {
 // Transcode Export via FFmpeg with Full Multi-Track Audio Mixing
 
 // Whisper AI Speech-to-Text Transcription Handler
+//
+// whisper.cpp is not bundled (a binary linked against shared libraries cannot run
+// on another machine, see README), and neither is a model. Look for both instead
+// of assuming one exact path: a distro package (whisper-cpp) or a local build
+// both show up, and a fresh checkout does not lose the feature silently.
+const WHISPER_BINARY_HINT = 'Ingen whisper-cli hittades. Bygg whisper.cpp och lägg binären i bin/whisper-cli (eller installera den, t.ex. "sudo pacman -S whisper-cpp").';
+const WHISPER_MODEL_HINT = 'Ingen Whisper-modell hittades i models/. Ladda ner en, t.ex. ggml-base.bin (svenska blir tydligare än med tiny).';
+
+function findWhisperBinary() {
+    const dirs = [
+        path.join(__dirname, '..', 'bin'),
+        path.join(os.homedir(), '.local', 'bin'),
+        '/usr/local/bin',
+        '/usr/bin'
+    ].concat((process.env.PATH || '').split(path.delimiter));
+    for (const dir of dirs) {
+        if (!dir) continue;
+        const candidate = path.join(dir, 'whisper-cli');
+        if (fs.existsSync(candidate)) return candidate;
+    }
+    return null;
+}
+
+function findWhisperModel(language) {
+    const modelDir = path.join(__dirname, '..', 'models');
+    let names = [];
+    try {
+        names = fs.readdirSync(modelDir);
+    } catch (_) {
+        return null;
+    }
+    const chosen = pickModel(names, language);
+    return chosen ? path.join(modelDir, chosen) : null;
+}
+
+ipcMain.handle('captions:status', async () => {
+    const binary = findWhisperBinary();
+    const model = findWhisperModel('auto');
+    return {
+        ready: Boolean(binary && model),
+        binary: binary ? path.basename(binary) : null,
+        model: model ? path.basename(model) : null,
+        error: binary ? (model ? null : WHISPER_MODEL_HINT) : WHISPER_BINARY_HINT
+    };
+});
+
 ipcMain.handle('captions:transcribe', async (event, options = {}) => {
     const { filePath, audioBuffer, language = 'auto', maxLen = 32 } = options;
-    const whisperBin = path.join(__dirname, '..', 'bin', 'whisper-cli');
-    const modelPath = path.join(__dirname, '..', 'models', 'ggml-tiny.bin');
+    const whisperBin = findWhisperBinary();
+    const modelPath = findWhisperModel(language);
 
-    if (!fs.existsSync(whisperBin)) {
-        return { success: false, error: 'whisper-cli binär saknas i bin/' };
+    if (!whisperBin) {
+        return { success: false, error: WHISPER_BINARY_HINT };
     }
-    if (!fs.existsSync(modelPath)) {
-        return { success: false, error: 'Whisper-modell (ggml-tiny.bin) saknas i models/' };
+    if (!modelPath) {
+        return { success: false, error: WHISPER_MODEL_HINT };
     }
 
     const tempDir = os.tmpdir();
@@ -831,6 +877,7 @@ ipcMain.handle('captions:transcribe', async (event, options = {}) => {
         return {
             success: true,
             language: detectedLang,
+            model: path.basename(modelPath),
             segments
         };
     } catch (err) {

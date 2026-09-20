@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld('novaCut', {
     deleteProject: (id) => ipcRenderer.invoke('project:delete', id),
     openProjectFile: () => ipcRenderer.invoke('project:openFile'),
     transcribeAudio: (options) => ipcRenderer.invoke('captions:transcribe', options),
+    captionsStatus: () => ipcRenderer.invoke('captions:status'),
     generateAiImage: (options) => ipcRenderer.invoke('ai:generateImage', options),
     locateMediaFile: (filename, fallbackPath) => ipcRenderer.invoke('media:locate', filename, fallbackPath),
     extractAudioMetadata: (filePath) => ipcRenderer.invoke('audio:extractMetadata', filePath),

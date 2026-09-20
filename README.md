@@ -81,11 +81,28 @@ npm test          # unit tests, no display and no Electron runtime needed
 | `test/*.test.js` | `node:test` suites, run by `npm test` and by CI |
 
 `ffmpeg`/`ffprobe` come from the system (in the Flatpak, from the freedesktop
-runtime) — nothing media-related is bundled. Captions need a `whisper.cpp`
-build and a GGML model under `bin/` and `models/`; neither ships in this
-repository (a linked binary without its shared libraries cannot run, so it is
-gitignored rather than committed). The app reports the missing pieces instead
-of failing silently.
+runtime) — nothing media-related is bundled. Captions need a `whisper.cpp` build
+and a GGML model; neither ships in this repository (a linked binary without its
+shared libraries cannot run elsewhere, so it is gitignored rather than committed).
+The captions dialog checks both when it opens and names what is missing.
+
+```bash
+sudo pacman -S whisper-cpp        # gives whisper-cli on PATH; picked up as-is
+#   or: build whisper.cpp yourself and put the result at bin/whisper-cli
+
+mkdir -p models                   # a model, in models/ next to the repo
+curl -L -o models/ggml-base.bin \
+  https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin
+```
+
+The binary is looked up in `bin/whisper-cli`, `~/.local/bin`, `/usr/local/bin`,
+`/usr/bin` and `PATH`, in that order. When `models/` holds several models the
+best one for the chosen language wins (`tiny` → `base` → `small` → `medium` →
+`large-v3` → `large-v3-turbo`); English-only models (`.en.`) are only used for
+English, since they cannot transcribe Swedish at all. `base` is the sensible
+default: at a 45-second clip it runs well over 10× realtime on CPU, while `tiny`
+mangles Swedish words. The app extracts 16 kHz mono audio with ffmpeg, so any
+format the editor can play can be transcribed.
 
 ### What leaves the machine
 

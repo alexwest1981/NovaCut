@@ -8,6 +8,19 @@
 // 0.1s segments for clipped words.
 const MIN_SEGMENT_SECONDS = 0.6;
 
+// Which of the models in models/ to use when several are present. Tiny is the
+// weakest of them, and visibly so on Swedish, so a bigger model the user has
+// downloaded always wins. Only names listed here are preferred at all; anything
+// else (a custom quantisation) is still used if it is all there is.
+const WHISPER_MODEL_PREFERENCE = [
+    'ggml-large-v3-turbo.bin',
+    'ggml-large-v3.bin',
+    'ggml-medium.bin',
+    'ggml-small.bin',
+    'ggml-base.bin',
+    'ggml-tiny.bin'
+];
+
 /** file:// URL or plain path -> filesystem path. */
 function fileUrlToPath(value) {
     if (typeof value !== 'string' || !value.startsWith('file://')) {
@@ -74,10 +87,29 @@ function buildWhisperArgs({ modelPath, wavPath, outBase, language, maxLen }) {
     return args;
 }
 
+/**
+ * Model filenames present in models/ -> the one to run, or null when none fit.
+ * An English-only model (`.en.`) cannot transcribe Swedish at all, so it is only
+ * eligible when English is what was asked for.
+ */
+function pickModel(names, language) {
+    const models = (names || []).filter((name) => typeof name === 'string'
+        && /^ggml-.*\.bin$/.test(name)
+        && (language === 'en' || !name.includes('.en.')));
+    for (const wanted of WHISPER_MODEL_PREFERENCE) {
+        if (models.includes(wanted)) {
+            return wanted;
+        }
+    }
+    return models.length > 0 ? models.sort()[0] : null;
+}
+
 module.exports = {
     MIN_SEGMENT_SECONDS,
+    WHISPER_MODEL_PREFERENCE,
     buildWhisperArgs,
     fileUrlToPath,
     parseTimestamp,
+    pickModel,
     segmentsFromWhisperResult
 };

@@ -679,6 +679,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const whisperClipSelect = document.getElementById('whisperClipSelect');
     const whisperLangSelect = document.getElementById('whisperLangSelect');
     const btnGenerateCaptions = document.getElementById('btnGenerateAutoCaptions');
+    const whisperStatusLine = document.getElementById('whisperStatus');
+
+    // Say whether captions can run at all, instead of always claiming the model
+    // is ready — a missing whisper-cli or model is the usual reason nothing comes
+    // out of a perfectly clear recording.
+    const refreshWhisperStatus = async () => {
+        if (!whisperStatusLine || !window.novaCut || typeof window.novaCut.captionsStatus !== 'function') return;
+        const status = await window.novaCut.captionsStatus();
+        whisperStatusLine.style.color = status.ready ? '#00d482' : '#ffb020';
+        const textEl = whisperStatusLine.lastElementChild;
+        if (textEl) {
+            textEl.textContent = status.ready
+                ? `Whisper redo: ${status.model} via ${status.binary} – körs lokalt och offline.`
+                : status.error;
+        }
+    };
 
     if (btnOpenCaptions && captionsModal) {
         const populateWhisperClips = () => {
@@ -733,6 +749,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         btnOpenCaptions.addEventListener('click', () => {
             populateWhisperClips();
+            refreshWhisperStatus();
             captionsModal.classList.add('active');
         });
 
@@ -893,7 +910,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         if (!res || !res.success || !res.segments || res.segments.length === 0) {
                             console.warn('Whisper result:', res);
-                            alert(`Whisper kunde inte identifiera något tydligt tal i klippet (${res?.error || 'Inga röstsegment detekterades'}).`);
+                            alert(`Whisper skapade inga undertexter.\n\n${res?.error || 'Inga röstsegment hittades i klippet.'}`);
                             btnGenerateCaptions.disabled = false;
                             btnGenerateCaptions.innerHTML = origBtnText;
                             return;

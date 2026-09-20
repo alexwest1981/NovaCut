@@ -6,6 +6,7 @@ const {
     buildWhisperArgs,
     fileUrlToPath,
     parseTimestamp,
+    pickModel,
     segmentsFromWhisperResult
 } = require('../src/transcript.js');
 
@@ -74,4 +75,25 @@ test('auto language and no maxLen keep the argument list minimal', () => {
     const args = buildWhisperArgs({ modelPath: 'm', wavPath: 'w', outBase: 'o', language: 'auto', maxLen: 0 });
     assert.deepStrictEqual(args.slice(-2), ['-l', 'auto']);
     assert.ok(!args.includes('-ml'));
+});
+
+test('the best model present wins, tiny only as the last resort', () => {
+    assert.strictEqual(pickModel(['ggml-tiny.bin', 'ggml-base.bin'], 'sv'), 'ggml-base.bin');
+    assert.strictEqual(pickModel(['ggml-tiny.bin'], 'sv'), 'ggml-tiny.bin');
+    assert.strictEqual(pickModel(['ggml-small.bin', 'ggml-large-v3.bin', 'ggml-base.bin'], 'auto'), 'ggml-large-v3.bin');
+});
+
+test('an English-only model is never used for a non-English language', () => {
+    assert.strictEqual(pickModel(['ggml-base.en.bin'], 'sv'), null);
+    assert.strictEqual(pickModel(['ggml-base.en.bin'], 'auto'), null);
+    assert.strictEqual(pickModel(['ggml-base.en.bin', 'ggml-tiny.bin'], 'sv'), 'ggml-tiny.bin');
+    assert.strictEqual(pickModel(['ggml-base.en.bin'], 'en'), 'ggml-base.en.bin');
+});
+
+test('pickModel ignores non-model junk and reports nothing to run', () => {
+    assert.strictEqual(pickModel(['README.md', 'ggml-base.bin.tmp', 'ggml-base.bin'], 'sv'), 'ggml-base.bin');
+    assert.strictEqual(pickModel(['README.md'], 'sv'), null);
+    assert.strictEqual(pickModel([], 'sv'), null);
+    assert.strictEqual(pickModel(undefined, 'sv'), null);
+    assert.strictEqual(pickModel(['ggml-something-else.bin'], 'sv'), 'ggml-something-else.bin');
 });
