@@ -291,7 +291,9 @@ const NOVACUT_ONLINE_ASSETS = [
         downloadUrl: 'assets/overlays/cinema_239_letterbox_matte.mp4',
         downloadFileName: 'cinema_239_letterbox_matte.mp4',
         defaultTrack: 'overlay',
-        blendMode: 'screen',
+        // multiply, not screen: black bars have to darken the picture, and under
+        // screen (where black adds nothing) they would do nothing at all
+        blendMode: 'multiply',
         description: 'Klassiska filmiska svarta kanter uppe och nere för äkta Hollywood 2.39:1 format.'
     },
     {
@@ -307,7 +309,7 @@ const NOVACUT_ONLINE_ASSETS = [
         downloadUrl: 'assets/overlays/super8_rounded_frame_overlay.mp4',
         downloadFileName: 'super8_rounded_frame_overlay.mp4',
         defaultTrack: 'overlay',
-        blendMode: 'screen',
+        blendMode: 'multiply',
         description: 'Rundade mjuka hörn och vintage filmmask för semester- och familjefilmer.'
     },
     {
