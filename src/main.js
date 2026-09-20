@@ -2,7 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog, shell, screen } = require('electron
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const { spawn, exec, execSync, execFile } = require('child_process');
+const { spawn, exec, execSync, execFile, execFileSync } = require('child_process');
 const https = require('https');
 const http = require('http');
 const publisherService = require('./publisher-service');
@@ -523,6 +523,27 @@ ipcMain.handle('export:getHwAcceleration', async () => {
 // Streaming Direct Pipe Export via FFmpeg
 const activeExportSessions = new Map();
 
+// A clip can be listed as an audio track and still carry no audio at all (a silent
+// VFX overlay, for instance). FFmpeg then refuses the whole filtergraph with
+// "Stream specifier ':a' ... matches no streams" and dies mid-export, so ask the
+// file itself before wiring it into the mix.
+const audioStreamCache = new Map();
+function hasAudioStream (filePath) {
+    if (audioStreamCache.has(filePath)) return audioStreamCache.get(filePath);
+    let has = false;
+    try {
+        const out = execFileSync('ffprobe', [
+            '-v', 'error', '-select_streams', 'a', '-show_entries', 'stream=index', '-of', 'csv=p=0', filePath
+        ], { timeout: 10000 }).toString().trim();
+        has = out.length > 0;
+    } catch (_) {
+        has = false;
+    }
+    audioStreamCache.set(filePath, has);
+    console.log(`[NovaCut Pipe Export] ${has ? 'audio' : 'no audio stream'}: ${filePath}`);
+    return has;
+}
+
 ipcMain.handle('export:startPipe', async (event, options) => {
     const sessionId = `pipe-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
     const {
@@ -562,6 +583,7 @@ ipcMain.handle('export:startPipe', async (event, options) => {
             const clean = t.filePath.replace(/^file:\/\//, '');
             if (!fs.existsSync(clean)) continue;
             if (/\.(png|jpe?g|webp|gif|bmp|svg|avif|tiff?)$/i.test(clean)) continue;
+            if (!hasAudioStream(clean)) continue;
             validAudio.push({ ...t, cleanPath: clean });
         }
     }
@@ -645,10 +667,14 @@ ipcMain.handle('export:startPipe', async (event, options) => {
     const proc = spawn('ffmpeg', args, { stdio: ['pipe', 'pipe', 'pipe'] });
 
     let stderrBuffer = '';
+    let exitInfo = null;
     proc.stderr.on('data', (d) => {
         const str = d.toString();
         stderrBuffer += str;
         if (stderrBuffer.length > 20000) stderrBuffer = stderrBuffer.slice(-20000);
+        // the reason an export dies is in here, so make it visible instead of
+        // holding it in a buffer nobody reads until the session ends
+        str.split('\n').filter((l) => l.trim()).forEach((l) => console.log(`[Pipe Export ${sessionId}] ${l}`));
     });
 
     const session = {
@@ -656,8 +682,10 @@ ipcMain.handle('export:startPipe', async (event, options) => {
         proc,
         outputPath,
         getStderr: () => stderrBuffer,
+        getExit: () => exitInfo,
         promise: new Promise((res, rej) => {
             proc.on('close', (code) => {
+                exitInfo = { code, stderr: stderrBuffer.slice(-600) };
                 if (code === 0) {
                     res({ success: true, outputPath });
                 } else {
@@ -675,6 +703,12 @@ ipcMain.handle('export:startPipe', async (event, options) => {
 ipcMain.handle('export:writeFrame', async (event, sessionId, arrayBuffer) => {
     const session = activeExportSessions.get(sessionId);
     if (!session || !session.proc || !session.proc.stdin.writable) {
+        // report why FFmpeg stopped, not just that the pipe is gone: the renderer
+        // shows this message verbatim and "pipe not active" says nothing
+        const exit = session && session.getExit ? session.getExit() : null;
+        if (exit) {
+            throw new Error(`FFmpeg avslutades i förtid (kod ${exit.code}): ${exit.stderr.slice(-300)}`);
+        }
         throw new Error(`Export session ${sessionId} is not active or stdin not writable`);
     }
 
