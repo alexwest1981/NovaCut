@@ -445,7 +445,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     badge.textContent = formatDuration(audio.duration);
                     const btnAll = mediaCard.querySelector('.btn-place-all');
                     if (btnAll) {
-                        btnAll.textContent = `${ncIcon('music')} Hela låten (${formatDuration(audio.duration)})`;
+                        // innerHTML: ncIcon returns markup, and textContent showed the tag as text
+                        btnAll.innerHTML = `${ncIcon('music')} Hela låten (${formatDuration(audio.duration)})`;
                     }
                 }
             });
